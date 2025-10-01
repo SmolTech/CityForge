@@ -60,6 +60,7 @@ jobs:
       with:
         context: ./
         file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta-frontend.outputs.tags }}
         labels: ${{ steps.meta-frontend.outputs.labels }}
@@ -71,6 +72,7 @@ jobs:
       with:
         context: ./backend
         file: ./backend/Dockerfile
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
@@ -93,6 +95,7 @@ jobs:
       with:
         context: ./indexer
         file: ./indexer/Dockerfile
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta-indexer.outputs.tags }}
         labels: ${{ steps.meta-indexer.outputs.labels }}
