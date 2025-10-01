@@ -1,0 +1,5 @@
+npx lint-staged
+
+# Run semgrep security analysis
+echo "Running semgrep security analysis..."
+npm run semgrep:ci

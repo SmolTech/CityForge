@@ -1,0 +1,16 @@
+{
+  "name": "{{FULL_NAME}}",
+  "short_name": "{{SHORT_NAME}}",
+  "description": "{{DESCRIPTION}}",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "{{BACKGROUND_COLOR}}",
+  "theme_color": "{{THEME_COLOR}}",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
