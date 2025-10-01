@@ -4,22 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-CityForge is a full-stack community website platform built with Next.js 15 and a Python Flask backend. The application features news, calendar events, business directory, and op-ed sections for local communities. The project uses Docker containers deployed to Kubernetes with a local registry system.
+CityForge is a full-stack community website platform built with Next.js 15 and a Python Flask backend. The application features a business directory, resource directory, community submissions, and search functionality. Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
 
 ## Architecture
 
-The project is structured as a dual-component application:
+The project is structured as a three-component application:
 
 - **Frontend**: Next.js 15 with TypeScript, Tailwind CSS v4, and app router
 - **Backend**: Python Flask API with SQLAlchemy ORM and PostgreSQL database
-- **Infrastructure**: Docker containers deployed to Kubernetes with automated image management
+- **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
+- **Infrastructure**: Docker containers with automated builds via GitHub Actions
 
 ### Key Components
 
-- **Frontend App** (`src/app/`): Next.js pages for news, calendar, business directory, and op-ed sections
-- **Backend API** (`backend/`): Flask application providing REST APIs for all content types
-- **Database Models**: PostgreSQL schemas for articles, events, businesses, and op-eds
-- **Kubernetes Manifests** (`k8s/`): Complete deployment configuration including PostgreSQL
+- **Frontend App** (`src/app/`): Next.js pages for business directory, resources, admin dashboard, authentication, and search
+- **Backend API** (`backend/`): Flask application providing REST APIs for cards, resources, auth, admin, and search
+- **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
+- **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources
+- **GitHub Actions** (`.github/workflows/`): Automated Docker image builds for all components
 
 ## Development Commands
 
@@ -48,30 +50,44 @@ npm run typecheck     # TypeScript validation
 ```bash
 # From backend/ directory
 pip install -r requirements.txt
-python app.py  # Development server on port 5000
+
+# Initialize database (prompts for admin email and password)
+python init_db.py
+
+# Development server
+python app.py  # Runs on port 5000
+
+# Run tests
+./run_tests.sh
+pytest
 
 # Production deployment uses gunicorn
 gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
 ```
 
-### Container & Deployment Commands
+### Indexer Development
 
 ```bash
-# Build and deploy everything
-make all
+# From indexer/ directory
+pip install -r requirements.txt
 
-# Individual operations
-make build                    # Build both frontend and backend images
-make build-frontend          # Build frontend Docker image only
-make build-backend           # Build backend Docker image only
-make push                    # Push both images to registry
-make update-k8s              # Update Kubernetes manifests with new image SHAs
-make deploy                  # Deploy to Kubernetes cluster
-make clean                   # Remove Docker images
+# Run indexer (requires OpenSearch and backend API to be running)
+python indexer.py
+```
 
-# Kubernetes operations
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -k k8s/ -n community
+### Docker & Deployment
+
+Docker images are automatically built and pushed to GitHub Container Registry when code is pushed to `main` or `develop` branches:
+
+- `ghcr.io/smoltech/cityforge/cityforge-frontend`
+- `ghcr.io/smoltech/cityforge/cityforge-backend`
+- `ghcr.io/smoltech/cityforge/cityforge-indexer`
+
+```bash
+# Manual Docker builds for local testing
+docker build -t cityforge-frontend .
+docker build -t cityforge-backend ./backend
+docker build -t cityforge-indexer ./indexer
 ```
 
 ## Code Quality & Git Hooks
@@ -83,33 +99,103 @@ The project enforces code quality through automated git hooks:
 
 ## Key Development Notes
 
-### Container Registry
-- Uses local registry at `192.168.0.63:32000`
-- Images are built with `--network=host` for build-time network access
-- Kubernetes deployments use immutable SHA256 image references that are automatically updated
+### Database Initialization
+
+The `init_db.py` script creates database tables and prompts for admin credentials:
+
+```bash
+cd backend
+python init_db.py
+# Prompts for admin email and password
+```
+
+**Important**: Never use default credentials. The script requires interactive input for security.
 
 ### Database Schema
-The Flask backend defines four main models:
-- `NewsArticle`: Community news with author and featured status
-- `CalendarEvent`: Community events with date/time and location
-- `Business`: Local business directory with categories
-- `OpEd`: Opinion editorials with approval workflow
+
+The Flask backend defines the following main models:
+
+**Core Models:**
+- `User`: User authentication and authorization (admin/user roles)
+- `Card`: Business cards in the directory (name, description, contact info, tags, images)
+- `Tag`: Tags for categorizing cards
+- `CardSubmission`: User-submitted cards pending admin approval
+- `CardModification`: User-suggested edits to existing cards
+
+**Resource Models:**
+- `ResourceCategory`: Categories for the resource directory
+- `ResourceItem`: Items in the resource directory
+- `QuickAccessItem`: Featured quick-access items
+- `ResourceConfig`: Site-wide configuration values
 
 ### API Endpoints
-All backend APIs are prefixed with `/api/`:
-- `/api/news` - News articles (supports featured filtering)
-- `/api/events` - Calendar events (supports upcoming filtering)
-- `/api/businesses` - Business directory (supports category filtering)
-- `/api/op-eds` - Opinion editorials (supports approval filtering)
+
+**Public APIs:**
+- `/api/cards` - Business directory (GET with filtering by tag)
+- `/api/cards/<id>` - Individual card details
+- `/api/business/<id>` - Business card by ID with slug support
+- `/api/tags` - Available tags
+- `/api/submissions` - Submit new cards (POST)
+- `/api/cards/<id>/suggest-edit` - Suggest edits to existing cards (POST)
+- `/api/search` - Full-text search via OpenSearch
+- `/api/resources/*` - Resource directory endpoints
+- `/api/site-config` - Site configuration
+- `/api/upload` - File uploads
+
+**Auth APIs:**
+- `/register` - User registration
+- `/login` - User login
+- `/logout` - User logout
+- `/me` - Current user info
+- `/update-email`, `/update-password`, `/update-profile` - User account management
+
+**Admin APIs** (require admin role):
+- `/admin/cards/*` - CRUD operations for cards
+- `/admin/submissions/*` - Approve/reject card submissions
+- `/admin/modifications/*` - Approve/reject card edit suggestions
+- `/admin/users/*` - User management
+- `/admin/tags/*` - Tag management
+- `/admin/resources/*` - Resource directory management
 
 ### Frontend Structure
-Uses Next.js 15 app router with dedicated pages:
-- `/news` - News articles page
-- `/calendar` - Community calendar
+
+Uses Next.js 15 app router with the following pages:
+
+- `/` - Homepage
 - `/business` - Business directory
-- `/op-ed` - Opinion & editorial section
+- `/resources` - Resource directory
+- `/search` - Search interface
+- `/submit` - Submit new business card
+- `/login`, `/register` - Authentication
+- `/dashboard` - User dashboard
+- `/settings` - User settings
+- `/admin` - Admin dashboard (admin users only)
 
 ### Styling
 - Tailwind CSS v4 with custom configuration
 - Geist fonts (sans and mono variants)
 - Responsive design with dark mode support
+
+### Search Functionality
+
+The indexer component (`indexer/indexer.py`) provides full-text search:
+- Crawls business card websites (respects robots.txt)
+- Discovers and parses sitemaps
+- Indexes content into OpenSearch
+- Supports multi-page indexing per business
+- Runs as a scheduled job or on-demand
+
+### Environment Variables
+
+**Frontend:**
+- `NEXT_PUBLIC_API_URL` - Backend API URL
+
+**Backend:**
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection
+- `UPLOAD_FOLDER` - Directory for uploaded files
+- `SECRET_KEY` - Flask session secret
+
+**Indexer:**
+- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection
+- `NAMESPACE` - Namespace for index isolation
+- `BACKEND_URL` - Backend API URL for loading cards
