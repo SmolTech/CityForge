@@ -1,16 +1,18 @@
-from app import app, db
+from app import create_app, db
 from datetime import datetime
 import getpass
 import sys
 import re
 
 def init_database():
+    app = create_app()
+
     with app.app_context():
         db.create_all()
 
         print("Database tables created successfully!")
 
-        from app import Card, Tag, User
+        from app.models.user import User
 
         # Create admin user
         print("\n=== Admin User Setup ===")
