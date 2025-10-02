@@ -1,3 +1,5 @@
+npm run format
+
 npx lint-staged
 
 # Run semgrep security analysis
