@@ -12,7 +12,13 @@ interface CardEditFormProps {
   loading?: boolean;
 }
 
-export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, loading = false }: CardEditFormProps) {
+export default function CardEditForm({
+  card,
+  onSave,
+  onCancel,
+  isAdmin = false,
+  loading = false,
+}: CardEditFormProps) {
   const [formData, setFormData] = useState({
     name: card.name,
     description: card.description,
@@ -46,7 +52,7 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
         email: formData.email.trim() || undefined,
         address: formData.address.trim() || undefined,
         address_override_url: formData.address_override_url.trim() || undefined,
-        tags: tags
+        tags: tags,
       };
 
       if (isAdmin) {
@@ -56,16 +62,21 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
 
       await onSave(submitData);
     } catch (error) {
-      console.error('Failed to save card:', error);
+      console.error("Failed to save card:", error);
       setError("Failed to save changes. Please try again.");
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -82,8 +93,18 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               disabled={loading}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -96,7 +117,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Name *
               </label>
               <input
@@ -111,7 +135,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Description *
               </label>
               <textarea
@@ -125,10 +152,12 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
               />
             </div>
 
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="website_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="website_url"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Website
                 </label>
                 <input
@@ -142,7 +171,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
               </div>
 
               <div>
-                <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="phone_number"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Phone Number
                 </label>
                 <input
@@ -157,7 +189,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Email
               </label>
               <input
@@ -171,7 +206,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Address
               </label>
               <input
@@ -185,7 +223,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
             </div>
 
             <div>
-              <label htmlFor="address_override_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="address_override_url"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Custom Address Link (optional)
               </label>
               <input
@@ -198,7 +239,8 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
                 placeholder="https://custom-map-link.com"
               />
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Provide a custom link for directions. If not provided, the address will link to Google Maps.
+                Provide a custom link for directions. If not provided, the
+                address will link to Google Maps.
               </p>
             </div>
 
@@ -224,7 +266,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
                     onChange={handleChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="featured" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="featured"
+                    className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                  >
                     Featured
                   </label>
                 </div>
@@ -238,7 +283,10 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
                     onChange={handleChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="approved" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="approved"
+                    className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                  >
                     Approved
                   </label>
                 </div>
@@ -259,7 +307,11 @@ export default function CardEditForm({ card, onSave, onCancel, isAdmin = false, 
                 disabled={loading}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Saving..." : isAdmin ? "Save Changes" : "Submit Suggestion"}
+                {loading
+                  ? "Saving..."
+                  : isAdmin
+                    ? "Save Changes"
+                    : "Submit Suggestion"}
               </button>
             </div>
           </form>

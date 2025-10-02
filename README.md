@@ -7,7 +7,6 @@
 - **Code Quality**: ESLint + Prettier + Semgrep with git hooks
 - **Security**: Semgrep static analysis for vulnerability detection
 - **Containerization**: Docker with multi-stage builds
-- **Deployment**: Kubernetes manifests included
 - **Node Version**: 20 LTS
 
 ## Development
@@ -43,10 +42,10 @@ npm run semgrep
 
 ## Developing With Docker
 
-```
 docker-compose up
 docker exec -it cityforge-backend python init_db.py
-```
+
+````
 
 ## Security Analysis
 
@@ -58,7 +57,7 @@ npm run semgrep
 
 # Run security analysis (CI mode - quiet output)
 npm run semgrep:ci
-```
+````
 
 ## Git Hooks
 

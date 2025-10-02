@@ -6,7 +6,11 @@ interface Props {
   placeholder?: string;
 }
 
-export default function SearchBar({ value, onChange, placeholder = "Search..." }: Props) {
+export default function SearchBar({
+  value,
+  onChange,
+  placeholder = "Search...",
+}: Props) {
   const [inputValue, setInputValue] = useState(value);
 
   useEffect(() => {
