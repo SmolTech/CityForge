@@ -116,6 +116,7 @@ python init_db.py
 The Flask backend defines the following main models:
 
 **Core Models:**
+
 - `User`: User authentication and authorization (admin/user roles)
 - `Card`: Business cards in the directory (name, description, contact info, tags, images)
 - `Tag`: Tags for categorizing cards
@@ -123,6 +124,7 @@ The Flask backend defines the following main models:
 - `CardModification`: User-suggested edits to existing cards
 
 **Resource Models:**
+
 - `ResourceCategory`: Categories for the resource directory
 - `ResourceItem`: Items in the resource directory
 - `QuickAccessItem`: Featured quick-access items
@@ -131,6 +133,7 @@ The Flask backend defines the following main models:
 ### API Endpoints
 
 **Public APIs:**
+
 - `/api/cards` - Business directory (GET with filtering by tag)
 - `/api/cards/<id>` - Individual card details
 - `/api/business/<id>` - Business card by ID with slug support
@@ -143,6 +146,7 @@ The Flask backend defines the following main models:
 - `/api/upload` - File uploads
 
 **Auth APIs:**
+
 - `/register` - User registration
 - `/login` - User login
 - `/logout` - User logout
@@ -150,6 +154,7 @@ The Flask backend defines the following main models:
 - `/update-email`, `/update-password`, `/update-profile` - User account management
 
 **Admin APIs** (require admin role):
+
 - `/admin/cards/*` - CRUD operations for cards
 - `/admin/submissions/*` - Approve/reject card submissions
 - `/admin/modifications/*` - Approve/reject card edit suggestions
@@ -172,6 +177,7 @@ Uses Next.js 15 app router with the following pages:
 - `/admin` - Admin dashboard (admin users only)
 
 ### Styling
+
 - Tailwind CSS v4 with custom configuration
 - Geist fonts (sans and mono variants)
 - Responsive design with dark mode support
@@ -179,6 +185,7 @@ Uses Next.js 15 app router with the following pages:
 ### Search Functionality
 
 The indexer component (`indexer/indexer.py`) provides full-text search:
+
 - Crawls business card websites (respects robots.txt)
 - Discovers and parses sitemaps
 - Indexes content into OpenSearch
@@ -188,14 +195,17 @@ The indexer component (`indexer/indexer.py`) provides full-text search:
 ### Environment Variables
 
 **Frontend:**
+
 - `NEXT_PUBLIC_API_URL` - Backend API URL
 
 **Backend:**
+
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection
 - `UPLOAD_FOLDER` - Directory for uploaded files
 - `SECRET_KEY` - Flask session secret
 
 **Indexer:**
+
 - `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection
 - `NAMESPACE` - Namespace for index isolation
 - `BACKEND_URL` - Backend API URL for loading cards

@@ -15,20 +15,26 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
     return "text-xs";
   };
 
-  const maxCount = Math.max(...tags.map(tag => tag.count));
+  const maxCount = Math.max(...tags.map((tag) => tag.count));
 
   if (tags.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Tags</h3>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">No tags available</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+          Tags
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">
+          No tags available
+        </p>
       </div>
     );
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Tags</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+        Tags
+      </h3>
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => {
           const isSelected = selectedTags.includes(tag.name);
@@ -48,9 +54,7 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
             >
               {tag.name}
               {tag.count > 0 && (
-                <span className="ml-1 text-xs opacity-75">
-                  {tag.count}
-                </span>
+                <span className="ml-1 text-xs opacity-75">{tag.count}</span>
               )}
             </button>
           );

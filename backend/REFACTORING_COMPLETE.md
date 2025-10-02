@@ -40,11 +40,13 @@ backend/
 ## What Was Done
 
 ### ✅ Models (4 files)
+
 - Extracted User model with password validation
 - Extracted Card, Tag, CardSubmission, CardModification models
 - Extracted ResourceConfig, QuickAccessItem, ResourceItem, ResourceCategory models
 
 ### ✅ Routes (6 blueprints)
+
 - **auth.py**: `/api/auth/*` - Register, login, logout, profile management
 - **cards.py**: `/api/cards/*`, `/api/business/*` - Public card endpoints
 - **resources.py**: `/api/resources/*`, `/api/site-config` - Public resource endpoints
@@ -53,16 +55,19 @@ backend/
 - **upload.py**: `/api/upload`, `/api/uploads/*` - File handling
 
 ### ✅ Utilities
+
 - Extracted helper functions (slug generation, file validation, admin checks)
 - Made reusable across all route modules
 
 ### ✅ App Factory Pattern
+
 - Created `create_app()` factory function
 - Supports multiple app instances for testing
 - Centralized configuration
 - Automated blueprint registration
 
 ### ✅ Entry Point
+
 - New minimal `app.py` (12 lines)
 - Uses app factory pattern
 - Maintains backward compatibility
@@ -79,6 +84,7 @@ backend/
 ## API Endpoints (All Preserved)
 
 ### Authentication
+
 - POST `/api/auth/register`
 - POST `/api/auth/login`
 - POST `/api/auth/logout`
@@ -88,6 +94,7 @@ backend/
 - PUT `/api/auth/update-profile`
 
 ### Cards/Business
+
 - GET `/api/cards`
 - GET `/api/cards/<int:card_id>`
 - GET `/api/business/<int:business_id>`
@@ -98,6 +105,7 @@ backend/
 - POST `/api/cards/<int:card_id>/suggest-edit`
 
 ### Resources
+
 - GET `/api/resources`
 - GET `/api/resources/config`
 - GET `/api/resources/quick-access`
@@ -106,29 +114,35 @@ backend/
 - GET `/api/site-config`
 
 ### Admin (Cards)
+
 - GET/POST `/api/admin/cards`
 - PUT/DELETE `/api/admin/cards/<int:card_id>`
 
 ### Admin (Submissions)
+
 - GET `/api/admin/submissions`
 - POST `/api/admin/submissions/<int:submission_id>/approve`
 - POST `/api/admin/submissions/<int:submission_id>/reject`
 
 ### Admin (Modifications)
+
 - GET `/api/admin/modifications`
 - POST `/api/admin/modifications/<int:modification_id>/approve`
 - POST `/api/admin/modifications/<int:modification_id>/reject`
 
 ### Admin (Users)
+
 - GET `/api/admin/users`
 - PUT/DELETE `/api/admin/users/<int:user_id>`
 - POST `/api/admin/users/<int:user_id>/reset-password`
 
 ### Admin (Tags)
+
 - GET/POST `/api/admin/tags`
 - PUT/DELETE `/api/admin/tags/<string:tag_name>`
 
 ### Admin (Resources)
+
 - GET/POST `/api/admin/resources/config`
 - PUT `/api/admin/resources/config/<int:config_id>`
 - GET/POST `/api/admin/resources/quick-access`
@@ -137,11 +151,13 @@ backend/
 - GET/PUT/DELETE `/api/admin/resources/items/<int:item_id>`
 
 ### Search & Upload
+
 - GET `/api/search`
 - POST `/api/upload`
 - GET `/api/uploads/<filename>`
 
 ### Health
+
 - GET `/health`
 
 ## Testing
@@ -179,6 +195,7 @@ def test_endpoints():
 ## Docker Compatibility
 
 The refactoring maintains full backward compatibility:
+
 - Same entry point: `app.py`
 - Same dependencies: `requirements.txt` unchanged
 - Same environment variables
@@ -215,6 +232,7 @@ mv app_old.py app.py
 ## Rollback Plan
 
 If needed:
+
 ```bash
 rm -rf app/
 mv app_old.py app.py
