@@ -128,6 +128,17 @@ export interface QuickAccessItem {
   icon: string;
 }
 
+export interface QuickAccessItemInput {
+  identifier: string;
+  title: string;
+  subtitle: string;
+  phone: string;
+  color?: string;
+  icon?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
 export interface ResourceItem {
   id: number;
   title: string;
@@ -137,6 +148,18 @@ export interface ResourceItem {
   phone?: string;
   address?: string;
   icon: string;
+}
+
+export interface ResourceItemInput {
+  title: string;
+  url: string;
+  description: string;
+  category: string;
+  phone?: string;
+  address?: string;
+  icon?: string;
+  display_order?: number;
+  is_active?: boolean;
 }
 
 class ApiClient {
@@ -709,16 +732,9 @@ class ApiClient {
     return this.request(`/api/admin/resources/quick-access/${id}`);
   }
 
-  async adminCreateQuickAccessItem(data: {
-    identifier: string;
-    title: string;
-    subtitle: string;
-    phone: string;
-    color?: string;
-    icon?: string;
-    display_order?: number;
-    is_active?: boolean;
-  }): Promise<{ message: string; item: QuickAccessItem }> {
+  async adminCreateQuickAccessItem(
+    data: QuickAccessItemInput
+  ): Promise<{ message: string; item: QuickAccessItem }> {
     return this.request("/api/admin/resources/quick-access", {
       method: "POST",
       body: JSON.stringify(data),
@@ -727,16 +743,7 @@ class ApiClient {
 
   async adminUpdateQuickAccessItem(
     id: number,
-    data: Partial<{
-      identifier: string;
-      title: string;
-      subtitle: string;
-      phone: string;
-      color: string;
-      icon: string;
-      display_order: number;
-      is_active: boolean;
-    }>
+    data: Partial<QuickAccessItemInput>
   ): Promise<{ message: string; item: QuickAccessItem }> {
     return this.request(`/api/admin/resources/quick-access/${id}`, {
       method: "PUT",
@@ -778,17 +785,9 @@ class ApiClient {
     return this.request(`/api/admin/resources/items/${id}`);
   }
 
-  async adminCreateResourceItem(data: {
-    title: string;
-    url: string;
-    description: string;
-    category: string;
-    phone?: string;
-    address?: string;
-    icon?: string;
-    display_order?: number;
-    is_active?: boolean;
-  }): Promise<{ message: string; item: ResourceItem }> {
+  async adminCreateResourceItem(
+    data: ResourceItemInput
+  ): Promise<{ message: string; item: ResourceItem }> {
     return this.request("/api/admin/resources/items", {
       method: "POST",
       body: JSON.stringify(data),
@@ -797,17 +796,7 @@ class ApiClient {
 
   async adminUpdateResourceItem(
     id: number,
-    data: Partial<{
-      title: string;
-      url: string;
-      description: string;
-      category: string;
-      phone: string;
-      address: string;
-      icon: string;
-      display_order: number;
-      is_active: boolean;
-    }>
+    data: Partial<ResourceItemInput>
   ): Promise<{ message: string; item: ResourceItem }> {
     return this.request(`/api/admin/resources/items/${id}`, {
       method: "PUT",
