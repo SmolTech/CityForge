@@ -6,11 +6,11 @@ export const revalidate = 300; // Revalidate every 5 minutes
 export async function GET() {
   try {
     // Fetch site configuration from backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
-
-    if (!backendUrl) {
-      throw new Error("NEXT_PUBLIC_API_URL environment variable is not set");
-    }
+    // Use BACKEND_API_URL for server-side requests to backend container
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000";
 
     console.log(`Fetching site config from: ${backendUrl}/api/site-config`);
 

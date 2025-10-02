@@ -41,6 +41,13 @@ npm run typecheck
 npm run semgrep
 ```
 
+## Developing With Docker
+
+```
+docker-compose up
+docker exec -it cityforge-backend python init_db.py
+```
+
 ## Security Analysis
 
 The project includes Semgrep for automated security vulnerability detection:
