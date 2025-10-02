@@ -1,38 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api";
+import {
+  apiClient,
+  ResourceConfig,
+  QuickAccessItem,
+  QuickAccessItemInput,
+  ResourceItem,
+  ResourceItemInput,
+} from "@/lib/api";
 import Navigation from "@/components/Navigation";
-
-interface ResourceConfig {
-  id: number;
-  key: string;
-  value: string;
-  description?: string;
-  created_date: string;
-  updated_date: string;
-}
-
-interface QuickAccessItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  phone: string;
-  color: string;
-  icon: string;
-}
-
-interface ResourceItem {
-  id: number;
-  title: string;
-  url: string;
-  description: string;
-  category: string;
-  phone?: string;
-  address?: string;
-  icon: string;
-}
 
 export default function AdminResourcesPage() {
   const router = useRouter();
@@ -51,9 +29,8 @@ export default function AdminResourcesPage() {
   const [quickAccessItems, setQuickAccessItems] = useState<QuickAccessItem[]>(
     []
   );
-  const [editingQuickAccess, setEditingQuickAccess] = useState<any | null>(
-    null
-  );
+  const [editingQuickAccess, setEditingQuickAccess] =
+    useState<QuickAccessItem | null>(null);
   const [showAddQuickAccess, setShowAddQuickAccess] = useState(false);
 
   // Resource Items state
@@ -64,9 +41,20 @@ export default function AdminResourcesPage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const checkAuth = useCallback(async () => {
+    try {
+      const response = await apiClient.getCurrentUser();
+      if (response.user.role !== "admin") {
+        router.push("/");
+      }
+    } catch {
+      router.push("/login");
+    }
+  }, [router]);
+
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   useEffect(() => {
     if (activeTab === "config") {
@@ -77,17 +65,6 @@ export default function AdminResourcesPage() {
       loadResourceItems();
     }
   }, [activeTab]);
-
-  const checkAuth = async () => {
-    try {
-      const response = await apiClient.getCurrentUser();
-      if (response.user.role !== "admin") {
-        router.push("/");
-      }
-    } catch {
-      router.push("/login");
-    }
-  };
 
   const loadConfigs = async () => {
     try {
@@ -139,24 +116,35 @@ export default function AdminResourcesPage() {
     }
   };
 
-  const handleCreateQuickAccess = async (data: any) => {
+  const handleCreateQuickAccess = async (data: QuickAccessItemInput) => {
     try {
       await apiClient.adminCreateQuickAccessItem(data);
       setShowAddQuickAccess(false);
       loadQuickAccessItems();
-    } catch (error: any) {
-      setError(error.message || "Failed to create quick access item");
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create quick access item"
+      );
       console.error(error);
     }
   };
 
-  const handleUpdateQuickAccess = async (id: number, data: any) => {
+  const handleUpdateQuickAccess = async (
+    id: number,
+    data: Partial<QuickAccessItemInput>
+  ) => {
     try {
       await apiClient.adminUpdateQuickAccessItem(id, data);
       setEditingQuickAccess(null);
       loadQuickAccessItems();
-    } catch (error: any) {
-      setError(error.message || "Failed to update quick access item");
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update quick access item"
+      );
       console.error(error);
     }
   };
@@ -173,24 +161,35 @@ export default function AdminResourcesPage() {
     }
   };
 
-  const handleCreateResourceItem = async (data: any) => {
+  const handleCreateResourceItem = async (data: ResourceItemInput) => {
     try {
       await apiClient.adminCreateResourceItem(data);
       setShowAddResourceItem(false);
       loadResourceItems();
-    } catch (error: any) {
-      setError(error.message || "Failed to create resource item");
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create resource item"
+      );
       console.error(error);
     }
   };
 
-  const handleUpdateResourceItem = async (id: number, data: any) => {
+  const handleUpdateResourceItem = async (
+    id: number,
+    data: Partial<ResourceItemInput>
+  ) => {
     try {
       await apiClient.adminUpdateResourceItem(id, data);
       setEditingResourceItem(null);
       loadResourceItems();
-    } catch (error: any) {
-      setError(error.message || "Failed to update resource item");
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update resource item"
+      );
       console.error(error);
     }
   };
@@ -356,7 +355,7 @@ export default function AdminResourcesPage() {
                       />
                     )}
 
-                    {quickAccessItems.map((item: any, index) => (
+                    {quickAccessItems.map((item, index) => (
                       <div
                         key={item.id}
                         className="border border-gray-200 dark:border-gray-700 rounded p-4"
@@ -364,7 +363,7 @@ export default function AdminResourcesPage() {
                         {editingQuickAccess?.id === item.id ? (
                           <QuickAccessForm
                             item={item}
-                            onSubmit={(data: any) =>
+                            onSubmit={(data) =>
                               handleUpdateQuickAccess(index + 1, data)
                             }
                             onCancel={() => setEditingQuickAccess(null)}
@@ -437,7 +436,7 @@ export default function AdminResourcesPage() {
                         {editingResourceItem?.id === item.id ? (
                           <ResourceItemForm
                             item={item}
-                            onSubmit={(data: any) =>
+                            onSubmit={(data) =>
                               handleUpdateResourceItem(item.id, data)
                             }
                             onCancel={() => setEditingResourceItem(null)}
@@ -507,18 +506,35 @@ export default function AdminResourcesPage() {
   );
 }
 
-function QuickAccessForm({ item, onSubmit, onCancel }: any) {
-  const [formData, setFormData] = useState(
-    item || {
-      identifier: "",
-      title: "",
-      subtitle: "",
-      phone: "",
-      color: "blue",
-      icon: "building",
-      display_order: 0,
-      is_active: true,
-    }
+function QuickAccessForm({
+  item,
+  onSubmit,
+  onCancel,
+}: {
+  item?: QuickAccessItem | null;
+  onSubmit: (data: QuickAccessItemInput) => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState<QuickAccessItemInput>(
+    item
+      ? {
+          identifier: "",
+          title: item.title,
+          subtitle: item.subtitle,
+          phone: item.phone,
+          color: item.color,
+          icon: item.icon,
+        }
+      : {
+          identifier: "",
+          title: "",
+          subtitle: "",
+          phone: "",
+          color: "blue",
+          icon: "building",
+          display_order: 0,
+          is_active: true,
+        }
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -634,7 +650,15 @@ function QuickAccessForm({ item, onSubmit, onCancel }: any) {
   );
 }
 
-function ResourceItemForm({ item, onSubmit, onCancel }: any) {
+function ResourceItemForm({
+  item,
+  onSubmit,
+  onCancel,
+}: {
+  item?: ResourceItem | null;
+  onSubmit: (data: ResourceItemInput) => void;
+  onCancel: () => void;
+}) {
   const [formData, setFormData] = useState(
     item || {
       title: "",

@@ -12,6 +12,11 @@ import {
   CardsResponse,
   SubmissionsResponse,
   ModificationsResponse,
+  ResourceConfig,
+  QuickAccessItem,
+  QuickAccessItemInput,
+  ResourceItem,
+  ResourceItemInput,
 } from "@/lib/api";
 import CardEditForm from "@/components/CardEditForm";
 import Navigation from "@/components/Navigation";
@@ -59,19 +64,18 @@ export default function AdminPage() {
   const [resourcesTab, setResourcesTab] = useState<
     "config" | "quick-access" | "items"
   >("config");
-  const [resourceConfigs, setResourceConfigs] = useState<any[]>([]);
-  const [editingResourceConfig, setEditingResourceConfig] = useState<
-    any | null
-  >(null);
-  const [quickAccessItems, setQuickAccessItems] = useState<any[]>([]);
-  const [editingQuickAccess, setEditingQuickAccess] = useState<any | null>(
-    null
+  const [resourceConfigs, setResourceConfigs] = useState<ResourceConfig[]>([]);
+  const [editingResourceConfig, setEditingResourceConfig] =
+    useState<ResourceConfig | null>(null);
+  const [quickAccessItems, setQuickAccessItems] = useState<QuickAccessItem[]>(
+    []
   );
+  const [editingQuickAccess, setEditingQuickAccess] =
+    useState<QuickAccessItem | null>(null);
   const [showAddQuickAccess, setShowAddQuickAccess] = useState(false);
-  const [resourceItems, setResourceItems] = useState<any[]>([]);
-  const [editingResourceItem, setEditingResourceItem] = useState<any | null>(
-    null
-  );
+  const [resourceItems, setResourceItems] = useState<ResourceItem[]>([]);
+  const [editingResourceItem, setEditingResourceItem] =
+    useState<ResourceItem | null>(null);
   const [showAddResourceItem, setShowAddResourceItem] = useState(false);
 
   const router = useRouter();
@@ -333,7 +337,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateQuickAccess = async (data: any) => {
+  const handleCreateQuickAccess = async (data: QuickAccessItemInput) => {
     try {
       await apiClient.adminCreateQuickAccessItem(data);
       setShowAddQuickAccess(false);
@@ -343,7 +347,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleUpdateQuickAccess = async (id: number, data: any) => {
+  const handleUpdateQuickAccess = async (
+    id: number,
+    data: Partial<QuickAccessItemInput>
+  ) => {
     try {
       await apiClient.adminUpdateQuickAccessItem(id, data);
       setEditingQuickAccess(null);
@@ -364,7 +371,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateResourceItem = async (data: any) => {
+  const handleCreateResourceItem = async (data: ResourceItemInput) => {
     try {
       await apiClient.adminCreateResourceItem(data);
       setShowAddResourceItem(false);
@@ -374,7 +381,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleUpdateResourceItem = async (id: number, data: any) => {
+  const handleUpdateResourceItem = async (
+    id: number,
+    data: Partial<ResourceItemInput>
+  ) => {
     try {
       await apiClient.adminUpdateResourceItem(id, data);
       setEditingResourceItem(null);
@@ -1622,7 +1632,7 @@ export default function AdminPage() {
                     />
                   )}
 
-                  {quickAccessItems.map((item: any, index) => (
+                  {quickAccessItems.map((item, index) => (
                     <div
                       key={item.id}
                       className="border border-gray-200 dark:border-gray-700 rounded p-4"
@@ -1630,7 +1640,7 @@ export default function AdminPage() {
                       {editingQuickAccess?.id === item.id ? (
                         <QuickAccessForm
                           item={item}
-                          onSubmit={(data: any) =>
+                          onSubmit={(data) =>
                             handleUpdateQuickAccess(index + 1, data)
                           }
                           onCancel={() => setEditingQuickAccess(null)}
@@ -1693,7 +1703,7 @@ export default function AdminPage() {
                     />
                   )}
 
-                  {resourceItems.map((item: any) => (
+                  {resourceItems.map((item) => (
                     <div
                       key={item.id}
                       className="border border-gray-200 dark:border-gray-700 rounded p-4"
@@ -1701,7 +1711,7 @@ export default function AdminPage() {
                       {editingResourceItem?.id === item.id ? (
                         <ResourceItemForm
                           item={item}
-                          onSubmit={(data: any) =>
+                          onSubmit={(data) =>
                             handleUpdateResourceItem(item.id, data)
                           }
                           onCancel={() => setEditingResourceItem(null)}
@@ -2321,18 +2331,35 @@ function PasswordResetModal({
 }
 
 // QuickAccessForm Component
-function QuickAccessForm({ item, onSubmit, onCancel }: any) {
-  const [formData, setFormData] = useState(
-    item || {
-      identifier: "",
-      title: "",
-      subtitle: "",
-      phone: "",
-      color: "blue",
-      icon: "building",
-      display_order: 0,
-      is_active: true,
-    }
+function QuickAccessForm({
+  item,
+  onSubmit,
+  onCancel,
+}: {
+  item?: QuickAccessItem | null;
+  onSubmit: (data: QuickAccessItemInput) => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState<QuickAccessItemInput>(
+    item
+      ? {
+          identifier: "",
+          title: item.title,
+          subtitle: item.subtitle,
+          phone: item.phone,
+          color: item.color,
+          icon: item.icon,
+        }
+      : {
+          identifier: "",
+          title: "",
+          subtitle: "",
+          phone: "",
+          color: "blue",
+          icon: "building",
+          display_order: 0,
+          is_active: true,
+        }
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -2449,7 +2476,15 @@ function QuickAccessForm({ item, onSubmit, onCancel }: any) {
 }
 
 // ResourceItemForm Component
-function ResourceItemForm({ item, onSubmit, onCancel }: any) {
+function ResourceItemForm({
+  item,
+  onSubmit,
+  onCancel,
+}: {
+  item?: ResourceItem | null;
+  onSubmit: (data: ResourceItemInput) => void;
+  onCancel: () => void;
+}) {
   const [formData, setFormData] = useState(
     item || {
       title: "",
