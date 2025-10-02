@@ -2,6 +2,7 @@ from app import app, db
 from datetime import datetime
 import getpass
 import sys
+import re
 
 def init_database():
     with app.app_context():
@@ -34,18 +35,20 @@ def init_database():
                 print("Error: Passwords do not match")
                 sys.exit(1)
 
+            # Validate password before creating user
+            is_valid, message = User.validate_password(admin_password)
+            if not is_valid:
+                print(f"Error: {message}")
+                sys.exit(1)
+
             admin_user = User(
                 email=admin_email,
                 first_name='Admin',
                 last_name='User',
                 role='admin'
             )
-
-            try:
-                admin_user.set_password(admin_password)
-            except ValueError as e:
-                print(f"Error: {e}")
-                sys.exit(1)
+            # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+            admin_user.set_password(admin_password)
 
             db.session.add(admin_user)
             db.session.commit()

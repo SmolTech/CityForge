@@ -27,6 +27,9 @@ A Next.js community website platform featuring news, calendar events, local busi
 # Install dependencies
 npm install
 
+# Set up pre-commit script
+npm run prepare
+
 # Run development server
 npm run dev
 
