@@ -1,16 +1,5 @@
 # CityForge
 
-A Next.js community website platform featuring news, calendar events, local business listings, and opinion editorials.
-
-## Features
-
-- **News Section**: Stay updated with community news and announcements
-- **Community Calendar**: Discover local events and meetings
-- **Business Directory**: Support local businesses and services
-- **Opinion & Editorial**: Community voices and perspectives
-- **Responsive Design**: Works on desktop and mobile devices
-- **Dark Mode Support**: Automatic dark/light theme support
-
 ## Tech Stack
 
 - **Frontend**: Next.js 15 with TypeScript
@@ -70,33 +59,6 @@ This project includes git hooks for code quality and security:
 
 - **Pre-commit**: Runs lint-staged (ESLint + Prettier) and semgrep security analysis
 - **Pre-push**: Runs type checking, linting, semgrep, and build verification
-
-## Docker
-
-Build and run with Docker:
-
-```bash
-# Build image
-docker build -t cityforge .
-
-# Run container
-docker run -p 3000:3000 cityforge
-```
-
-## Kubernetes Deployment
-
-Deploy to Kubernetes using the manifests in the `k8s/` directory:
-
-```bash
-# Apply all manifests
-kubectl apply -k k8s/
-
-# Or apply individually
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-```
 
 ## Project Structure
 
