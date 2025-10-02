@@ -76,7 +76,7 @@ def get_current_user():
 @bp.route('/update-email', methods=['PUT'])
 @jwt_required()
 def update_email():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user or not user.is_active:
@@ -112,7 +112,7 @@ def update_email():
 @bp.route('/update-password', methods=['PUT'])
 @jwt_required()
 def update_password():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user or not user.is_active:
@@ -137,7 +137,7 @@ def update_password():
 @bp.route('/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user or not user.is_active:

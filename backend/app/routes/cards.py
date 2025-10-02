@@ -83,7 +83,7 @@ def get_tags():
 @bp.route('/api/submissions', methods=['POST'])
 @jwt_required()
 def submit_card():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or not all(k in data for k in ['name']):
@@ -111,14 +111,14 @@ def submit_card():
 @bp.route('/api/submissions', methods=['GET'])
 @jwt_required()
 def get_user_submissions():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     submissions = CardSubmission.query.filter_by(submitted_by=user_id).order_by(CardSubmission.created_date.desc()).all()
     return jsonify([submission.to_dict() for submission in submissions])
 
 @bp.route('/api/cards/<int:card_id>/suggest-edit', methods=['POST'])
 @jwt_required()
 def suggest_card_edit(card_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user or not user.is_active:
