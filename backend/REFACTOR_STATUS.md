@@ -3,20 +3,24 @@
 ## Completed
 
 ### ✅ Package Structure
+
 - Created `app/` package with proper `__init__.py`
 - Created `app/models/` for database models
 - Created `app/routes/` for API endpoints
 - Created `app/utils/` for helper functions
 
 ### ✅ Models Extracted
+
 - **app/models/user.py** - User authentication and profile
 - **app/models/card.py** - Card, Tag, CardSubmission, CardModification
 - **app/models/resource.py** - ResourceCategory, QuickAccessItem, ResourceItem, ResourceConfig
 
 ### ✅ Utilities Extracted
+
 - **app/utils/helpers.py** - slug generation, file validation, admin checks
 
 ### ✅ Routes Started
+
 - **app/routes/auth.py** - Authentication endpoints (complete)
 
 ## Remaining Work
@@ -75,12 +79,14 @@ if __name__ == '__main__':
 ## Migration Strategy
 
 ### Option 1: Gradual Migration (Recommended)
+
 1. Keep original `app.py` as `app_old.py`
 2. Create route files one at a time
 3. Test each route file independently
 4. Switch over when all routes are migrated
 
 ### Option 2: Complete Refactor
+
 Extract all remaining routes at once (requires extensive testing)
 
 ## Benefits Already Achieved

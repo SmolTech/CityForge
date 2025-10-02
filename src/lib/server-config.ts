@@ -9,8 +9,7 @@ export function loadAppConfig(): AppConfig {
   return {
     site: {
       title: "Community Website",
-      description:
-        "Helping connect people to the resources available to them.",
+      description: "Helping connect people to the resources available to them.",
       tagline: "Community Directory",
       directoryDescription:
         "Discover local resources and community information.",
