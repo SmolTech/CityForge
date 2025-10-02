@@ -110,6 +110,35 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface ResourceConfig {
+  id: number;
+  key: string;
+  value: string;
+  description?: string;
+  created_date: string;
+  updated_date: string;
+}
+
+export interface QuickAccessItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  phone: string;
+  color: string;
+  icon: string;
+}
+
+export interface ResourceItem {
+  id: number;
+  title: string;
+  url: string;
+  description: string;
+  category: string;
+  phone?: string;
+  address?: string;
+  icon: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -638,7 +667,7 @@ class ApiClient {
   async adminUpdateResourceConfig(
     id: number,
     data: { value?: string; description?: string }
-  ): Promise<{ message: string; config: any }> {
+  ): Promise<{ message: string; config: ResourceConfig }> {
     return this.request(`/api/admin/resources/config/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -649,7 +678,7 @@ class ApiClient {
     key: string;
     value: string;
     description?: string;
-  }): Promise<{ message: string; config: any }> {
+  }): Promise<{ message: string; config: ResourceConfig }> {
     return this.request("/api/admin/resources/config", {
       method: "POST",
       body: JSON.stringify(data),
@@ -689,7 +718,7 @@ class ApiClient {
     icon?: string;
     display_order?: number;
     is_active?: boolean;
-  }): Promise<{ message: string; item: any }> {
+  }): Promise<{ message: string; item: QuickAccessItem }> {
     return this.request("/api/admin/resources/quick-access", {
       method: "POST",
       body: JSON.stringify(data),
@@ -708,7 +737,7 @@ class ApiClient {
       display_order: number;
       is_active: boolean;
     }>
-  ): Promise<{ message: string; item: any }> {
+  ): Promise<{ message: string; item: QuickAccessItem }> {
     return this.request(`/api/admin/resources/quick-access/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -759,7 +788,7 @@ class ApiClient {
     icon?: string;
     display_order?: number;
     is_active?: boolean;
-  }): Promise<{ message: string; item: any }> {
+  }): Promise<{ message: string; item: ResourceItem }> {
     return this.request("/api/admin/resources/items", {
       method: "POST",
       body: JSON.stringify(data),
@@ -779,7 +808,7 @@ class ApiClient {
       display_order: number;
       is_active: boolean;
     }>
-  ): Promise<{ message: string; item: any }> {
+  ): Promise<{ message: string; item: ResourceItem }> {
     return this.request(`/api/admin/resources/items/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
