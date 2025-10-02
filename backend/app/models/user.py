@@ -14,7 +14,8 @@ class User(db.Model):
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
 
-    def validate_password(self, password):
+    @staticmethod
+    def validate_password(password):
         """Validate password strength."""
         if len(password) < 8:
             return False, "Password must be at least 8 characters long"
