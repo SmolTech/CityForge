@@ -14,7 +14,9 @@ import {
   ModificationsResponse,
   ResourceConfig,
   QuickAccessItem,
+  QuickAccessItemInput,
   ResourceItem,
+  ResourceItemInput,
 } from "@/lib/api";
 import CardEditForm from "@/components/CardEditForm";
 import Navigation from "@/components/Navigation";
@@ -335,13 +337,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateQuickAccess = async (
-    data: Partial<QuickAccessItem> & {
-      identifier: string;
-      display_order?: number;
-      is_active?: boolean;
-    }
-  ) => {
+  const handleCreateQuickAccess = async (data: QuickAccessItemInput) => {
     try {
       await apiClient.adminCreateQuickAccessItem(data);
       setShowAddQuickAccess(false);
@@ -353,11 +349,7 @@ export default function AdminPage() {
 
   const handleUpdateQuickAccess = async (
     id: number,
-    data: Partial<QuickAccessItem> & {
-      identifier?: string;
-      display_order?: number;
-      is_active?: boolean;
-    }
+    data: Partial<QuickAccessItemInput>
   ) => {
     try {
       await apiClient.adminUpdateQuickAccessItem(id, data);
@@ -379,12 +371,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateResourceItem = async (
-    data: Omit<ResourceItem, "id"> & {
-      display_order?: number;
-      is_active?: boolean;
-    }
-  ) => {
+  const handleCreateResourceItem = async (data: ResourceItemInput) => {
     try {
       await apiClient.adminCreateResourceItem(data);
       setShowAddResourceItem(false);
@@ -396,10 +383,7 @@ export default function AdminPage() {
 
   const handleUpdateResourceItem = async (
     id: number,
-    data: Partial<ResourceItem> & {
-      display_order?: number;
-      is_active?: boolean;
-    }
+    data: Partial<ResourceItemInput>
   ) => {
     try {
       await apiClient.adminUpdateResourceItem(id, data);
@@ -2353,26 +2337,29 @@ function QuickAccessForm({
   onCancel,
 }: {
   item?: QuickAccessItem | null;
-  onSubmit: (
-    data: Partial<QuickAccessItem> & {
-      identifier: string;
-      display_order?: number;
-      is_active?: boolean;
-    }
-  ) => void;
+  onSubmit: (data: QuickAccessItemInput) => void;
   onCancel: () => void;
 }) {
-  const [formData, setFormData] = useState(
-    item || {
-      identifier: "",
-      title: "",
-      subtitle: "",
-      phone: "",
-      color: "blue",
-      icon: "building",
-      display_order: 0,
-      is_active: true,
-    }
+  const [formData, setFormData] = useState<QuickAccessItemInput>(
+    item
+      ? {
+          identifier: "",
+          title: item.title,
+          subtitle: item.subtitle,
+          phone: item.phone,
+          color: item.color,
+          icon: item.icon,
+        }
+      : {
+          identifier: "",
+          title: "",
+          subtitle: "",
+          phone: "",
+          color: "blue",
+          icon: "building",
+          display_order: 0,
+          is_active: true,
+        }
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -2495,12 +2482,7 @@ function ResourceItemForm({
   onCancel,
 }: {
   item?: ResourceItem | null;
-  onSubmit: (
-    data: Partial<ResourceItem> & {
-      display_order?: number;
-      is_active?: boolean;
-    }
-  ) => void;
+  onSubmit: (data: ResourceItemInput) => void;
   onCancel: () => void;
 }) {
   const [formData, setFormData] = useState(
