@@ -30,29 +30,22 @@ export default function DashboardPage() {
 
       setUser(userResponse.user);
       setSubmissions(submissionsData);
-
-      // Redirect admins to admin dashboard
-      if (userResponse.user.role === 'admin') {
-        router.push("/admin");
-        return;
-      }
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      console.error("Failed to load dashboard data:", error);
       router.push("/login");
     } finally {
       setLoading(false);
     }
   };
 
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case "approved":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "rejected":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     }
   };
 
@@ -70,7 +63,9 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Your Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Your Dashboard
+          </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Manage your content submissions and track their approval status.
           </p>
@@ -81,13 +76,27 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  className="h-8 w-8 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Submit New Content</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Add a business, event, or other community content</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Submit New Content
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Add a business, event, or other community content
+                </p>
               </div>
             </div>
             <div className="mt-4">
@@ -103,14 +112,26 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-8 w-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Approved</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Approved
+                </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  {submissions.filter(s => s.status === 'approved').length}
+                  {submissions.filter((s) => s.status === "approved").length}
                 </p>
               </div>
             </div>
@@ -119,14 +140,26 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-8 w-8 text-yellow-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Pending Review</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Pending Review
+                </h3>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {submissions.filter(s => s.status === 'pending').length}
+                  {submissions.filter((s) => s.status === "pending").length}
                 </p>
               </div>
             </div>
@@ -136,15 +169,29 @@ export default function DashboardPage() {
         {/* Submissions List */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Your Submissions</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Your Submissions
+            </h2>
           </div>
 
           {submissions.length === 0 ? (
             <div className="p-6 text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No submissions yet</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                No submissions yet
+              </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Get started by submitting your first piece of community content.
               </p>
@@ -167,7 +214,8 @@ export default function DashboardPage() {
                         {submission.name}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Submitted {new Date(submission.created_date).toLocaleDateString()}
+                        Submitted{" "}
+                        {new Date(submission.created_date).toLocaleDateString()}
                       </p>
                       {submission.description && (
                         <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
@@ -177,14 +225,18 @@ export default function DashboardPage() {
                       {submission.review_notes && (
                         <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
                           <p className="text-sm text-gray-700 dark:text-gray-300">
-                            <span className="font-medium">Review notes:</span> {submission.review_notes}
+                            <span className="font-medium">Review notes:</span>{" "}
+                            {submission.review_notes}
                           </p>
                         </div>
                       )}
                     </div>
                     <div className="ml-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}>
-                        {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}
+                      >
+                        {submission.status.charAt(0).toUpperCase() +
+                          submission.status.slice(1)}
                       </span>
                     </div>
                   </div>

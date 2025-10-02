@@ -58,7 +58,7 @@ def admin_create_card():
     if admin_check:
         return admin_check
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or not all(k in data for k in ['name']):
@@ -173,7 +173,7 @@ def admin_approve_submission(submission_id):
     if admin_check:
         return admin_check
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     submission = CardSubmission.query.get_or_404(submission_id)
     data = request.get_json() or {}
 
@@ -229,7 +229,7 @@ def admin_reject_submission(submission_id):
     if admin_check:
         return admin_check
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     submission = CardSubmission.query.get_or_404(submission_id)
     data = request.get_json() or {}
 
@@ -282,7 +282,7 @@ def admin_approve_modification(modification_id):
     if admin_check:
         return admin_check
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     modification = CardModification.query.get_or_404(modification_id)
 
     if modification.status != 'pending':
@@ -329,7 +329,7 @@ def admin_reject_modification(modification_id):
     if admin_check:
         return admin_check
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     modification = CardModification.query.get_or_404(modification_id)
     data = request.get_json() or {}
 
@@ -389,7 +389,7 @@ def admin_update_user(user_id):
     if admin_check:
         return admin_check
 
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user = User.query.get_or_404(user_id)
     data = request.get_json()
 
@@ -419,7 +419,7 @@ def admin_delete_user(user_id):
     if admin_check:
         return admin_check
 
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user = User.query.get_or_404(user_id)
 
     if user_id == int(current_user_id):
