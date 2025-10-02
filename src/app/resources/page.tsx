@@ -39,12 +39,19 @@ interface ResourcesData {
   };
 }
 
+interface SiteConfig {
+  copyright: string;
+  copyrightHolder: string;
+  copyrightUrl: string;
+}
+
 function ResourcesContent() {
   const [resourcesData, setResourcesData] = useState<ResourcesData | null>(
     null
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
 
   useEffect(() => {
     async function fetchResources() {
@@ -60,7 +67,24 @@ function ResourcesContent() {
       }
     }
 
+    async function fetchSiteConfig() {
+      try {
+        const response = await fetch("/api/config");
+        if (response.ok) {
+          const config = await response.json();
+          setSiteConfig({
+            copyright: config.site.copyright,
+            copyrightHolder: config.site.copyrightHolder,
+            copyrightUrl: config.site.copyrightUrl,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load site config:", error);
+      }
+    }
+
     fetchResources();
+    fetchSiteConfig();
   }, []);
 
   if (loading) {
@@ -303,9 +327,14 @@ function ResourcesContent() {
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-400">
-            <p>
-              &copy; 2025 <a href="https://www.smoltech.us">SmolTech</a>
-            </p>
+            {siteConfig && (
+              <p>
+                &copy; {siteConfig.copyright}{" "}
+                <a href={siteConfig.copyrightUrl}>
+                  {siteConfig.copyrightHolder}
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </footer>
