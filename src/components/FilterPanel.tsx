@@ -13,7 +13,9 @@ export default function FilterPanel({
 }: Props) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        Filters
+      </h3>
 
       {/* Featured Filter */}
       <div>
@@ -47,8 +49,17 @@ export default function FilterPanel({
                   onClick={() => onTagRemove(tag)}
                   className="flex-shrink-0 ml-1.5 h-4 w-4 rounded-full inline-flex items-center justify-center text-blue-400 hover:bg-blue-200 hover:text-blue-500 focus:outline-none focus:bg-blue-500 focus:text-white"
                 >
-                  <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
-                    <path strokeLinecap="round" strokeWidth="1.5" d="m1 1 6 6m0-6L1 7" />
+                  <svg
+                    className="h-2 w-2"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 8 8"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeWidth="1.5"
+                      d="m1 1 6 6m0-6L1 7"
+                    />
                   </svg>
                 </button>
               </span>

@@ -68,6 +68,7 @@ Tests are organized with markers:
 Current test coverage includes:
 
 ### Models (test_models.py)
+
 - ✅ User creation and validation
 - ✅ Password hashing and verification
 - ✅ Password strength validation
@@ -81,6 +82,7 @@ Current test coverage includes:
 - ✅ Resource items
 
 ### Authentication Routes (test_auth_routes.py)
+
 - ✅ User registration
 - ✅ Login/logout
 - ✅ Token validation
@@ -90,6 +92,7 @@ Current test coverage includes:
 - ✅ Current user retrieval
 
 ### Card Routes (test_card_routes.py)
+
 - ✅ Card listing and filtering
 - ✅ Search functionality
 - ✅ Tag filtering
@@ -100,6 +103,7 @@ Current test coverage includes:
 - ✅ Edit suggestions
 
 ### Resource Routes (test_resource_routes.py)
+
 - ✅ Resource configuration
 - ✅ Quick access items
 - ✅ Resource items
@@ -108,6 +112,7 @@ Current test coverage includes:
 - ✅ Complete resource data
 
 ### Admin Routes (test_admin_routes.py)
+
 - ✅ Card management (CRUD)
 - ✅ Submission approval/rejection
 - ✅ User management
@@ -118,6 +123,7 @@ Current test coverage includes:
 - ✅ Authorization checks
 
 ### Utilities (test_utils.py)
+
 - ✅ Slug generation
 - ✅ File validation
 - ✅ Admin authorization
@@ -185,6 +191,7 @@ Tests are designed to run in CI/CD pipelines:
 ### Common Issues
 
 **Import errors**
+
 ```bash
 # Make sure you're in the backend directory
 cd backend
@@ -193,12 +200,14 @@ pip install -e .
 ```
 
 **Database errors**
+
 ```bash
 # Tests use in-memory SQLite, no setup needed
 # If issues persist, check conftest.py database configuration
 ```
 
 **Fixture not found**
+
 ```bash
 # Ensure conftest.py is in tests/ directory
 # Check fixture scope (function vs session)

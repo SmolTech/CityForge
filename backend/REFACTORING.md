@@ -4,7 +4,7 @@ This refactoring breaks the monolithic 1932-line `app.py` into a modular structu
 
 ## New Structure
 
-```
+````
 backend/
 ├── app/
 │   ├── __init__.py          # App factory and configuration
@@ -40,7 +40,7 @@ The entry point remains the same:
 
 ```bash
 python app.py
-```
+````
 
 Or with gunicorn:
 
@@ -51,11 +51,13 @@ gunicorn app:app
 ## Module Descriptions
 
 ### Models
+
 - **user.py**: User authentication and profile management
 - **card.py**: Business cards, tags, submissions, and modifications
 - **resource.py**: Resources configuration and management
 
 ### Routes
+
 - **auth.py**: `/api/auth/*` - Registration, login, logout, profile updates
 - **cards.py**: `/api/cards/*`, `/api/business/*` - Public card endpoints
 - **resources.py**: `/api/resources/*`, `/api/site-config` - Public resource endpoints
@@ -64,4 +66,5 @@ gunicorn app:app
 - **upload.py**: `/api/upload`, `/api/uploads/*` - File uploads
 
 ### Utils
+
 - **helpers.py**: Shared utility functions (slug generation, file validation, admin checks)
