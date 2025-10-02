@@ -69,16 +69,41 @@ This project includes git hooks for code quality and security:
 ## Project Structure
 
 ```
-├── src/
-│   └── app/
-│       ├── business/      # Business directory pages
-│       ├── calendar/      # Community calendar pages
-│       ├── news/          # News section pages
-│       ├── op-ed/         # Opinion & editorial pages
-│       └── page.tsx       # Homepage
-├── k8s/                   # Kubernetes manifests
+├── src/                   # Frontend application
+│   ├── app/               # Next.js app router pages
+│   │   ├── admin/         # Admin dashboard
+│   │   ├── api/           # API route handlers
+│   │   ├── business/      # Business directory pages
+│   │   ├── dashboard/     # User dashboard
+│   │   ├── login/         # Login page
+│   │   ├── register/      # Registration page
+│   │   ├── resources/     # Resource directory pages
+│   │   ├── search/        # Search interface
+│   │   ├── settings/      # User settings
+│   │   ├── submit/        # Business card submission
+│   │   └── page.tsx       # Homepage
+│   ├── components/        # React components
+│   └── lib/               # Utilities and API client
+├── backend/               # Flask API backend
+│   ├── app/               # Application modules
+│   │   ├── models.py      # Database models
+│   │   ├── routes/        # API endpoints
+│   │   └── utils/         # Helper functions
+│   ├── tests/             # Backend tests
+│   ├── uploads/           # Uploaded files
+│   ├── app.py             # Flask application
+│   ├── init_db.py         # Database initialization
+│   └── requirements.txt   # Python dependencies
+├── indexer/               # OpenSearch indexing service
+│   ├── indexer.py         # Website crawler and indexer
+│   └── requirements.txt   # Python dependencies
+├── .github/
+│   └── workflows/         # GitHub Actions CI/CD
 ├── .husky/                # Git hooks
-├── Dockerfile             # Container configuration
+├── public/                # Static assets
+├── scripts/               # Build and deployment scripts
+├── templates/             # Email templates
+├── Dockerfile             # Frontend container
 └── README.md              # Project documentation
 ```
 
