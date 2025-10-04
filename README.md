@@ -12,13 +12,6 @@ so I'm somewhat confident that there aren't any glaring security issues.
 That being said, I'm happy to hear feedback from experts, and I'd love
 to find some people who want to collaborate on the project.
 
-## Running locally with Docker
-
-- Install Docker and compose.
-- docker-compose up --build
-- docker exec -it cityforge-backend python init_db.py
-- In web browser, go to "http://localhost"
-
 ## Tech Stack
 
 - **Frontend**: Next.js 15 with TypeScript
