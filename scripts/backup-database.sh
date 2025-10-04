@@ -5,13 +5,31 @@
 
 set -euo pipefail
 
+# Usage function
+usage() {
+    echo "Usage: $0 <namespace> [backup_dir] [retention_days]"
+    echo
+    echo "Arguments:"
+    echo "  namespace        Kubernetes namespace containing the PostgreSQL database"
+    echo "  backup_dir       Optional: Directory to store backups (default: ./backups)"
+    echo "  retention_days   Optional: Number of days to retain backups (default: 30)"
+    echo
+    echo "Examples:"
+    echo "  $0 community"
+    echo "  $0 production ./prod-backups 90"
+    exit 1
+}
+
+# Validate arguments
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
 # Configuration
-NAMESPACE="community"
-DB_NAME="community"
-BACKUP_DIR="./backups"
-RETENTION_DAYS=30
+NAMESPACE="$1"
+BACKUP_DIR="${2:-./backups}"
+RETENTION_DAYS="${3:-30}"
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="community_db_backup_${DATE}.sql"
 
 # Colors
 GREEN='\033[0;32m'
@@ -40,6 +58,10 @@ check_dependencies() {
         error "kubectl is required but not installed"
     fi
 
+    if ! command -v jq &> /dev/null; then
+        error "jq is required but not installed"
+    fi
+
     if ! kubectl cluster-info &> /dev/null; then
         error "Cannot connect to Kubernetes cluster"
     fi
@@ -49,17 +71,50 @@ check_dependencies() {
     fi
 }
 
-# Find PostgreSQL pod
+# Find PostgreSQL pod and extract cluster information
 find_postgres_pod() {
     log "Finding PostgreSQL pod..."
 
-    POSTGRES_POD=$(kubectl get pods -n "$NAMESPACE" -l application=spilo,cluster-name=community-db --no-headers -o custom-columns=":metadata.name" | head -1)
+    # Find any Spilo (Zalando Postgres) pod in the namespace
+    POSTGRES_POD=$(kubectl get pods -n "$NAMESPACE" -l application=spilo --no-headers -o custom-columns=":metadata.name" | head -1)
 
     if [[ -z "$POSTGRES_POD" ]]; then
         error "No PostgreSQL pod found in namespace '$NAMESPACE'"
     fi
 
     log "Found PostgreSQL pod: $POSTGRES_POD"
+
+    # Extract cluster name from pod labels
+    CLUSTER_NAME=$(kubectl get pod -n "$NAMESPACE" "$POSTGRES_POD" -o jsonpath='{.metadata.labels.cluster-name}')
+
+    if [[ -z "$CLUSTER_NAME" ]]; then
+        error "Could not determine cluster name from pod labels"
+    fi
+
+    log "Cluster name: $CLUSTER_NAME"
+
+    # Find the database credentials secret
+    # Zalando operator creates secrets with pattern: <username>.<cluster-name>.credentials.postgresql.acid.zalan.do
+    SECRET_NAME=$(kubectl get secrets -n "$NAMESPACE" -o name | grep "\.${CLUSTER_NAME}\.credentials\.postgresql\.acid\.zalan\.do" | head -1 | sed 's|secret/||')
+
+    if [[ -z "$SECRET_NAME" ]]; then
+        error "Could not find credentials secret for cluster '$CLUSTER_NAME'"
+    fi
+
+    log "Found secret: $SECRET_NAME"
+
+    # Get database name from the postgresql custom resource spec
+    DB_NAME=$(kubectl get postgresql -n "$NAMESPACE" "$CLUSTER_NAME" -o jsonpath='{.spec.databases}' | jq -r 'keys[0]' 2>/dev/null)
+
+    if [[ -z "$DB_NAME" || "$DB_NAME" == "null" ]]; then
+        error "Could not determine database name from postgresql resource '$CLUSTER_NAME'"
+    fi
+
+    log "Database name: $DB_NAME"
+
+    # Update backup file name to include namespace
+    BACKUP_FILE="${NAMESPACE}_${DB_NAME}_backup_${DATE}.sql"
+    log "Backup file: $BACKUP_FILE"
 }
 
 # Create backup directory
@@ -76,8 +131,8 @@ backup_database() {
     local backup_path="$BACKUP_DIR/$BACKUP_FILE"
 
     # Get database credentials from secret
-    local db_user=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.username}' | base64 -d)
-    local db_password=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.password}' | base64 -d)
+    local db_user=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.username}' | base64 -d)
+    local db_password=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.password}' | base64 -d)
 
     # Run pg_dump inside the PostgreSQL pod
     kubectl exec -n "$NAMESPACE" "$POSTGRES_POD" -- bash -c "
@@ -125,7 +180,7 @@ cleanup_old_backups() {
         rm "$file"
         deleted_count=$((deleted_count + 1))
         log "Deleted old backup: $(basename "$file")"
-    done < <(find "$BACKUP_DIR" -name "community_db_backup_*.sql.gz" -mtime +$RETENTION_DAYS -print0 2>/dev/null)
+    done < <(find "$BACKUP_DIR" -name "${NAMESPACE}_${DB_NAME}_backup_*.sql.gz" -mtime +$RETENTION_DAYS -print0 2>/dev/null)
 
     if [[ $deleted_count -eq 0 ]]; then
         log "No old backups to clean up"
@@ -137,7 +192,7 @@ cleanup_old_backups() {
 # List recent backups
 list_backups() {
     log "Recent backups:"
-    ls -lah "$BACKUP_DIR"/community_db_backup_*.sql.gz 2>/dev/null | tail -5 || log "No backups found"
+    ls -lah "$BACKUP_DIR"/${NAMESPACE}_${DB_NAME}_backup_*.sql.gz 2>/dev/null | tail -5 || log "No backups found"
 }
 
 # Main execution
