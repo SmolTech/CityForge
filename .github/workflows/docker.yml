@@ -10,9 +10,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}/cityforge-frontend
-  BACKEND_IMAGE_NAME: ${{ github.repository }}/cityforge-backend
-  INDEXER_IMAGE_NAME: ${{ github.repository }}/cityforge-indexer
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+  BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
+  INDEXER_IMAGE_NAME: ${{ github.repository }}-indexer
 
 jobs:
   build-and-push:
