@@ -1515,10 +1515,7 @@ def get_resource_categories():
     try:
         # Get distinct categories from ResourceItem
         result = (
-            db.session.query(ResourceItem.category)
-            .filter(ResourceItem.is_active)
-            .distinct()
-            .all()
+            db.session.query(ResourceItem.category).filter(ResourceItem.is_active).distinct().all()
         )
         categories = [row[0] for row in result if row[0]]
         return jsonify(sorted(categories))
