@@ -59,6 +59,9 @@ docker-compose up --build -d
 ```bash
 docker exec -it cityforge-backend python init_db.py
 ```
+##### Access web interface
+
+[http://localhost](http://localhost)
 
 #### Useful NPM commands
 
