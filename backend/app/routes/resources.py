@@ -33,7 +33,7 @@ def get_resources_config():
         if footer_json:
             try:
                 config["footer"] = json.loads(footer_json)
-            except:
+            except json.JSONDecodeError:
                 config["footer"] = None
 
         if not config.get("footer"):
@@ -93,7 +93,7 @@ def get_resource_categories():
     try:
         result = (
             db.session.query(ResourceItem.category)
-            .filter(ResourceItem.is_active == True)
+            .filter(ResourceItem.is_active)
             .distinct()
             .all()
         )

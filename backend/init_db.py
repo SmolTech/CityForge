@@ -1,7 +1,5 @@
 import getpass
-import re
 import sys
-from datetime import datetime
 
 from app import create_app, db
 

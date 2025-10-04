@@ -415,7 +415,7 @@ blacklisted_tokens = set()
 
 
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
+def check_if_token_revoked(_jwt_header, jwt_payload):
     return jwt_payload["jti"] in blacklisted_tokens
 
 
@@ -684,8 +684,6 @@ def get_business(business_id, slug=None):
 
 @app.route("/api/tags", methods=["GET"])
 def get_tags():
-    query = Tag.query
-
     tags_with_counts = (
         db.session.query(Tag.name, func.count(card_tags.c.card_id).label("count"))
         .join(card_tags, Tag.id == card_tags.c.tag_id, isouter=True)
@@ -1457,7 +1455,7 @@ def get_resources_config():
         if footer_json:
             try:
                 config["footer"] = json.loads(footer_json)
-            except:
+            except json.JSONDecodeError:
                 config["footer"] = None
 
         if not config.get("footer"):
@@ -1518,7 +1516,7 @@ def get_resource_categories():
         # Get distinct categories from ResourceItem
         result = (
             db.session.query(ResourceItem.category)
-            .filter(ResourceItem.is_active == True)
+            .filter(ResourceItem.is_active)
             .distinct()
             .all()
         )
