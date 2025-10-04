@@ -53,7 +53,7 @@ python -m venv .venv
 docker-compose up --build
 ```
 
---build can be excluded to use previous container build
+ --build can be excluded to use previous container build
 
 To run the services in the backgroup, run:
 
@@ -91,8 +91,6 @@ npm run typecheck
 # Security analysis
 npm run semgrep
 ```
-
-````
 
 ## Security Analysis
 
