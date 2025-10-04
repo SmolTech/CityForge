@@ -2,6 +2,11 @@ npm run format
 
 npx lint-staged
 
+# Format Python code in backend
+if [ -d "backend" ]; then
+  cd backend && ./format.sh && cd ..
+fi
+
 # Run semgrep security analysis
 echo "Running semgrep security analysis..."
 npm run semgrep:ci
