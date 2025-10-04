@@ -46,7 +46,7 @@ python -m venv .venv
 docker-compose up --build
 ```
 
- --build can be excluded to use previous container build
+--build can be excluded to use previous container build
 
 To run the services in the backgroup, run:
 
@@ -59,9 +59,10 @@ docker-compose up --build -d
 ```bash
 docker exec -it cityforge-backend python init_db.py
 ```
+
 ##### Access web interface
 
-[http://localhost](http://localhost)
+[http://localhost:3000](http://localhost:3000)
 
 #### Useful NPM commands
 
