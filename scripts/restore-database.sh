@@ -5,11 +5,6 @@
 
 set -euo pipefail
 
-# Configuration
-NAMESPACE="community"
-DB_NAME="community"
-BACKUP_DIR="./backups"
-
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -31,26 +26,25 @@ warn() {
 
 # Usage function
 usage() {
-    echo "Usage: $0 <backup_file>"
+    echo "Usage: $0 <namespace> <backup_file>"
     echo
     echo "Arguments:"
+    echo "  namespace      Kubernetes namespace containing the PostgreSQL database"
     echo "  backup_file    Path to the backup file (.sql or .sql.gz)"
     echo
     echo "Examples:"
-    echo "  $0 ./backups/community_db_backup_20241201_120000.sql.gz"
-    echo "  $0 ./backups/community_db_backup_20241201_120000.sql"
-    echo
-    echo "Available backups:"
-    ls -1 "$BACKUP_DIR"/community_db_backup_*.sql.gz 2>/dev/null | tail -5 || echo "  No backups found"
+    echo "  $0 community ./backups/community_community_backup_20241201_120000.sql.gz"
+    echo "  $0 production ./backups/production_mydb_backup_20241201_120000.sql"
     exit 1
 }
 
 # Validate arguments
-if [[ $# -ne 1 ]]; then
+if [[ $# -ne 2 ]]; then
     usage
 fi
 
-BACKUP_FILE="$1"
+NAMESPACE="$1"
+BACKUP_FILE="$2"
 
 # Check dependencies
 check_dependencies() {
@@ -58,6 +52,10 @@ check_dependencies() {
 
     if ! command -v kubectl &> /dev/null; then
         error "kubectl is required but not installed"
+    fi
+
+    if ! command -v jq &> /dev/null; then
+        error "jq is required but not installed"
     fi
 
     if ! kubectl cluster-info &> /dev/null; then
@@ -73,17 +71,127 @@ check_dependencies() {
     fi
 }
 
-# Find PostgreSQL pod
+# Find PostgreSQL pod and extract cluster information
 find_postgres_pod() {
     log "Finding PostgreSQL pod..."
 
-    POSTGRES_POD=$(kubectl get pods -n "$NAMESPACE" -l application=spilo,cluster-name=community-db --no-headers -o custom-columns=":metadata.name" | head -1)
+    # Find any Spilo (Zalando Postgres) pod in the namespace
+    POSTGRES_POD=$(kubectl get pods -n "$NAMESPACE" -l application=spilo --no-headers -o custom-columns=":metadata.name" | head -1)
 
     if [[ -z "$POSTGRES_POD" ]]; then
         error "No PostgreSQL pod found in namespace '$NAMESPACE'"
     fi
 
     log "Found PostgreSQL pod: $POSTGRES_POD"
+
+    # Extract cluster name from pod labels
+    CLUSTER_NAME=$(kubectl get pod -n "$NAMESPACE" "$POSTGRES_POD" -o jsonpath='{.metadata.labels.cluster-name}')
+
+    if [[ -z "$CLUSTER_NAME" ]]; then
+        error "Could not determine cluster name from pod labels"
+    fi
+
+    log "Cluster name: $CLUSTER_NAME"
+
+    # Find the database credentials secret
+    # Zalando operator creates secrets with pattern: <username>.<cluster-name>.credentials.postgresql.acid.zalan.do
+    SECRET_NAME=$(kubectl get secrets -n "$NAMESPACE" -o name | grep "\.${CLUSTER_NAME}\.credentials\.postgresql\.acid\.zalan\.do" | head -1 | sed 's|secret/||')
+
+    if [[ -z "$SECRET_NAME" ]]; then
+        error "Could not find credentials secret for cluster '$CLUSTER_NAME'"
+    fi
+
+    log "Found secret: $SECRET_NAME"
+
+    # Get database name from the postgresql custom resource spec
+    DB_NAME=$(kubectl get postgresql -n "$NAMESPACE" "$CLUSTER_NAME" -o jsonpath='{.spec.databases}' | jq -r 'keys[0]' 2>/dev/null)
+
+    if [[ -z "$DB_NAME" || "$DB_NAME" == "null" ]]; then
+        error "Could not determine database name from postgresql resource '$CLUSTER_NAME'"
+    fi
+
+    log "Database name: $DB_NAME"
+}
+
+# Find backend deployments that connect to the database
+find_backend_deployments() {
+    log "Finding backend deployments..."
+
+    # Look for deployments that likely connect to the database
+    # Common patterns: *-backend, *-api, contains "backend" or "api"
+    BACKEND_DEPLOYMENTS=$(kubectl get deployments -n "$NAMESPACE" -o name | grep -E "(backend|api)" | sed 's|deployment.apps/||' || echo "")
+
+    if [[ -n "$BACKEND_DEPLOYMENTS" ]]; then
+        log "Found backend deployments: $BACKEND_DEPLOYMENTS"
+    else
+        log "No backend deployments found (this is fine if none exist)"
+    fi
+}
+
+# Scale down backend deployments
+scale_down_backends() {
+    if [[ -z "$BACKEND_DEPLOYMENTS" ]]; then
+        log "No backend deployments to scale down"
+        return
+    fi
+
+    log "Scaling down backend deployments to close database connections..."
+
+    # Store original replica counts in a temp file
+    REPLICA_COUNTS_FILE=$(mktemp)
+
+    for deployment in $BACKEND_DEPLOYMENTS; do
+        local replicas=$(kubectl get deployment -n "$NAMESPACE" "$deployment" -o jsonpath='{.spec.replicas}')
+        echo "$deployment=$replicas" >> "$REPLICA_COUNTS_FILE"
+        log "Scaling down $deployment (current replicas: $replicas)"
+        kubectl scale deployment -n "$NAMESPACE" "$deployment" --replicas=0
+    done
+
+    # Wait for pods to terminate
+    log "Waiting for backend pods to terminate..."
+    for deployment in $BACKEND_DEPLOYMENTS; do
+        kubectl wait --for=delete pod -l app=$deployment -n "$NAMESPACE" --timeout=60s 2>/dev/null || true
+    done
+
+    log "Backend deployments scaled down successfully"
+
+    # Export for use in scale_up_backends
+    export BACKEND_DEPLOYMENTS
+    export REPLICA_COUNTS_FILE
+}
+
+# Scale up backend deployments
+scale_up_backends() {
+    if [[ -z "$BACKEND_DEPLOYMENTS" ]]; then
+        log "No backend deployments to scale up"
+        return
+    fi
+
+    log "Scaling backend deployments back up..."
+
+    for deployment in $BACKEND_DEPLOYMENTS; do
+        local replicas=2  # Default to 2
+
+        # Read original replica count from temp file
+        if [[ -f "$REPLICA_COUNTS_FILE" ]]; then
+            while IFS='=' read -r dep rep; do
+                if [[ "$dep" == "$deployment" ]]; then
+                    replicas=$rep
+                    break
+                fi
+            done < "$REPLICA_COUNTS_FILE"
+        fi
+
+        log "Scaling up $deployment to $replicas replicas"
+        kubectl scale deployment -n "$NAMESPACE" "$deployment" --replicas="$replicas"
+    done
+
+    # Clean up temp file
+    if [[ -f "$REPLICA_COUNTS_FILE" ]]; then
+        rm -f "$REPLICA_COUNTS_FILE"
+    fi
+
+    log "Backend deployments scaled up successfully"
 }
 
 # Confirm restore operation
@@ -103,11 +211,15 @@ confirm_restore() {
 create_pre_restore_backup() {
     log "Creating pre-restore backup..."
 
-    local pre_restore_backup="$BACKUP_DIR/pre_restore_backup_$(date +%Y%m%d_%H%M%S).sql"
+    # Use same backup directory as backup script, default to ./backups
+    local backup_dir="${BACKUP_DIR:-./backups}"
+    mkdir -p "$backup_dir"
+
+    local pre_restore_backup="$backup_dir/${NAMESPACE}_${DB_NAME}_pre_restore_backup_$(date +%Y%m%d_%H%M%S).sql"
 
     # Get database credentials
-    local db_user=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.username}' | base64 -d)
-    local db_password=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.password}' | base64 -d)
+    local db_user=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.username}' | base64 -d)
+    local db_password=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.password}' | base64 -d)
 
     kubectl exec -n "$NAMESPACE" "$POSTGRES_POD" -- bash -c "
         PGPASSWORD='$db_password' pg_dump -h localhost -U '$db_user' -d '$DB_NAME' --clean --if-exists --create
@@ -141,9 +253,18 @@ prepare_backup_file() {
 restore_database() {
     log "Starting database restore..."
 
-    # Get database credentials
-    local db_user=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.username}' | base64 -d)
-    local db_password=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.password}' | base64 -d)
+    # Get postgres superuser credentials
+    local postgres_user=$(kubectl get secret -n "$NAMESPACE" "postgres.${CLUSTER_NAME}.credentials.postgresql.acid.zalan.do" -o jsonpath='{.data.username}' | base64 -d 2>/dev/null)
+    local postgres_password=$(kubectl get secret -n "$NAMESPACE" "postgres.${CLUSTER_NAME}.credentials.postgresql.acid.zalan.do" -o jsonpath='{.data.password}' | base64 -d 2>/dev/null)
+
+    # If postgres user secret doesn't exist, try to use the database user
+    if [[ -z "$postgres_user" || -z "$postgres_password" ]]; then
+        warn "Postgres superuser secret not found, attempting with database user credentials"
+        postgres_user=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.username}' | base64 -d)
+        postgres_password=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.password}' | base64 -d)
+    else
+        log "Using postgres superuser credentials for restore"
+    fi
 
     # Copy SQL file to pod
     log "Copying backup file to PostgreSQL pod..."
@@ -152,7 +273,7 @@ restore_database() {
     # Restore database
     log "Executing database restore..."
     kubectl exec -n "$NAMESPACE" "$POSTGRES_POD" -- bash -c "
-        PGPASSWORD='$db_password' psql -h localhost -U '$db_user' -d postgres -f /tmp/restore.sql
+        PGPASSWORD='$postgres_password' psql -h localhost -U '$postgres_user' -d postgres -f /tmp/restore.sql
     "
 
     # Clean up temp file in pod
@@ -166,8 +287,8 @@ verify_restore() {
     log "Verifying restore..."
 
     # Get database credentials
-    local db_user=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.username}' | base64 -d)
-    local db_password=$(kubectl get secret -n "$NAMESPACE" community.community-db.credentials.postgresql.acid.zalan.do -o jsonpath='{.data.password}' | base64 -d)
+    local db_user=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.username}' | base64 -d)
+    local db_password=$(kubectl get secret -n "$NAMESPACE" "$SECRET_NAME" -o jsonpath='{.data.password}' | base64 -d)
 
     # Check if database exists and has tables
     local table_count=$(kubectl exec -n "$NAMESPACE" "$POSTGRES_POD" -- bash -c "
@@ -189,21 +310,36 @@ cleanup() {
     fi
 }
 
+# Cleanup and restore backends on exit
+cleanup_and_restore() {
+    cleanup
+
+    # Always scale backends back up, even if restore failed
+    if [[ -n "${BACKEND_DEPLOYMENTS:-}" ]]; then
+        scale_up_backends
+    fi
+}
+
 # Main execution
 main() {
     log "Starting CityForge PostgreSQL restore"
 
     check_dependencies
     find_postgres_pod
+    find_backend_deployments
     confirm_restore
+
+    # Set trap for cleanup and scaling backends back up
+    trap cleanup_and_restore EXIT
+
+    scale_down_backends
     create_pre_restore_backup
     prepare_backup_file
-
-    # Set trap for cleanup
-    trap cleanup EXIT
-
     restore_database
     verify_restore
+
+    # Scale backends back up (also happens in trap, but doing it here for clean exit)
+    scale_up_backends
 
     log "Database restore completed successfully"
     log "Backup restored from: $BACKUP_FILE"
