@@ -5,6 +5,7 @@ Database migration script to extend tag name column from 50 to 500 characters
 
 import os
 import sys
+
 from sqlalchemy import create_engine, text
 
 

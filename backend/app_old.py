@@ -1,21 +1,22 @@
 import os
 import re
+import uuid
+from datetime import datetime, timedelta
+
 from flask import Flask, jsonify, request, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
-    jwt_required,
     create_access_token,
-    get_jwt_identity,
     get_jwt,
+    get_jwt_identity,
+    jwt_required,
 )
-from flask_bcrypt import Bcrypt
-from datetime import datetime, timedelta
+from flask_sqlalchemy import SQLAlchemy
+from opensearchpy import OpenSearch
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
-import uuid
-from opensearchpy import OpenSearch
 
 app = Flask(__name__)
 CORS(app)

@@ -1,10 +1,12 @@
-from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import func, text
 from datetime import datetime
+
+from flask import Blueprint, current_app, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import func, text
+
 from app import db
-from app.models.card import Card, CardSubmission, CardModification, Tag, card_tags
-from app.models.resource import ResourceConfig, QuickAccessItem, ResourceItem
+from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
+from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 from app.models.user import User
 from app.utils.helpers import require_admin
 

@@ -1,11 +1,12 @@
+import os
+from datetime import timedelta
+
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
 from opensearchpy import OpenSearch
-from datetime import timedelta
-import os
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -84,7 +85,7 @@ def create_app():
         return User.query.filter_by(id=int(identity)).one_or_none()
 
     # Register blueprints
-    from app.routes import auth, cards, resources, admin, search, upload
+    from app.routes import admin, auth, cards, resources, search, upload
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(cards.bp)

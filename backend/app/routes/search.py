@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
-from app import opensearch_client
 import os
+
+from flask import Blueprint, jsonify, request
+
+from app import opensearch_client
 
 bp = Blueprint("search", __name__)
 
