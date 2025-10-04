@@ -42,6 +42,86 @@ Software to install:
 - **Node Version**: 20 LTS
 
 ### Security Analysis
+=======
+## Development
+
+### Initial Setup
+
+#### Install Dependencies
+
+- docker
+- docker-compose
+- npm
+- python
+- python-venv
+
+#### Setup Node
+
+```bash
+# Install dependencies
+npm install
+
+# Set up pre-commit script
+npm run prepare
+```
+
+#### Setup Python
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python -m pip install -r backend/requirements-dev.txt
+.venv/bin/python -m pip install -r backend/requirements-test.txt
+```
+
+#### Developing With Docker
+
+```bash
+docker-compose up --build
+```
+
+--build can be excluded to use previous container build
+
+To run the services in the backgroup, run:
+
+```bash
+docker-compose up --build -d
+```
+
+##### Initial database initialization for the first time
+
+```bash
+docker exec -it cityforge-backend python init_db.py
+```
+
+#### Useful NPM commands
+
+```bash
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linting
+npm run lint
+
+# Format code
+npm run format
+
+# Type checking
+npm run typecheck
+
+# Security analysis
+npm run semgrep
+```
+
+````
+
+## Security Analysis
 
 The project includes Semgrep for automated security vulnerability detection:
 
