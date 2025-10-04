@@ -1,8 +1,10 @@
-from flask import Blueprint, request, jsonify, send_from_directory, current_app
+import os
+import uuid
+
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
-import uuid
-import os
+
 from app.utils.helpers import allowed_file
 
 bp = Blueprint("upload", __name__)

@@ -1,5 +1,6 @@
 import pytest
-from app.models import User, Card, Tag, ResourceConfig, QuickAccessItem, ResourceItem
+
+from app.models import Card, QuickAccessItem, ResourceConfig, ResourceItem, Tag, User
 
 
 @pytest.mark.unit

@@ -1,7 +1,9 @@
-from flask import Blueprint, jsonify, request, current_app
-from app import db
-from app.models.resource import ResourceConfig, QuickAccessItem, ResourceItem
 import json
+
+from flask import Blueprint, current_app, jsonify, request
+
+from app import db
+from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 
 bp = Blueprint("resources", __name__)
 

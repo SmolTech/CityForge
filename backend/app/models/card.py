@@ -1,5 +1,6 @@
-from app import db
 from datetime import datetime
+
+from app import db
 from app.utils.helpers import generate_slug
 
 card_tags = db.Table(

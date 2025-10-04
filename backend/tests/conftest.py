@@ -1,7 +1,9 @@
-import pytest
 import os
+
+import pytest
+
 from app import create_app, db
-from app.models import User, Card, Tag, ResourceConfig, QuickAccessItem, ResourceItem
+from app.models import Card, QuickAccessItem, ResourceConfig, ResourceItem, Tag, User
 
 
 @pytest.fixture(scope="session")

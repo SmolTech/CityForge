@@ -1,5 +1,6 @@
-from app import db
 from datetime import datetime
+
+from app import db
 
 
 class ResourceCategory(db.Model):

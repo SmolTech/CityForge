@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity, get_jwt
 from datetime import datetime
-from app import db, blacklisted_tokens
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
+
+from app import blacklisted_tokens, db
 from app.models.user import User
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")

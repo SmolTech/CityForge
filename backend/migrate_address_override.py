@@ -11,6 +11,7 @@ Run this script to update the database schema after deploying the new code.
 """
 
 import os
+
 import psycopg3
 from psycopg3.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 

@@ -1,9 +1,11 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import func
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import func
+
 from app import db
-from app.models.card import Card, CardSubmission, CardModification, Tag, card_tags
+from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
 from app.models.user import User
 
 bp = Blueprint("cards", __name__)

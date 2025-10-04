@@ -1,8 +1,9 @@
-from app import create_app, db
-from datetime import datetime
 import getpass
-import sys
 import re
+import sys
+from datetime import datetime
+
+from app import create_app, db
 
 
 def init_database():
@@ -13,8 +14,8 @@ def init_database():
 
         print("Database tables created successfully!")
 
+        from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
         from app.models.user import User
-        from app.models.resource import ResourceConfig, QuickAccessItem, ResourceItem
 
         # Create default site configuration
         print("\n=== Site Configuration Setup ===")
