@@ -12,19 +12,6 @@ so I'm somewhat confident that there aren't any glaring security issues.
 That being said, I'm happy to hear feedback from experts, and I'd love
 to find some people who want to collaborate on the project.
 
-## Setting up development environment
-
-Software to install:
-
-- docker
-- docker-compose
-- python
-- python-venv
-
-### Setup python
-
-`python -m venv .venv`
-
 ## Running locally with Docker
 
 - Install Docker and compose.
@@ -40,20 +27,6 @@ Software to install:
 - **Security**: Semgrep static analysis for vulnerability detection
 - **Containerization**: Docker with multi-stage builds
 - **Node Version**: 20 LTS
-
-### Security Analysis
-=======
-## Development
-
-### Initial Setup
-
-#### Install Dependencies
-
-- docker
-- docker-compose
-- npm
-- python
-- python-venv
 
 #### Setup Node
 
