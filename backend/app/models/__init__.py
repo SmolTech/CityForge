@@ -3,14 +3,14 @@ from app.models.card import Card, CardSubmission, CardModification, Tag, card_ta
 from app.models.resource import ResourceCategory, QuickAccessItem, ResourceItem, ResourceConfig
 
 __all__ = [
-    'User',
-    'Card',
-    'CardSubmission',
-    'CardModification',
-    'Tag',
-    'card_tags',
-    'ResourceCategory',
-    'QuickAccessItem',
-    'ResourceItem',
-    'ResourceConfig',
+    "User",
+    "Card",
+    "CardSubmission",
+    "CardModification",
+    "Tag",
+    "card_tags",
+    "ResourceCategory",
+    "QuickAccessItem",
+    "ResourceItem",
+    "ResourceConfig",
 ]
