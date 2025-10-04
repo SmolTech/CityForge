@@ -70,7 +70,7 @@ def create_app():
 
     # JWT callbacks
     @jwt.token_in_blocklist_loader
-    def check_if_token_revoked(jwt_header, jwt_payload):
+    def check_if_token_revoked(_jwt_header, jwt_payload):
         return jwt_payload["jti"] in blacklisted_tokens
 
     @jwt.user_identity_loader

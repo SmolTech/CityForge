@@ -1,6 +1,5 @@
 import pytest
 
-from app.models import User
 from app.utils.helpers import allowed_file, generate_slug, require_admin
 
 
@@ -51,11 +50,6 @@ class TestHelpers:
         with app.app_context():
             from unittest.mock import patch
 
-            from flask import Flask
-            from flask_jwt_extended import create_access_token
-
-            token = create_access_token(identity=admin_user.id)
-
             with patch("app.utils.helpers.get_jwt_identity", return_value=admin_user.id):
                 result = require_admin()
                 assert result is None
@@ -64,10 +58,6 @@ class TestHelpers:
         """Test require_admin with regular user"""
         with app.app_context():
             from unittest.mock import patch
-
-            from flask_jwt_extended import create_access_token
-
-            token = create_access_token(identity=regular_user.id)
 
             with patch("app.utils.helpers.get_jwt_identity", return_value=regular_user.id):
                 result = require_admin()

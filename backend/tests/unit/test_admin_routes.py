@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import CardModification, CardSubmission, Tag
+from app.models import CardSubmission
 
 
 @pytest.mark.unit
