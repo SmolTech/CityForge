@@ -77,16 +77,7 @@ def search_resources():
                 "domain": source["domain"],
                 "score": hit["_score"],
                 "is_homepage": source.get("is_homepage", True),
-                "is_help_wanted": source.get("is_help_wanted", False),
             }
-
-            # Add help wanted specific fields if present
-            if source.get("is_help_wanted"):
-                result["post_id"] = source.get("post_id")
-                result["budget"] = source.get("budget", "")
-                result["contact_preference"] = source.get("contact_preference", "")
-                result["created_by"] = source.get("created_by", "")
-                result["created_date"] = source.get("created_date", "")
 
             if "highlight" in hit:
                 result["highlights"] = hit["highlight"]
