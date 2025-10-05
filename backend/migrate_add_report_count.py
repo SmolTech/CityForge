@@ -4,8 +4,10 @@ Migration script to add report_count column to help_wanted_posts table.
 Run this with: python migrate_add_report_count.py
 """
 
-from app import create_app, db
 from sqlalchemy import text
+
+from app import create_app, db
+
 
 def migrate():
     app = create_app()
@@ -14,25 +16,28 @@ def migrate():
         try:
             # Check if column already exists
             from sqlalchemy import inspect
+
             inspector = inspect(db.engine)
 
             # Check if table exists
-            if 'help_wanted_posts' not in inspector.get_table_names():
+            if "help_wanted_posts" not in inspector.get_table_names():
                 print("ERROR: help_wanted_posts table doesn't exist. Run init_db.py first.")
                 return False
 
-            columns = inspector.get_columns('help_wanted_posts')
-            col_names = [c['name'] for c in columns]
+            columns = inspector.get_columns("help_wanted_posts")
+            col_names = [c["name"] for c in columns]
 
-            if 'report_count' in col_names:
+            if "report_count" in col_names:
                 print("✓ report_count column already exists - no migration needed")
                 return True
 
             # Add the column
             print("Adding report_count column to help_wanted_posts...")
-            db.session.execute(text(
-                "ALTER TABLE help_wanted_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL"
-            ))
+            db.session.execute(
+                text(
+                    "ALTER TABLE help_wanted_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL"
+                )
+            )
             db.session.commit()
             print("✓ Successfully added report_count column")
             print("✓ Migration completed successfully!")
@@ -42,6 +47,7 @@ def migrate():
             print(f"ERROR during migration: {e}")
             db.session.rollback()
             return False
+
 
 if __name__ == "__main__":
     success = migrate()

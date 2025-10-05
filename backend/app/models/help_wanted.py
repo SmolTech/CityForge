@@ -9,7 +9,9 @@ class HelpWantedPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(50), nullable=False, index=True)  # 'hiring', 'collaboration', 'general'
+    category = db.Column(
+        db.String(50), nullable=False, index=True
+    )  # 'hiring', 'collaboration', 'general'
     status = db.Column(db.String(20), default="open", index=True)  # 'open', 'closed'
     location = db.Column(db.String(255))
     budget = db.Column(db.String(100))  # Optional budget/compensation info
@@ -22,8 +24,12 @@ class HelpWantedPost(db.Model):
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_posts")
-    comments = db.relationship("HelpWantedComment", backref="post", lazy="dynamic", cascade="all, delete-orphan")
-    reports = db.relationship("HelpWantedReport", backref="post", lazy="dynamic", cascade="all, delete-orphan")
+    comments = db.relationship(
+        "HelpWantedComment", backref="post", lazy="dynamic", cascade="all, delete-orphan"
+    )
+    reports = db.relationship(
+        "HelpWantedReport", backref="post", lazy="dynamic", cascade="all, delete-orphan"
+    )
 
     def to_dict(self, include_comments=False):
         data = {
@@ -43,7 +49,10 @@ class HelpWantedPost(db.Model):
         }
 
         if include_comments:
-            data["comments"] = [comment.to_dict() for comment in self.comments.order_by(HelpWantedComment.created_date.asc()).all()]
+            data["comments"] = [
+                comment.to_dict()
+                for comment in self.comments.order_by(HelpWantedComment.created_date.asc()).all()
+            ]
 
         return data
 
@@ -54,7 +63,9 @@ class HelpWantedComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey("help_wanted_posts.id"), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey("help_wanted_comments.id"), nullable=True)  # For threaded replies
+    parent_id = db.Column(
+        db.Integer, db.ForeignKey("help_wanted_comments.id"), nullable=True
+    )  # For threaded replies
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -62,7 +73,12 @@ class HelpWantedComment(db.Model):
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_comments")
-    replies = db.relationship("HelpWantedComment", backref=db.backref("parent", remote_side=[id]), lazy="dynamic", cascade="all, delete-orphan")
+    replies = db.relationship(
+        "HelpWantedComment",
+        backref=db.backref("parent", remote_side=[id]),
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self, include_replies=True):
         data = {
@@ -76,7 +92,10 @@ class HelpWantedComment(db.Model):
         }
 
         if include_replies and self.parent_id is None:
-            data["replies"] = [reply.to_dict(include_replies=False) for reply in self.replies.order_by(HelpWantedComment.created_date.asc()).all()]
+            data["replies"] = [
+                reply.to_dict(include_replies=False)
+                for reply in self.replies.order_by(HelpWantedComment.created_date.asc()).all()
+            ]
 
         return data
 
@@ -86,7 +105,9 @@ class HelpWantedReport(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey("help_wanted_posts.id"), nullable=False)
-    reason = db.Column(db.String(50), nullable=False)  # 'spam', 'inappropriate', 'misleading', 'other'
+    reason = db.Column(
+        db.String(50), nullable=False
+    )  # 'spam', 'inappropriate', 'misleading', 'other'
     details = db.Column(db.Text)
     status = db.Column(db.String(20), default="pending")  # 'pending', 'reviewed', 'resolved'
 
@@ -99,7 +120,9 @@ class HelpWantedReport(db.Model):
 
     # Relationships
     reporter = db.relationship("User", foreign_keys=[reported_by], backref="help_wanted_reports")
-    reviewer = db.relationship("User", foreign_keys=[reviewed_by], backref="reviewed_help_wanted_reports")
+    reviewer = db.relationship(
+        "User", foreign_keys=[reviewed_by], backref="reviewed_help_wanted_reports"
+    )
 
     def to_dict(self):
         return {
