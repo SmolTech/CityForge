@@ -8,14 +8,20 @@ import Navigation from "@/components/Navigation";
 
 export default function HelpWantedPage() {
   const [posts, setPosts] = useState<HelpWantedPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<HelpWantedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("open");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const router = useRouter();
 
   useEffect(() => {
     loadPosts();
   }, [categoryFilter, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    filterPosts();
+  }, [posts, searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = async () => {
     try {
@@ -35,6 +41,26 @@ export default function HelpWantedPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterPosts = () => {
+    if (!searchQuery.trim()) {
+      setFilteredPosts(posts);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = posts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(query) ||
+        post.description.toLowerCase().includes(query) ||
+        post.location?.toLowerCase().includes(query) ||
+        post.budget?.toLowerCase().includes(query) ||
+        (post.creator?.first_name + " " + post.creator?.last_name)
+          .toLowerCase()
+          .includes(query)
+    );
+    setFilteredPosts(filtered);
   };
 
   const getCategoryBadgeColor = (category: string) => {
@@ -100,8 +126,57 @@ export default function HelpWantedPage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Search
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title, description, location, budget, or poster..."
+                className="block w-full pl-10 pr-3 py-2 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <svg
+                    className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -135,8 +210,17 @@ export default function HelpWantedPage() {
           </div>
         </div>
 
+        {/* Results Count */}
+        {searchQuery && (
+          <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Found {filteredPosts.length} result
+            {filteredPosts.length !== 1 ? "s" : ""} for &quot;{searchQuery}
+            &quot;
+          </div>
+        )}
+
         {/* Posts List */}
-        {posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -152,23 +236,27 @@ export default function HelpWantedPage() {
               />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-              No posts found
+              {searchQuery ? "No matching posts found" : "No posts found"}
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Be the first to post a help wanted request!
+              {searchQuery
+                ? "Try adjusting your search terms or filters"
+                : "Be the first to post a help wanted request!"}
             </p>
-            <div className="mt-6">
-              <Link
-                href="/help-wanted/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Post Request
-              </Link>
-            </div>
+            {!searchQuery && (
+              <div className="mt-6">
+                <Link
+                  href="/help-wanted/new"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Post Request
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <Link
                 key={post.id}
                 href={`/help-wanted/${post.id}`}
