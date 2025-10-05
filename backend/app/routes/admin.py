@@ -6,6 +6,7 @@ from sqlalchemy import func, text
 
 from app import db
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
+from app.models.help_wanted import HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 from app.models.user import User
 from app.utils.helpers import require_admin
@@ -943,3 +944,116 @@ def admin_delete_resource_item(item_id):
         db.session.rollback()
         current_app.logger.error(f"Error deleting resource item: {str(e)}")
         return jsonify({"error": "Failed to delete resource item"}), 500
+
+
+# Help Wanted Report Management
+@bp.route("/help-wanted/reports", methods=["GET"])
+@jwt_required()
+def admin_get_help_wanted_reports():
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    status = request.args.get("status", "pending")
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = HelpWantedReport.query
+
+    if status != "all":
+        query = query.filter_by(status=status)
+
+    total_count = query.count()
+    reports = query.order_by(HelpWantedReport.created_date.desc()).offset(offset).limit(limit).all()
+
+    return jsonify(
+        {
+            "reports": [report.to_dict() for report in reports],
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/help-wanted/reports/<int:report_id>/resolve", methods=["POST"])
+@jwt_required()
+def admin_resolve_help_wanted_report(report_id):
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    report = HelpWantedReport.query.get_or_404(report_id)
+    data = request.get_json() or {}
+
+    if report.status != "pending":
+        return jsonify({"message": "Report already reviewed"}), 400
+
+    action = data.get("action")  # 'dismiss', 'delete_post'
+
+    report.status = "resolved"
+    report.reviewed_by = user_id
+    report.reviewed_date = datetime.utcnow()
+    report.resolution_notes = data.get("notes", "")
+
+    # Decrement report count on the post
+    post = report.post
+    if post.report_count > 0:
+        post.report_count -= 1
+
+    if action == "delete_post":
+        # Delete the reported post
+        db.session.delete(post)
+        report.resolution_notes = f"Post deleted. {report.resolution_notes}".strip()
+
+    db.session.commit()
+
+    return jsonify({"message": "Report resolved successfully", "report": report.to_dict()})
+
+
+@bp.route("/help-wanted/posts", methods=["GET"])
+@jwt_required()
+def admin_get_help_wanted_posts():
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    status = request.args.get("status")
+    category = request.args.get("category")
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = HelpWantedPost.query
+
+    if status:
+        query = query.filter_by(status=status)
+
+    if category:
+        query = query.filter_by(category=category)
+
+    total_count = query.count()
+    posts = query.order_by(HelpWantedPost.created_date.desc()).offset(offset).limit(limit).all()
+
+    return jsonify(
+        {
+            "posts": [post.to_dict() for post in posts],
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/help-wanted/posts/<int:post_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_help_wanted_post(post_id):
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    post = HelpWantedPost.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+
+    return jsonify({"message": "Help wanted post deleted successfully"})

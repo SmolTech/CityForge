@@ -111,6 +111,7 @@ class ResourceIndexer:
             logger.error(f"Failed to load business cards from API: {e}")
             return []
 
+
     def create_index_if_not_exists(self):
         """Create the OpenSearch index if it doesn't exist"""
         if not self.client.indices.exists(index=self.index_name):
@@ -400,6 +401,7 @@ class ResourceIndexer:
         except Exception as e:
             logger.error(f"Failed to index resource {resource['title']}: {e}")
             return False
+
 
     def index_all_resources(self):
         """Index all resources from business cards"""
