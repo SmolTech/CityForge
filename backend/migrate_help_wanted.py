@@ -13,9 +13,10 @@ Safe to run multiple times - checks for existing tables before creating.
 import os
 import sys
 
+from sqlalchemy import inspect
+
 from app import app, db
 from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
-from sqlalchemy import inspect
 
 
 def table_exists(table_name):

@@ -65,7 +65,12 @@ def create_help_wanted_post():
 
     valid_categories = ["hiring", "collaboration", "general"]
     if data["category"] not in valid_categories:
-        return jsonify({"message": f"Invalid category. Must be one of: {', '.join(valid_categories)}"}), 400
+        return (
+            jsonify(
+                {"message": f"Invalid category. Must be one of: {', '.join(valid_categories)}"}
+            ),
+            400,
+        )
 
     post = HelpWantedPost(
         title=data["title"],
@@ -102,7 +107,12 @@ def update_help_wanted_post(post_id):
     if "category" in data:
         valid_categories = ["hiring", "collaboration", "general"]
         if data["category"] not in valid_categories:
-            return jsonify({"message": f"Invalid category. Must be one of: {', '.join(valid_categories)}"}), 400
+            return (
+                jsonify(
+                    {"message": f"Invalid category. Must be one of: {', '.join(valid_categories)}"}
+                ),
+                400,
+            )
         post.category = data["category"]
     if "location" in data:
         post.location = data["location"]
@@ -232,13 +242,14 @@ def report_post(post_id):
 
     valid_reasons = ["spam", "inappropriate", "misleading", "other"]
     if data["reason"] not in valid_reasons:
-        return jsonify({"message": f"Invalid reason. Must be one of: {', '.join(valid_reasons)}"}), 400
+        return (
+            jsonify({"message": f"Invalid reason. Must be one of: {', '.join(valid_reasons)}"}),
+            400,
+        )
 
     # Check if user already reported this post
     existing_report = HelpWantedReport.query.filter_by(
-        post_id=post_id,
-        reported_by=user_id,
-        status="pending"
+        post_id=post_id, reported_by=user_id, status="pending"
     ).first()
 
     if existing_report:

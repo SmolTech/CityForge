@@ -5,8 +5,10 @@ set -e
 
 echo "Formatting Python code..."
 
-# Activate virtual environment if it exists
-if [ -f ".venv/bin/activate" ]; then
+# Activate virtual environment if it exists (check root first, then local)
+if [ -f "../.venv/bin/activate" ]; then
+  source ../.venv/bin/activate
+elif [ -f ".venv/bin/activate" ]; then
   source .venv/bin/activate
 fi
 
