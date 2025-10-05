@@ -15,8 +15,11 @@ import sys
 
 from sqlalchemy import inspect
 
-from app import app, db
+from app import create_app, db
 from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
+
+# Create app instance
+app = create_app()
 
 
 def table_exists(table_name):
