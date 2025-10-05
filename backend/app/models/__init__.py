@@ -1,4 +1,5 @@
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
+from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceCategory, ResourceConfig, ResourceItem
 from app.models.user import User
 
@@ -13,4 +14,7 @@ __all__ = [
     "QuickAccessItem",
     "ResourceItem",
     "ResourceConfig",
+    "HelpWantedPost",
+    "HelpWantedComment",
+    "HelpWantedReport",
 ]
