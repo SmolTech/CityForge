@@ -111,6 +111,53 @@ class ResourceIndexer:
             logger.error(f"Failed to load business cards from API: {e}")
             return []
 
+    def load_help_wanted_posts(self):
+        """Load help wanted posts from the API"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/help-wanted?status=open&limit=1000", timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+            posts = data.get('posts', [])
+
+            # Convert help wanted posts to resource format
+            help_wanted_resources = []
+            for post in posts:
+                # Create a pseudo-URL for help wanted posts
+                post_url = f"{self.backend_url}/help-wanted/{post['id']}"
+
+                # Format category display
+                category_map = {
+                    'hiring': 'Help Wanted - Hiring',
+                    'collaboration': 'Help Wanted - Collaboration',
+                    'general': 'Help Wanted - General'
+                }
+                category = category_map.get(post.get('category', 'general'), 'Help Wanted')
+
+                resource = {
+                    'id': 20000 + post['id'],  # Offset help wanted IDs to avoid conflicts
+                    'title': post['title'],
+                    'description': post.get('description', ''),
+                    'url': post_url,
+                    'category': category,
+                    'phone': '',
+                    'address': post.get('location', ''),
+                    'budget': post.get('budget', ''),
+                    'contact_preference': post.get('contact_preference', ''),
+                    'post_id': post['id'],
+                    'created_by': post.get('creator', {}).get('first_name', '') + ' ' + post.get('creator', {}).get('last_name', ''),
+                    'created_date': post.get('created_date', ''),
+                    'is_help_wanted': True
+                }
+                help_wanted_resources.append(resource)
+
+            logger.info(f"Loaded {len(help_wanted_resources)} help wanted posts")
+            return help_wanted_resources
+
+        except Exception as e:
+            logger.error(f"Failed to load help wanted posts from API: {e}")
+            return []
+
     def create_index_if_not_exists(self):
         """Create the OpenSearch index if it doesn't exist"""
         if not self.client.indices.exists(index=self.index_name):
@@ -128,7 +175,13 @@ class ResourceIndexer:
                         "indexed_at": {"type": "date"},
                         "resource_id": {"type": "integer"},
                         "page_url": {"type": "keyword"},
-                        "is_homepage": {"type": "boolean"}
+                        "is_homepage": {"type": "boolean"},
+                        "is_help_wanted": {"type": "boolean"},
+                        "post_id": {"type": "integer"},
+                        "budget": {"type": "text"},
+                        "contact_preference": {"type": "keyword"},
+                        "created_by": {"type": "text"},
+                        "created_date": {"type": "date"}
                     }
                 }
             }
@@ -401,31 +454,89 @@ class ResourceIndexer:
             logger.error(f"Failed to index resource {resource['title']}: {e}")
             return False
 
+    def index_help_wanted_post(self, resource):
+        """Index a help wanted post (no web scraping needed)"""
+        try:
+            # Create unique document ID for help wanted posts
+            doc_id = f"helpwanted-{resource['post_id']}"
+
+            # Prepare document for indexing
+            doc = {
+                'resource_id': resource['id'],
+                'title': resource['title'],
+                'description': resource['description'],
+                'url': resource['url'],
+                'page_url': resource['url'],
+                'category': resource['category'],
+                'content': resource['description'],  # Use description as content for search
+                'phone': resource.get('phone', ''),
+                'address': resource.get('address', ''),
+                'domain': 'help-wanted',
+                'is_homepage': True,
+                'is_help_wanted': True,
+                'post_id': resource['post_id'],
+                'budget': resource.get('budget', ''),
+                'contact_preference': resource.get('contact_preference', ''),
+                'created_by': resource.get('created_by', ''),
+                'created_date': resource.get('created_date', ''),
+                'indexed_at': time.strftime('%Y-%m-%dT%H:%M:%S')
+            }
+
+            # Index document
+            response = self.client.index(
+                index=self.index_name,
+                id=doc_id,
+                body=doc
+            )
+
+            logger.info(f"Indexed help wanted post: {resource['title']}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to index help wanted post {resource['title']}: {e}")
+            return False
+
     def index_all_resources(self):
-        """Index all resources from business cards"""
+        """Index all resources from business cards and help wanted posts"""
         logger.info("Starting resource indexing process")
 
         # Load business cards with websites
         business_resources = self.load_business_cards()
         logger.info(f"Loaded {len(business_resources)} business cards with websites")
 
-        if not business_resources:
+        # Load help wanted posts
+        help_wanted_resources = self.load_help_wanted_posts()
+        logger.info(f"Loaded {len(help_wanted_resources)} help wanted posts")
+
+        if not business_resources and not help_wanted_resources:
             logger.warning("No resources found to index")
             return
 
         # Create index
         self.create_index_if_not_exists()
 
-        # Index each resource
-        success_count = 0
+        # Index business cards
+        business_success_count = 0
         for resource in business_resources:
             if self.index_resource(resource):
-                success_count += 1
+                business_success_count += 1
 
             # Small delay between requests to be respectful
             time.sleep(1)
 
-        logger.info(f"Indexing complete. Successfully indexed {success_count}/{len(business_resources)} business cards")
+        logger.info(f"Business card indexing complete. Successfully indexed {business_success_count}/{len(business_resources)} business cards")
+
+        # Index help wanted posts
+        help_wanted_success_count = 0
+        for resource in help_wanted_resources:
+            if self.index_help_wanted_post(resource):
+                help_wanted_success_count += 1
+
+            # Small delay between requests
+            time.sleep(0.2)
+
+        logger.info(f"Help wanted indexing complete. Successfully indexed {help_wanted_success_count}/{len(help_wanted_resources)} help wanted posts")
+        logger.info(f"Total indexing complete. Indexed {business_success_count + help_wanted_success_count} total resources")
 
 def main():
     indexer = ResourceIndexer()
