@@ -122,33 +122,34 @@ export default function Home() {
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               {siteConfig.directoryDescription}
             </p>
-            {!user && (
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-6 text-center">
+              {user ? (
+                <a
+                  href="/submit"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Submit New Entry
+                </a>
+              ) : (
+                <div className="space-y-2">
                   <a
                     href="/register"
-                    className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    Create an account
-                  </a>{" "}
-                  to submit content for community approval
-                </p>
-              </div>
-            )}
-            {user && (
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Welcome back, {user.first_name}! Ready to{" "}
-                  <a
-                    href="/submit"
-                    className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                  >
-                    submit new content
-                  </a>{" "}
-                  to the community?
-                </p>
-              </div>
-            )}
+                    Sign Up to Submit
+                  </a>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Already have an account?{" "}
+                    <a
+                      href="/login"
+                      className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    >
+                      Login
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
