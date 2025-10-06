@@ -105,7 +105,7 @@ export default function Card({ card }: Props) {
   return (
     <>
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 cursor-pointer"
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 cursor-pointer border border-gray-100 dark:border-slate-700 hover:scale-[1.02] hover:border-blue-200 dark:hover:border-blue-800"
         onClick={handleCardClick}
       >
         <div className="flex items-start justify-between mb-3">
@@ -113,8 +113,8 @@ export default function Card({ card }: Props) {
             {card.name}
           </h3>
           {card.featured && (
-            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              Featured
+            <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-md">
+              ⭐ Featured
             </span>
           )}
         </div>
@@ -237,11 +237,11 @@ export default function Card({ card }: Props) {
         </div>
 
         {card.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {card.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
               >
                 {tag}
               </span>
@@ -260,7 +260,7 @@ export default function Card({ card }: Props) {
                     e.stopPropagation();
                     setShowShareMenu(!showShareMenu);
                   }}
-                  className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors"
+                  className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 border border-gray-200 hover:border-blue-300 dark:border-gray-700 dark:hover:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
                 >
                   <svg
                     className="w-4 h-4"
@@ -278,7 +278,7 @@ export default function Card({ card }: Props) {
                 </button>
 
                 {showShareMenu && (
-                  <div className="absolute bottom-full mb-2 right-0 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute bottom-full mb-2 right-0 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 z-50">
                     <div className="py-1">
                       <button
                         onClick={(e) => {
@@ -318,7 +318,7 @@ export default function Card({ card }: Props) {
           {isAuthenticated && (
             <button
               onClick={() => setShowEditForm(true)}
-              className="w-full px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-200 hover:border-blue-300 dark:border-blue-700 dark:hover:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              className="w-full px-3 py-2 text-sm font-medium text-blue-600 hover:text-white dark:text-blue-400 dark:hover:text-white border border-blue-200 hover:border-blue-600 dark:border-blue-700 dark:hover:border-blue-500 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-200"
             >
               <svg
                 className="w-4 h-4 inline mr-2"
@@ -357,7 +357,7 @@ export default function Card({ card }: Props) {
             onClick={() => setShowDetailsModal(false)}
           />
           <div
-            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
