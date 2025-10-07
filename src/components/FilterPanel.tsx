@@ -3,6 +3,8 @@ interface Props {
   onFeaturedChange: (featured: boolean) => void;
   selectedTags: string[];
   onTagRemove: (tag: string) => void;
+  tagFilterMode: "and" | "or";
+  onTagFilterModeChange: (mode: "and" | "or") => void;
 }
 
 export default function FilterPanel({
@@ -10,6 +12,8 @@ export default function FilterPanel({
   onFeaturedChange,
   selectedTags,
   onTagRemove,
+  tagFilterMode,
+  onTagFilterModeChange,
 }: Props) {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5 space-y-4">
@@ -31,6 +35,37 @@ export default function FilterPanel({
           </span>
         </label>
       </div>
+
+      {/* Tag Filter Mode */}
+      {selectedTags.length > 1 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tag Match
+          </label>
+          <div className="flex rounded-lg border border-gray-200 dark:border-slate-600 overflow-hidden">
+            <button
+              onClick={() => onTagFilterModeChange("and")}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                tagFilterMode === "and"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600"
+              }`}
+            >
+              Match All (AND)
+            </button>
+            <button
+              onClick={() => onTagFilterModeChange("or")}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-slate-600 ${
+                tagFilterMode === "or"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600"
+              }`}
+            >
+              Match Any (OR)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Selected Tags */}
       {selectedTags.length > 0 && (

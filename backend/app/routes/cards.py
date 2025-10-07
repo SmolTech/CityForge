@@ -13,6 +13,7 @@ bp = Blueprint("cards", __name__)
 def get_cards():
     search = request.args.get("search", "").strip()
     tags = request.args.getlist("tags")
+    tag_mode = request.args.get("tag_mode", "and").lower()
     featured_only = request.args.get("featured", "false").lower() == "true"
     include_share_urls = request.args.get("share_urls", "false").lower() == "true"
     limit = request.args.get("limit", 100, type=int)
@@ -32,8 +33,14 @@ def get_cards():
         )
 
     if tags:
-        for tag in tags:
-            query = query.filter(Card.tags.any(Tag.name.ilike(f"%{tag}%")))
+        if tag_mode == "or":
+            # OR logic: card must have at least one of the selected tags
+            tag_filters = [Card.tags.any(Tag.name.ilike(f"%{tag}%")) for tag in tags]
+            query = query.filter(db.or_(*tag_filters))
+        else:
+            # AND logic (default): card must have all selected tags
+            for tag in tags:
+                query = query.filter(Card.tags.any(Tag.name.ilike(f"%{tag}%")))
 
     if featured_only:
         query = query.filter_by(featured=True)
