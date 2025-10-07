@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { iconComponents } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
+import MarkdownContent from "./MarkdownContent";
 
 interface Business {
   id: number;
@@ -285,9 +286,9 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
                 About
               </h2>
               {business.description ? (
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {business.description}
-                </p>
+                <div className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                  <MarkdownContent content={business.description} />
+                </div>
               ) : (
                 <p className="text-gray-500 dark:text-gray-400 italic">
                   No description available.
