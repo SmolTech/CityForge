@@ -4,7 +4,7 @@ metadata:
   name: community-resources-config
   namespace: community
   labels:
-    app: community-website
+    app: cityforge
 data:
   resources.json: |
     {
