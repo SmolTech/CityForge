@@ -188,16 +188,25 @@ export default function Navigation({
                             className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
                             onClick={() => setUserMenuOpen(false)}
                           >
-                            Settings
+                            My Settings
                           </Link>
                           {user?.role === "admin" && (
-                            <Link
-                              href="/admin"
-                              className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
-                              onClick={() => setUserMenuOpen(false)}
-                            >
-                              Admin
-                            </Link>
+                            <>
+                              <Link
+                                href="/site-config"
+                                className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
+                                onClick={() => setUserMenuOpen(false)}
+                              >
+                                Site Settings
+                              </Link>
+                              <Link
+                                href="/admin"
+                                className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
+                                onClick={() => setUserMenuOpen(false)}
+                              >
+                                Admin
+                              </Link>
+                            </>
                           )}
                           <button
                             onClick={() => {
@@ -371,16 +380,25 @@ export default function Navigation({
                           className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setMobileMenuOpen(false)}
                         >
-                          Settings
+                          My Settings
                         </Link>
                         {user?.role === "admin" && (
-                          <Link
-                            href="/admin"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            Admin
-                          </Link>
+                          <>
+                            <Link
+                              href="/site-config"
+                              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              Site Settings
+                            </Link>
+                            <Link
+                              href="/admin"
+                              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              Admin
+                            </Link>
+                          </>
                         )}
                         <button
                           onClick={() => {
