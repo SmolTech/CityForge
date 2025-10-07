@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-service
+  namespace: community
+  labels:
+    app: community-website
+spec:
+  selector:
+    app: community-website
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP

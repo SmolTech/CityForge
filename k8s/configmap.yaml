@@ -1,0 +1,221 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: community-resources-config
+  namespace: community
+  labels:
+    app: community-website
+data:
+  resources.json: |
+    {
+      "site": {
+        "title": "Worcester.Community",
+        "description": "Helping connect people to the resources available to them.",
+        "tagline": "Community Directory",
+        "directoryDescription": "Discover local businesses, events, news, and community resources. Search by name, description, or use tags to find exactly what you're looking for.",
+        "copyright": "2025",
+        "copyrightHolder": "SmolTech",
+        "copyrightUrl": "https://www.smoltech.us",
+        "domain": "community.community",
+        "shortName": "Worcester",
+        "fullName": "Worcester Community",
+        "themeColor": "#1f2937",
+        "backgroundColor": "#ffffff"
+      },
+      "resources": {
+        "title": "Local Resources",
+        "description": "Essential links to local government, healthcare, education, transportation, and community services in Worcester"
+      },
+      "quickAccess": [
+        {
+          "id": "emergency",
+          "title": "Emergency Services",
+          "subtitle": "Police, Fire & Medical",
+          "phone": "911",
+          "color": "blue",
+          "icon": "building"
+        },
+        {
+          "id": "city-hall",
+          "title": "City Hall",
+          "subtitle": "Main Office",
+          "phone": "(508) 929-1300",
+          "color": "green",
+          "icon": "phone"
+        },
+        {
+          "id": "transit",
+          "title": "WRTA",
+          "subtitle": "Public Transit",
+          "phone": "(508) 791-9782",
+          "color": "purple",
+          "icon": "bus"
+        },
+        {
+          "id": "library",
+          "title": "Library",
+          "subtitle": "Main Branch",
+          "phone": "(508) 799-1655",
+          "color": "red",
+          "icon": "library"
+        }
+      ],
+      "resourceItems": [
+        {
+          "id": 1,
+          "title": "City of Worcester",
+          "url": "https://www.communityma.gov",
+          "description": "Official city website for government services, permits, and municipal information",
+          "category": "Government & Municipal",
+          "phone": "(508) 929-1300",
+          "address": "455 Main St, Worcester, MA 01608",
+          "icon": "building"
+        },
+        {
+          "id": 2,
+          "title": "Worcester Public Schools",
+          "url": "https://www.communityschools.org",
+          "description": "Information about Worcester's public school system, enrollment, and educational programs",
+          "category": "Government & Municipal",
+          "phone": "(508) 799-3115",
+          "address": "20 Irving St, Worcester, MA 01609",
+          "icon": "book"
+        },
+        {
+          "id": 3,
+          "title": "Worcester Public Library",
+          "url": "https://www.mywpl.org/",
+          "description": "Access library services, programs, and digital resources throughout Worcester",
+          "category": "Government & Municipal",
+          "phone": "(508) 799-1655",
+          "address": "3 Salem Sq, Worcester, MA 01608",
+          "icon": "library"
+        },
+        {
+          "id": 4,
+          "title": "UMass Memorial Medical Center",
+          "url": "https://www.ummhealth.org",
+          "description": "Primary healthcare system serving Worcester and Central Massachusetts",
+          "category": "Healthcare & Emergency",
+          "phone": "(508) 334-1000",
+          "address": "119 Belmont St, Worcester, MA 01605",
+          "icon": "heart"
+        },
+        {
+          "id": 5,
+          "title": "Worcester Fire Department",
+          "url": "https://www.communityma.gov/fire",
+          "description": "Fire safety information, emergency services, and community programs",
+          "category": "Healthcare & Emergency",
+          "phone": "(508) 799-4000",
+          "address": "1 Salem Sq, Worcester, MA 01608",
+          "icon": "fire"
+        },
+        {
+          "id": 6,
+          "title": "Worcester Polytechnic Institute",
+          "url": "https://www.wpi.edu",
+          "description": "Private research university specializing in science, technology, engineering, and mathematics",
+          "category": "Education & Universities",
+          "phone": "(508) 831-5000",
+          "address": "100 Institute Rd, Worcester, MA 01609",
+          "icon": "academic"
+        },
+        {
+          "id": 7,
+          "title": "Clark University",
+          "url": "https://www.clarku.edu",
+          "description": "Private research university known for liberal arts and graduate programs",
+          "category": "Education & Universities",
+          "phone": "(508) 793-7711",
+          "address": "950 Main St, Worcester, MA 01610",
+          "icon": "academic"
+        },
+        {
+          "id": 8,
+          "title": "Worcester State University",
+          "url": "https://www.community.edu",
+          "description": "Public university offering undergraduate and graduate programs",
+          "category": "Education & Universities",
+          "phone": "(508) 929-8000",
+          "address": "486 Chandler St, Worcester, MA 01602",
+          "icon": "academic"
+        },
+        {
+          "id": 9,
+          "title": "WRTA Bus Service",
+          "url": "https://www.therta.com",
+          "description": "Worcester Regional Transit Authority - local bus routes and schedules",
+          "category": "Transportation",
+          "phone": "(508) 791-9782",
+          "address": "60 Foster St, Worcester, MA 01608",
+          "icon": "bus"
+        },
+        {
+          "id": 10,
+          "title": "Union Station Worcester",
+          "url": "https://www.massdot.state.ma.us/unionstation",
+          "description": "Amtrak and commuter rail service connecting Worcester to Boston and beyond",
+          "category": "Transportation",
+          "phone": "(508) 756-5000",
+          "address": "2 Washington Sq, Worcester, MA 01604",
+          "icon": "train"
+        },
+        {
+          "id": 11,
+          "title": "Worcester Art Museum",
+          "url": "https://www.communityart.org",
+          "description": "Premier art museum featuring collections spanning 5,000 years of art and culture",
+          "category": "Community & Culture",
+          "phone": "(508) 799-4406",
+          "address": "55 Salisbury St, Worcester, MA 01609",
+          "icon": "image"
+        },
+        {
+          "id": 12,
+          "title": "Hanover Theatre",
+          "url": "https://www.thehanovertheatre.org",
+          "description": "Historic performing arts venue hosting Broadway shows, concerts, and cultural events",
+          "category": "Community & Culture",
+          "phone": "(508) 471-1767",
+          "address": "2 Southbridge St, Worcester, MA 01608",
+          "icon": "theater"
+        },
+        {
+          "id": 13,
+          "title": "EcoTarium",
+          "url": "https://www.ecotarium.org",
+          "description": "Interactive science and nature museum with indoor and outdoor exhibits",
+          "category": "Community & Culture",
+          "phone": "(508) 929-2700",
+          "address": "222 Harrington Way, Worcester, MA 01604",
+          "icon": "globe"
+        },
+        {
+          "id": 14,
+          "title": "Telegram & Gazette",
+          "url": "https://www.telegram.com",
+          "description": "Local daily newspaper covering Worcester and Central Massachusetts news",
+          "category": "News & Media",
+          "phone": "(508) 793-9100",
+          "address": "100 Front St, Worcester, MA 01608",
+          "icon": "newspaper"
+        },
+        {
+          "id": 15,
+          "title": "Worcester Magazine",
+          "url": "https://www.communitymag.com",
+          "description": "Alternative weekly covering local arts, culture, and community events",
+          "category": "News & Media",
+          "phone": "(508) 749-3166",
+          "address": "172 Shrewsbury St, Worcester, MA 01604",
+          "icon": "book"
+        }
+      ],
+      "footer": {
+        "title": "Missing a Resource?",
+        "description": "If you know of an important local resource that should be included on this page, please let us know so we can help the community stay connected.",
+        "contactEmail": "contact@smoltech.us",
+        "buttonText": "Suggest a Resource"
+      }
+    }
