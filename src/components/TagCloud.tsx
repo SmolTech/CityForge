@@ -19,7 +19,7 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
 
   if (tags.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Tags
         </h3>
@@ -31,7 +31,7 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
         Tags
       </h3>
@@ -43,12 +43,12 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
               key={tag.name}
               onClick={() => onTagClick(tag.name)}
               className={`
-                inline-flex items-center px-2.5 py-1.5 rounded-full font-medium transition-colors
+                inline-flex items-center px-3 py-1.5 rounded-full font-medium transition-all duration-200
                 ${getTagSize(tag.count, maxCount)}
                 ${
                   isSelected
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 ring-2 ring-blue-500"
-                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-600 shadow-md"
+                    : "bg-gray-50 text-gray-700 dark:bg-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm"
                 }
               `}
             >

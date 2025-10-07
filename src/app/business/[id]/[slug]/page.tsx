@@ -5,10 +5,10 @@ import BusinessDetail from "@/components/BusinessDetail";
 import { CLIENT_CONFIG } from "@/lib/client-config";
 
 interface BusinessPageProps {
-  params: {
+  params: Promise<{
     id: string;
     slug: string;
-  };
+  }>;
 }
 
 async function getBusinessData(id: string, slug: string) {
@@ -17,9 +17,12 @@ async function getBusinessData(id: string, slug: string) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_API_BASE ||
       "http://localhost:5000";
-    const response = await fetch(`${API_BASE}/api/business/${id}/${slug}`, {
+    const url = `${API_BASE}/api/business/${id}/${slug}`;
+    console.log("[Business Page] Fetching:", url);
+    const response = await fetch(url, {
       cache: "no-store", // Ensure fresh data for each request
     });
+    console.log("[Business Page] Response status:", response.status);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -42,7 +45,8 @@ async function getBusinessData(id: string, slug: string) {
 export async function generateMetadata({
   params,
 }: BusinessPageProps): Promise<Metadata> {
-  const businessData = await getBusinessData(params.id, params.slug);
+  const { id, slug } = await params;
+  const businessData = await getBusinessData(id, slug);
 
   if (!businessData || businessData.redirect) {
     return {
@@ -90,7 +94,8 @@ export async function generateMetadata({
 }
 
 export default async function BusinessPage({ params }: BusinessPageProps) {
-  const businessData = await getBusinessData(params.id, params.slug);
+  const { id, slug } = await params;
+  const businessData = await getBusinessData(id, slug);
 
   if (!businessData) {
     notFound();

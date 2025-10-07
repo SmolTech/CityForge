@@ -21,11 +21,26 @@ export default function Navigation({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (userMenuOpen && !target.closest(".user-menu-container")) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   const checkAuth = async () => {
     if (apiClient.isAuthenticated()) {
@@ -51,7 +66,7 @@ export default function Navigation({
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow">
+    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
@@ -145,56 +160,69 @@ export default function Navigation({
                     >
                       Dashboard
                     </Link>
-                    <Link
-                      href="/submit"
-                      className={`${
-                        currentPage === "Submit"
-                          ? "text-blue-600 dark:text-blue-400 font-semibold"
-                          : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                      }`}
-                    >
-                      Submit
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className={`${
-                        currentPage === "Settings"
-                          ? "text-blue-600 dark:text-blue-400 font-semibold"
-                          : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                      }`}
-                    >
-                      Settings
-                    </Link>
-                    {user?.role === "admin" && (
-                      <Link
-                        href="/admin"
-                        className={`${
-                          currentPage === "Admin"
-                            ? "text-blue-600 dark:text-blue-400 font-semibold"
-                            : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                        }`}
+                    <div className="relative user-menu-container">
+                      <button
+                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                        className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
                       >
-                        Admin
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
-                    >
-                      Logout
-                    </button>
+                        {user?.first_name}
+                        <svg
+                          className="ml-1 h-4 w-4"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                      </button>
+                      {userMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl py-1 border border-gray-200 dark:border-slate-700 z-50">
+                          <Link
+                            href="/settings"
+                            className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            My Settings
+                          </Link>
+                          {user?.role === "admin" && (
+                            <>
+                              <Link
+                                href="/site-config"
+                                className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
+                                onClick={() => setUserMenuOpen(false)}
+                              >
+                                Site Settings
+                              </Link>
+                              <Link
+                                href="/admin"
+                                className="block px-4 py-2 text-sm text-right text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg mx-1"
+                                onClick={() => setUserMenuOpen(false)}
+                              >
+                                Admin
+                              </Link>
+                            </>
+                          )}
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setUserMenuOpen(false);
+                            }}
+                            className="block w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg mx-1"
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
-                    <div className="relative group">
-                      <span className="text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                        Submit
-                      </span>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                        Login To Submit New Entry
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
-                      </div>
-                    </div>
                     <Link
                       href="/login"
                       className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
@@ -342,62 +370,49 @@ export default function Navigation({
                       >
                         Dashboard
                       </Link>
-                      <Link
-                        href="/submit"
-                        className={`block px-3 py-2 rounded-md text-base font-medium ${
-                          currentPage === "Submit"
-                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
-                            : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Submit
-                      </Link>
-                      <Link
-                        href="/settings"
-                        className={`block px-3 py-2 rounded-md text-base font-medium ${
-                          currentPage === "Settings"
-                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
-                            : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Settings
-                      </Link>
-                      {user?.role === "admin" && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                      <div className="px-3 py-2">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          {user?.first_name}
+                        </p>
                         <Link
-                          href="/admin"
-                          className={`block px-3 py-2 rounded-md text-base font-medium ${
-                            currentPage === "Admin"
-                              ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
-                              : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                          }`}
+                          href="/settings"
+                          className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setMobileMenuOpen(false)}
                         >
-                          Admin
+                          My Settings
                         </Link>
-                      )}
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setMobileMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        Logout
-                      </button>
+                        {user?.role === "admin" && (
+                          <>
+                            <Link
+                              href="/site-config"
+                              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              Site Settings
+                            </Link>
+                            <Link
+                              href="/admin"
+                              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              Admin
+                            </Link>
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </>
                   ) : (
                     <>
-                      <div className="relative group">
-                        <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                          Submit
-                        </span>
-                        <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                          Login To Submit New Entry
-                          <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
-                        </div>
-                      </div>
                       <Link
                         href="/login"
                         className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"

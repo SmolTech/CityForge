@@ -12,7 +12,7 @@ export default function FilterPanel({
   onTagRemove,
 }: Props) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-4">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5 space-y-4">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
         Filters
       </h3>
@@ -42,7 +42,7 @@ export default function FilterPanel({
             {selectedTags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
               >
                 {tag}
                 <button
@@ -75,7 +75,7 @@ export default function FilterPanel({
             onFeaturedChange(false);
             selectedTags.forEach(onTagRemove);
           }}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
         >
           Clear All Filters
         </button>
