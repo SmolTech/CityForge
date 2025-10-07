@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   apiClient,
-  ResourceConfig,
   QuickAccessItem,
   QuickAccessItemInput,
   ResourceItem,
@@ -14,16 +13,10 @@ import Navigation from "@/components/Navigation";
 
 export default function AdminResourcesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<
-    "config" | "quick-access" | "items"
-  >("config");
-  const [loading, setLoading] = useState(true);
-
-  // Config state
-  const [configs, setConfigs] = useState<ResourceConfig[]>([]);
-  const [editingConfig, setEditingConfig] = useState<ResourceConfig | null>(
-    null
+  const [activeTab, setActiveTab] = useState<"quick-access" | "items">(
+    "quick-access"
   );
+  const [loading, setLoading] = useState(true);
 
   // Quick Access state
   const [quickAccessItems, setQuickAccessItems] = useState<QuickAccessItem[]>(
@@ -57,27 +50,12 @@ export default function AdminResourcesPage() {
   }, [checkAuth]);
 
   useEffect(() => {
-    if (activeTab === "config") {
-      loadConfigs();
-    } else if (activeTab === "quick-access") {
+    if (activeTab === "quick-access") {
       loadQuickAccessItems();
     } else if (activeTab === "items") {
       loadResourceItems();
     }
   }, [activeTab]);
-
-  const loadConfigs = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.adminGetResourceConfigs();
-      setConfigs(data);
-    } catch (error) {
-      setError("Failed to load configurations");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadQuickAccessItems = async () => {
     try {
@@ -102,17 +80,6 @@ export default function AdminResourcesPage() {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpdateConfig = async (id: number, value: string) => {
-    try {
-      await apiClient.adminUpdateResourceConfig(id, { value });
-      setEditingConfig(null);
-      loadConfigs();
-    } catch (error) {
-      setError("Failed to update configuration");
-      console.error(error);
     }
   };
 
@@ -227,16 +194,6 @@ export default function AdminResourcesPage() {
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex">
               <button
-                onClick={() => setActiveTab("config")}
-                className={`px-6 py-3 text-sm font-medium ${
-                  activeTab === "config"
-                    ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
-              >
-                Configuration
-              </button>
-              <button
                 onClick={() => setActiveTab("quick-access")}
                 className={`px-6 py-3 text-sm font-medium ${
                   activeTab === "quick-access"
@@ -266,74 +223,6 @@ export default function AdminResourcesPage() {
               </div>
             ) : (
               <>
-                {activeTab === "config" && (
-                  <div className="space-y-4">
-                    {configs.map((config) => (
-                      <div
-                        key={config.id}
-                        className="border border-gray-200 dark:border-gray-700 rounded p-4"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              {config.key}
-                            </h3>
-                            {editingConfig?.id === config.id ? (
-                              <div className="mt-2">
-                                <textarea
-                                  defaultValue={config.value}
-                                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                  rows={3}
-                                  id={`config-${config.id}`}
-                                />
-                                <div className="mt-2 space-x-2">
-                                  <button
-                                    onClick={() => {
-                                      const textarea = document.getElementById(
-                                        `config-${config.id}`
-                                      ) as HTMLTextAreaElement;
-                                      handleUpdateConfig(
-                                        config.id,
-                                        textarea.value
-                                      );
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingConfig(null)}
-                                    className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                {config.value}
-                              </p>
-                            )}
-                            {config.description && (
-                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-                                {config.description}
-                              </p>
-                            )}
-                          </div>
-                          {!editingConfig && (
-                            <button
-                              onClick={() => setEditingConfig(config)}
-                              className="ml-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {activeTab === "quick-access" && (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center mb-4">
