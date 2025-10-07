@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card as CardType, apiClient } from "@/lib/api";
 import CardEditForm from "./CardEditForm";
+import MarkdownContent from "./MarkdownContent";
 
 interface Props {
   card: CardType;
@@ -120,9 +121,9 @@ export default function Card({ card }: Props) {
         </div>
 
         {card.description && (
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-            {card.description}
-          </p>
+          <div className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3 overflow-hidden">
+            <MarkdownContent content={card.description} />
+          </div>
         )}
 
         <div className="space-y-2 mb-4">
@@ -399,9 +400,9 @@ export default function Card({ card }: Props) {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     Description
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
-                    {card.description}
-                  </p>
+                  <div className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <MarkdownContent content={card.description} />
+                  </div>
                 </div>
               )}
 
