@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: community-website
+  name: cityforge
   namespace: community
   labels:
-    app: community-website
+    app: cityforge
 spec:
   replicas: 3
   strategy:
@@ -14,11 +14,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: community-website
+      app: cityforge
   template:
     metadata:
       labels:
-        app: community-website
+        app: cityforge
     spec:
       securityContext:
         runAsNonRoot: true
@@ -26,7 +26,7 @@ spec:
         runAsGroup: 1001
         fsGroup: 1001
       containers:
-        - name: community-website
+        - name: cityforge
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
