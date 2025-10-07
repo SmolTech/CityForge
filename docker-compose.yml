@@ -73,7 +73,7 @@ services:
     container_name: cityforge-frontend
     environment:
       NEXT_PUBLIC_API_URL: ""
-      BACKEND_API_URL: http://backend:5000
+      BACKEND_API_URL: http://cityforge-backend:5000
     ports:
       - "3000:3000"
     depends_on:
