@@ -141,6 +141,9 @@ export default function CardEditForm({
               >
                 Description *
               </label>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Supports Markdown formatting (bold, italic, lists, links, etc.)
+              </p>
               <textarea
                 id="description"
                 name="description"
@@ -149,6 +152,7 @@ export default function CardEditForm({
                 required
                 rows={4}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="You can use **bold**, *italic*, bullet points, and more!"
               />
             </div>
 
