@@ -355,6 +355,7 @@ class ApiClient {
   async getCards(params?: {
     search?: string;
     tags?: string[];
+    tagMode?: "and" | "or";
     type?: string;
     featured?: boolean;
     limit?: number;
@@ -367,6 +368,7 @@ class ApiClient {
     if (params?.tags) {
       params.tags.forEach((tag) => searchParams.append("tags", tag));
     }
+    if (params?.tagMode) searchParams.append("tag_mode", params.tagMode);
     if (params?.type) searchParams.append("type", params.type);
     if (params?.featured) searchParams.append("featured", "true");
     if (params?.limit) searchParams.append("limit", params.limit.toString());

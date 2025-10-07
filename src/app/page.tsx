@@ -15,6 +15,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagFilterMode, setTagFilterMode] = useState<"and" | "or">("and");
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [siteConfig, setSiteConfig] = useState<{
@@ -30,7 +31,7 @@ export default function Home() {
     loadData();
     checkAuth();
     loadSiteConfig();
-  }, [searchTerm, selectedTags, showFeaturedOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSiteConfig = async () => {
     try {
@@ -83,6 +84,7 @@ export default function Home() {
         apiClient.getCards({
           search: searchTerm || undefined,
           tags: selectedTags.length > 0 ? selectedTags : undefined,
+          tagMode: tagFilterMode,
           featured: showFeaturedOnly || undefined,
           includeShareUrls: true,
         }),
@@ -166,6 +168,8 @@ export default function Home() {
               onFeaturedChange={setShowFeaturedOnly}
               selectedTags={selectedTags}
               onTagRemove={handleTagRemove}
+              tagFilterMode={tagFilterMode}
+              onTagFilterModeChange={setTagFilterMode}
             />
 
             <TagCloud
