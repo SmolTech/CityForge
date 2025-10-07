@@ -1,0 +1,158 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: community-db-backup
+  namespace: community
+  labels:
+    app: community-db-backup
+spec:
+  # Run every day at 2 AM
+  schedule: "0 2 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: community-db-backup
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          restartPolicy: OnFailure
+          serviceAccountName: community-backup
+          containers:
+            - name: backup
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                capabilities:
+                  drop:
+                    - ALL
+              image: postgres:17-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+
+                  echo "Starting backup at $(date)"
+
+                  # Get database credentials
+                  export PGUSER="$DB_USER"
+                  export PGPASSWORD="$DB_PASSWORD"
+                  export PGHOST="community-db"
+                  export PGPORT="5432"
+                  export PGDATABASE="community"
+
+                  # Create backup filename with timestamp
+                  BACKUP_FILE="/backup/community_db_backup_$(date +%Y%m%d_%H%M%S).sql"
+
+                  # Create backup
+                  echo "Creating backup: $BACKUP_FILE"
+                  pg_dump --clean --if-exists --create --verbose > "$BACKUP_FILE"
+
+                  # Compress backup
+                  echo "Compressing backup..."
+                  gzip "$BACKUP_FILE"
+
+                  # Test backup integrity
+                  echo "Testing backup integrity..."
+                  gzip -t "$BACKUP_FILE.gz"
+
+                  # Get backup size
+                  BACKUP_SIZE=$(du -h "$BACKUP_FILE.gz" | cut -f1)
+                  echo "Backup completed: $BACKUP_FILE.gz ($BACKUP_SIZE)"
+
+                  # Clean up old backups (older than 30 days)
+                  echo "Cleaning up old backups..."
+                  find /backup -name "community_db_backup_*.sql.gz" -mtime +30 -delete
+
+                  # List recent backups
+                  echo "Recent backups:"
+                  ls -lah /backup/community_db_backup_*.sql.gz | tail -5
+
+                  echo "Backup process completed successfully at $(date)"
+              env:
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: community.community-db.credentials.postgresql.acid.zalan.do
+                      key: username
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: community.community-db.credentials.postgresql.acid.zalan.do
+                      key: password
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: community-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: community-backup-pvc
+  namespace: community
+  labels:
+    app: community-db-backup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: community-backup
+  namespace: community
+  labels:
+    app: community-db-backup
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: community-backup
+  namespace: community
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: community-backup
+  namespace: community
+subjects:
+  - kind: ServiceAccount
+    name: community-backup
+    namespace: community
+roleRef:
+  kind: Role
+  name: community-backup
+  apiGroup: rbac.authorization.k8s.io
