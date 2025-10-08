@@ -13,15 +13,32 @@ export default function HelpWantedPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("open");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [siteConfig, setSiteConfig] = useState<{
+    shortName: string;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     loadPosts();
+    loadSiteConfig();
   }, [categoryFilter, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     filterPosts();
   }, [posts, searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteConfig({ shortName: config.site?.shortName || "Community" });
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+      setSiteConfig({ shortName: "Community" });
+    }
+  };
 
   const loadPosts = async () => {
     try {
@@ -100,8 +117,8 @@ export default function HelpWantedPage() {
                 Help Wanted
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
-                Community members looking for help, collaborators, or offering
-                opportunities
+                {siteConfig?.shortName || "Community"} members looking for help,
+                collaborators, or offering opportunities
               </p>
             </div>
             <Link
