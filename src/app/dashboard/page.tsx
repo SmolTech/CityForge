@@ -11,11 +11,28 @@ export default function DashboardPage() {
   const [submissions, setSubmissions] = useState<CardSubmission[]>([]);
   const [helpWantedPosts, setHelpWantedPosts] = useState<HelpWantedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [siteConfig, setSiteConfig] = useState<{
+    shortName: string;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     loadData();
+    loadSiteConfig();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteConfig({ shortName: config.site?.shortName || "community" });
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+      setSiteConfig({ shortName: "community" });
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -100,7 +117,8 @@ export default function DashboardPage() {
                   Submit New Content
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Add a business, event, or other community content
+                  Add a business, event, or other{" "}
+                  {siteConfig?.shortName || "community"} content
                 </p>
               </div>
             </div>
@@ -136,7 +154,7 @@ export default function DashboardPage() {
                   Post Help Wanted
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Request help from the community
+                  Request help from the {siteConfig?.shortName || "community"}
                 </p>
               </div>
             </div>
@@ -268,7 +286,8 @@ export default function DashboardPage() {
                 No submissions yet
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Get started by submitting your first piece of community content.
+                Get started by submitting your first piece of{" "}
+                {siteConfig?.shortName || "community"} content.
               </p>
               <div className="mt-6">
                 <Link
@@ -354,7 +373,8 @@ export default function DashboardPage() {
                 No help wanted posts yet
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Post a request to get help from the community.
+                Post a request to get help from the{" "}
+                {siteConfig?.shortName || "community"}.
               </p>
               <div className="mt-6">
                 <Link
