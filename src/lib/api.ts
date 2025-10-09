@@ -256,7 +256,19 @@ class ApiClient {
           this.logout();
           window.location.href = "/login";
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+        // Try to extract error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // If response is not JSON, use default message
+        }
+
+        throw new Error(errorMessage);
       }
 
       return await response.json();
