@@ -1,0 +1,139 @@
+name: Create Release on Version Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      new_version: ${{ steps.check.outputs.version }}
+      version_exists: ${{ steps.tag_check.outputs.exists }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Get previous version
+        id: previous
+        run: |
+          git checkout HEAD~1 -- package.json 2>/dev/null || echo "version=none" >> $GITHUB_OUTPUT
+          if [ -f package.json ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "version=none" >> $GITHUB_OUTPUT
+          fi
+          git checkout HEAD -- package.json
+
+      - name: Check if version changed
+        id: check
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          PREVIOUS="${{ steps.previous.outputs.version }}"
+          echo "Current version: ${CURRENT}"
+          echo "Previous version: ${PREVIOUS}"
+          if [ "${CURRENT}" != "${PREVIOUS}" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=${CURRENT}" >> $GITHUB_OUTPUT
+            echo "Version changed from ${PREVIOUS} to ${CURRENT}"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged"
+          fi
+
+      - name: Check if tag already exists
+        id: tag_check
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v${VERSION} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag v${VERSION} does not exist"
+          fi
+
+  create-release:
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true' && needs.check-version.outputs.version_exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION="${{ needs.check-version.outputs.new_version }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          # Generate changelog
+          if [ -z "$PREV_TAG" ]; then
+            # If no previous tag, get all commits
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # Get commits since last tag
+            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Create changelog file
+          cat > /tmp/changelog.md << EOF
+          ## What's Changed
+
+          ${COMMITS}
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}
+          EOF
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/changelog.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Release ${{ steps.version.outputs.tag }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+
+      - name: Trigger Docker build for new tag
+        run: |
+          echo "Release created successfully"
+          echo "Docker images will be built automatically for tag ${{ steps.version.outputs.tag }}"
