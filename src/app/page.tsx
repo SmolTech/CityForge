@@ -7,7 +7,10 @@ import SearchBar from "@/components/SearchBar";
 import TagCloud from "@/components/TagCloud";
 import FilterPanel from "@/components/FilterPanel";
 import Navigation from "@/components/Navigation";
+import Pagination from "@/components/Pagination";
 import { CLIENT_CONFIG } from "@/lib/client-config";
+
+const ITEMS_PER_PAGE = 20;
 
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -18,6 +21,8 @@ export default function Home() {
   const [tagFilterMode, setTagFilterMode] = useState<"and" | "or">("and");
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [siteConfig, setSiteConfig] = useState<{
     title: string;
     tagline: string;
@@ -31,7 +36,12 @@ export default function Home() {
     loadData();
     checkAuth();
     loadSiteConfig();
-  }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly]);
 
   const loadSiteConfig = async () => {
     try {
@@ -80,6 +90,7 @@ export default function Home() {
   async function loadData() {
     try {
       setLoading(true);
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
       const [cardsResponse, tagsResponse] = await Promise.all([
         apiClient.getCards({
           search: searchTerm || undefined,
@@ -87,10 +98,13 @@ export default function Home() {
           tagMode: tagFilterMode,
           featured: showFeaturedOnly || undefined,
           includeShareUrls: true,
+          limit: ITEMS_PER_PAGE,
+          offset: offset,
         }),
         apiClient.getTags(),
       ]);
       setCards(cardsResponse.cards);
+      setTotalItems(cardsResponse.total);
       setTags(tagsResponse);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -109,6 +123,12 @@ export default function Home() {
 
   const handleTagRemove = (tagName: string) => {
     setSelectedTags((prev) => prev.filter((t) => t !== tagName));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of page when changing pages
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -191,11 +211,19 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {cards.map((card) => (
-                  <CardComponent key={card.id} card={card} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {cards.map((card) => (
+                    <CardComponent key={card.id} card={card} />
+                  ))}
+                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={totalItems}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={handlePageChange}
+                />
+              </>
             )}
           </div>
         </div>
