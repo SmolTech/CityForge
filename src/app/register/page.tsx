@@ -6,6 +6,11 @@ import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { CLIENT_CONFIG } from "@/lib/client-config";
 
+interface PasswordRequirement {
+  label: string;
+  met: boolean;
+}
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: "",
@@ -16,6 +21,14 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [passwordRequirements, setPasswordRequirements] = useState<
+    PasswordRequirement[]
+  >([
+    { label: "At least 8 characters", met: false },
+    { label: "Contains lowercase letter", met: false },
+    { label: "Contains uppercase letter", met: false },
+    { label: "Contains number", met: false },
+  ]);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +36,17 @@ export default function RegisterPage() {
       router.push("/dashboard");
     }
   }, [router]);
+
+  useEffect(() => {
+    // Update password requirements when password changes
+    const password = formData.password;
+    setPasswordRequirements([
+      { label: "At least 8 characters", met: password.length >= 8 },
+      { label: "Contains lowercase letter", met: /[a-z]/.test(password) },
+      { label: "Contains uppercase letter", met: /[A-Z]/.test(password) },
+      { label: "Contains number", met: /\d/.test(password) },
+    ]);
+  }, [formData.password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +59,10 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    // Check all password requirements are met
+    const allRequirementsMet = passwordRequirements.every((req) => req.met);
+    if (!allRequirementsMet) {
+      setError("Please meet all password requirements");
       setLoading(false);
       return;
     }
@@ -50,8 +76,13 @@ export default function RegisterPage() {
       });
 
       router.push("/dashboard");
-    } catch {
-      setError("Registration failed. Email may already be in use.");
+    } catch (err) {
+      // Display the actual error message from the backend
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -181,9 +212,26 @@ export default function RegisterPage() {
                   value={formData.password}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="At least 6 characters"
+                  placeholder="Enter a strong password"
                 />
               </div>
+              {formData.password && (
+                <div className="mt-2 space-y-1">
+                  {passwordRequirements.map((req, index) => (
+                    <div
+                      key={index}
+                      className={`text-xs flex items-center gap-1.5 ${
+                        req.met
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      <span>{req.met ? "✓" : "○"}</span>
+                      <span>{req.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
