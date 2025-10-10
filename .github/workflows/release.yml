@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   check-version:
@@ -108,10 +109,13 @@ jobs:
           # Give GitHub a moment to register the tag
           sleep 5
 
-          # Trigger docker workflow manually with the tag
-          gh workflow run docker.yml --ref "${TAG}"
-        env:
-          GH_TOKEN: ${{ github.token }}
+          # Trigger docker workflow manually using the API (workflows need a branch, not a tag)
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/docker.yml/dispatches \
+            -d "{\"ref\":\"${TAG}\"}"
 
       - name: Generate changelog
         id: changelog
