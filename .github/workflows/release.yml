@@ -92,13 +92,26 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Create and push tag
+      - name: Create annotated tag locally
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${TAG}" -m "Release ${TAG}"
+
+      - name: Push tag and trigger workflows
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          # Push the tag using git
           git push origin "${TAG}"
+
+          # Give GitHub a moment to register the tag
+          sleep 5
+
+          # Trigger docker workflow manually with the tag
+          gh workflow run docker.yml --ref "${TAG}"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Generate changelog
         id: changelog
