@@ -1,10 +1,10 @@
-Flask==3.0.0
+Flask==3.1.0
 Flask-SQLAlchemy==3.1.1
-Flask-CORS==4.0.0
-Flask-JWT-Extended==4.6.0
+Flask-CORS==6.1.0
+Flask-JWT-Extended==4.7.1
 Flask-Bcrypt==1.0.1
-psycopg[binary]==3.2.10
-python-dotenv==1.0.0
-gunicorn==21.2.0
+psycopg[binary]==3.2.4
+python-dotenv==1.0.1
+gunicorn==23.0.0
 Pillow==11.3.0
-opensearch-py==2.4.2
+opensearch-py==2.9.0
