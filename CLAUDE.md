@@ -8,11 +8,12 @@ CityForge is a full-stack community website platform built with Next.js 15 and a
 
 ## Architecture
 
-The project is structured as a three-component application:
+The project is structured as a multi-component application:
 
 - **Frontend**: Next.js 15 with TypeScript, Tailwind CSS v4, and app router
 - **Backend**: Python Flask API with SQLAlchemy ORM and PostgreSQL database
 - **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
+- **Mautic**: Marketing automation platform for email campaigns, contact management, and lead nurturing
 - **Infrastructure**: Docker containers with automated builds via GitHub Actions
 
 ### Key Components
@@ -20,6 +21,7 @@ The project is structured as a three-component application:
 - **Frontend App** (`src/app/`): Next.js pages for business directory, resources, admin dashboard, authentication, and search
 - **Backend API** (`backend/`): Flask application providing REST APIs for cards, resources, auth, admin, and search
 - **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
+- **Mautic** (`k8s/mautic-*.yaml`): Marketing automation platform with MySQL database, background cron jobs, and API integration
 - **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources
 - **GitHub Actions** (`.github/workflows/`): Automated Docker image builds for all components
 
@@ -209,3 +211,46 @@ The indexer component (`indexer/indexer.py`) provides full-text search:
 - `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection
 - `NAMESPACE` - Namespace for index isolation
 - `BACKEND_URL` - Backend API URL for loading cards
+
+### Marketing Automation (Mautic)
+
+Mautic provides email marketing and contact management capabilities for CityForge. See `k8s/MAUTIC_SETUP.md` for detailed setup instructions.
+
+**Key Features:**
+
+- Email campaigns and newsletters
+- Contact segmentation and lead scoring
+- Campaign workflows with conditional logic
+- Landing pages and forms
+- Multi-channel campaigns (email, SMS, push notifications)
+- Analytics and reporting
+
+**Deployment:**
+
+```bash
+# Install Percona MySQL Operator
+kubectl apply -f https://raw.githubusercontent.com/percona/percona-xtradb-cluster-operator/v1.14.0/deploy/bundle.yaml
+
+# Deploy MySQL cluster
+kubectl apply -f k8s/mautic-mysql.yaml
+
+# Deploy Mautic application and cron jobs
+kubectl apply -f k8s/mautic-deployment.yaml
+kubectl apply -f k8s/mautic-service.yaml
+```
+
+**Local Development:**
+
+```bash
+# Start Mautic with docker-compose
+docker-compose up mysql mautic
+
+# Access at http://localhost:8080
+```
+
+**Integration:**
+
+- REST API for contact management
+- JavaScript tracking code for website visitors
+- Webhooks for event notifications
+- See `k8s/MAUTIC_SETUP.md` for API examples

@@ -1,0 +1,303 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mautic-data-pvc
+  namespace: community
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mautic-config
+  namespace: community
+data:
+  MAUTIC_DB_HOST: "mautic-mysql-haproxy"
+  MAUTIC_DB_PORT: "3306"
+  MAUTIC_DB_NAME: "mautic"
+  MAUTIC_DB_USER: "root"
+  # Additional Mautic configuration
+  PHP_INI_DATE_TIMEZONE: "America/New_York"
+  PHP_MEMORY_LIMIT: "512M"
+  PHP_MAX_UPLOAD: "128M"
+  PHP_MAX_EXECUTION_TIME: "300"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mautic
+  namespace: community
+  labels:
+    app: mautic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mautic
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mautic
+    spec:
+      initContainers:
+        # Wait for MySQL to be ready
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mautic-mysql-haproxy 3306; do
+                echo "Waiting for MySQL..."
+                sleep 2
+              done
+              echo "MySQL is ready!"
+      containers:
+        - name: mautic
+          image: mautic/mautic:latest
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          env:
+            - name: MAUTIC_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: MAUTIC_DB_HOST
+            - name: MAUTIC_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: MAUTIC_DB_PORT
+            - name: MAUTIC_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: MAUTIC_DB_NAME
+            - name: MAUTIC_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: MAUTIC_DB_USER
+            - name: MAUTIC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-mysql-secrets
+                  key: root
+            - name: PHP_INI_DATE_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: PHP_INI_DATE_TIMEZONE
+            - name: PHP_MEMORY_LIMIT
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: PHP_MEMORY_LIMIT
+            - name: PHP_MAX_UPLOAD
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: PHP_MAX_UPLOAD
+            - name: PHP_MAX_EXECUTION_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: mautic-config
+                  key: PHP_MAX_EXECUTION_TIME
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: mautic-data
+              mountPath: /var/www/html
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: mautic-data
+          persistentVolumeClaim:
+            claimName: mautic-data-pvc
+---
+# Mautic Cron Jobs for background tasks
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mautic-segments-update
+  namespace: community
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: segments-update
+              image: mautic/mautic:latest
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+              command:
+                - /bin/sh
+                - -c
+                - php /var/www/html/bin/console mautic:segments:update
+              volumeMounts:
+                - name: mautic-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: mautic-data
+              persistentVolumeClaim:
+                claimName: mautic-data-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mautic-campaigns-update
+  namespace: community
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: campaigns-update
+              image: mautic/mautic:latest
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+              command:
+                - /bin/sh
+                - -c
+                - php /var/www/html/bin/console mautic:campaigns:update
+              volumeMounts:
+                - name: mautic-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: mautic-data
+              persistentVolumeClaim:
+                claimName: mautic-data-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mautic-campaigns-trigger
+  namespace: community
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: campaigns-trigger
+              image: mautic/mautic:latest
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+              command:
+                - /bin/sh
+                - -c
+                - php /var/www/html/bin/console mautic:campaigns:trigger
+              volumeMounts:
+                - name: mautic-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: mautic-data
+              persistentVolumeClaim:
+                claimName: mautic-data-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mautic-messages-send
+  namespace: community
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: messages-send
+              image: mautic/mautic:latest
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+              command:
+                - /bin/sh
+                - -c
+                - php /var/www/html/bin/console mautic:messages:send
+              volumeMounts:
+                - name: mautic-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: mautic-data
+              persistentVolumeClaim:
+                claimName: mautic-data-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mautic-emails-send
+  namespace: community
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: emails-send
+              image: mautic/mautic:latest
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+              command:
+                - /bin/sh
+                - -c
+                - php /var/www/html/bin/console mautic:emails:send
+              volumeMounts:
+                - name: mautic-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: mautic-data
+              persistentVolumeClaim:
+                claimName: mautic-data-pvc

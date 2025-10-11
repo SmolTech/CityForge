@@ -97,7 +97,63 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  mysql:
+    image: mysql:8.0
+    container_name: cityforge-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mautic_root
+      MYSQL_DATABASE: mautic
+      MYSQL_USER: mautic
+      MYSQL_PASSWORD: mautic_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pmautic_root",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mautic:
+    image: mautic/mautic:latest
+    container_name: cityforge-mautic
+    environment:
+      MAUTIC_DB_HOST: mysql
+      MAUTIC_DB_PORT: 3306
+      MAUTIC_DB_NAME: mautic
+      MAUTIC_DB_USER: mautic
+      MAUTIC_DB_PASSWORD: mautic_password
+      PHP_INI_DATE_TIMEZONE: America/New_York
+      PHP_MEMORY_LIMIT: 512M
+      PHP_MAX_UPLOAD: 128M
+      PHP_MAX_EXECUTION_TIME: 300
+    volumes:
+      - mautic_data:/var/www/html
+    ports:
+      - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   opensearch_data:
   backend_uploads:
+  mysql_data:
+  mautic_data:
