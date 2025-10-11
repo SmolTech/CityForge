@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { loadAppConfig } from "@/lib/server-config";
 
@@ -25,12 +26,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const mauticUrl = process.env.NEXT_PUBLIC_MAUTIC_URL;
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {mauticUrl && (
+          <Script src={`${mauticUrl}/mtc.js`} strategy="afterInteractive" />
+        )}
       </body>
     </html>
   );

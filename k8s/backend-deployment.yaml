@@ -65,6 +65,20 @@ spec:
               value: "9200"
             - name: NAMESPACE
               value: "community"
+            - name: MAUTIC_URL
+              value: "https://mautic.community.community"
+            - name: MAUTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-api-credentials
+                  key: username
+                  optional: true
+            - name: MAUTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mautic-api-credentials
+                  key: password
+                  optional: true
           livenessProbe:
             httpGet:
               path: /health

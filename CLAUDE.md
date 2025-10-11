@@ -199,12 +199,16 @@ The indexer component (`indexer/indexer.py`) provides full-text search:
 **Frontend:**
 
 - `NEXT_PUBLIC_API_URL` - Backend API URL
+- `NEXT_PUBLIC_MAUTIC_URL` - Mautic instance URL (optional, enables visitor tracking)
 
 **Backend:**
 
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection
 - `UPLOAD_FOLDER` - Directory for uploaded files
 - `SECRET_KEY` - Flask session secret
+- `MAUTIC_URL` - Mautic instance URL (optional)
+- `MAUTIC_USERNAME` - Mautic API username (optional)
+- `MAUTIC_PASSWORD` - Mautic API password (optional)
 
 **Indexer:**
 
@@ -250,7 +254,24 @@ docker-compose up mysql mautic
 
 **Integration:**
 
-- REST API for contact management
-- JavaScript tracking code for website visitors
-- Webhooks for event notifications
-- See `k8s/MAUTIC_SETUP.md` for API examples
+The Mautic integration is **optional** and enabled via environment variables:
+
+1. **Frontend Tracking** (`src/app/layout.tsx`):
+   - Automatically loads Mautic tracking script when `NEXT_PUBLIC_MAUTIC_URL` is set
+   - Tracks page views, visitor behavior, and engagement metrics
+
+2. **Backend Contact Creation** (`backend/app/routes/auth.py`):
+   - Automatically creates contacts in Mautic when users register
+   - Uses `app/utils/mautic.py` utility for API integration
+   - Non-blocking: registration succeeds even if Mautic is unavailable
+
+3. **Environment Configuration**:
+   - **Docker Compose**: Set `MAUTIC_USERNAME` and `MAUTIC_PASSWORD` in shell environment
+   - **Kubernetes**: Create `mautic-api-credentials` secret (see `k8s/mautic-api-secret.yaml.example`)
+
+4. **API Features**:
+   - Create/update contacts with tags and custom fields
+   - Add contacts to segments
+   - Full REST API integration available
+
+For detailed setup instructions, API examples, and troubleshooting, see `k8s/MAUTIC_SETUP.md`.

@@ -5,6 +5,7 @@ from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, j
 
 from app import blacklisted_tokens, db
 from app.models.user import User
+from app.utils.mautic import create_or_update_contact
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -30,6 +31,14 @@ def register():
 
     db.session.add(user)
     db.session.commit()
+
+    # Add contact to Mautic (non-blocking - failures won't affect registration)
+    create_or_update_contact(
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        tags=["cityforge-user"],
+    )
 
     access_token = create_access_token(identity=user.id)
 
