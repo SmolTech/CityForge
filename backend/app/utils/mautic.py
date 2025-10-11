@@ -1,9 +1,10 @@
 """Mautic API integration utility."""
 
-import os
 import logging
+import os
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +105,7 @@ def add_contact_to_segment(contact_id: int, segment_id: int) -> bool:
         )
 
         if response.status_code == 200:
-            logger.info(
-                f"Successfully added contact {contact_id} to segment {segment_id}"
-            )
+            logger.info(f"Successfully added contact {contact_id} to segment {segment_id}")
             return True
         else:
             logger.warning(
