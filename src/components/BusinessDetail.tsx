@@ -6,6 +6,8 @@ import Image from "next/image";
 import { iconComponents } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
 import MarkdownContent from "./MarkdownContent";
+import ReviewDisplay from "./ReviewDisplay";
+import ReviewForm from "./ReviewForm";
 
 interface Business {
   id: number;
@@ -34,6 +36,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
   const currentUrl =
     typeof window !== "undefined"
@@ -437,6 +440,33 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Reviews
+          </h2>
+
+          {/* Review Form */}
+          <div className="mb-8">
+            <ReviewForm
+              cardId={business.id}
+              onReviewSubmitted={() => setReviewRefreshKey((prev) => prev + 1)}
+            />
+          </div>
+
+          {/* Reviews Display */}
+          <div key={reviewRefreshKey}>
+            <ReviewDisplay
+              cardId={business.id}
+              apiUrl={
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+              }
+            />
           </div>
         </div>
       </div>
