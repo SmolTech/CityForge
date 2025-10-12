@@ -13,7 +13,9 @@ interface BusinessPageProps {
 
 async function getBusinessData(id: string, slug: string) {
   try {
+    // Use BACKEND_API_URL for server-side requests (Docker), fallback to NEXT_PUBLIC_API_URL for client-side
     const API_BASE =
+      process.env.BACKEND_API_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_API_BASE ||
       "http://localhost:5000";
