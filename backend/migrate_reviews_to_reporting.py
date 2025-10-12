@@ -100,9 +100,7 @@ def migrate_reviews():
 
             # Add new columns
             db.session.execute(
-                db.text(
-                    "ALTER TABLE reviews ADD COLUMN reported BOOLEAN DEFAULT FALSE NOT NULL"
-                )
+                db.text("ALTER TABLE reviews ADD COLUMN reported BOOLEAN DEFAULT FALSE NOT NULL")
             )
             db.session.execute(
                 db.text("ALTER TABLE reviews ADD COLUMN reported_by INTEGER REFERENCES users(id)")
@@ -114,9 +112,7 @@ def migrate_reviews():
             )
 
             # Migrate data: unapproved reviews become hidden
-            db.session.execute(
-                db.text("UPDATE reviews SET hidden = TRUE WHERE approved = FALSE")
-            )
+            db.session.execute(db.text("UPDATE reviews SET hidden = TRUE WHERE approved = FALSE"))
 
             # Drop old columns
             db.session.execute(db.text("ALTER TABLE reviews DROP COLUMN approved"))

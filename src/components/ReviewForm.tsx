@@ -1,17 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StarRating from "./StarRating";
 import { apiClient } from "@/lib/api";
 
+interface Review {
+  id: number;
+  rating: number;
+  title?: string;
+  comment?: string;
+}
+
 interface ReviewFormProps {
   cardId: number;
+  existingReview?: Review;
   onReviewSubmitted?: () => void;
+  onCancel?: () => void;
 }
 
 export default function ReviewForm({
   cardId,
+  existingReview,
   onReviewSubmitted,
+  onCancel,
 }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
@@ -19,6 +30,15 @@ export default function ReviewForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Load existing review data when in edit mode
+  useEffect(() => {
+    if (existingReview) {
+      setRating(existingReview.rating);
+      setTitle(existingReview.title || "");
+      setComment(existingReview.comment || "");
+    }
+  }, [existingReview]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +57,14 @@ export default function ReviewForm({
           ? localStorage.getItem("auth_token")
           : null;
 
-      const response = await fetch(`/api/cards/${cardId}/reviews`, {
-        method: "POST",
+      const isEdit = !!existingReview;
+      const url = isEdit
+        ? `/api/reviews/${existingReview.id}`
+        : `/api/cards/${cardId}/reviews`;
+      const method = isEdit ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -52,13 +78,17 @@ export default function ReviewForm({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Failed to submit review");
+        throw new Error(
+          data.message || `Failed to ${isEdit ? "update" : "submit"} review`
+        );
       }
 
       setSuccess(true);
-      setRating(0);
-      setTitle("");
-      setComment("");
+      if (!isEdit) {
+        setRating(0);
+        setTitle("");
+        setComment("");
+      }
 
       setTimeout(() => {
         setSuccess(false);
@@ -67,7 +97,11 @@ export default function ReviewForm({
         }
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit review");
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to ${existingReview ? "update" : "submit"} review`
+      );
     } finally {
       setLoading(false);
     }
@@ -108,7 +142,7 @@ export default function ReviewForm({
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-          Review Submitted!
+          Review {existingReview ? "Updated" : "Submitted"}!
         </h3>
         <p className="text-green-700 dark:text-green-300">
           Thank you for your review!
@@ -123,7 +157,7 @@ export default function ReviewForm({
       className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6"
     >
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Write a Review
+        {existingReview ? "Edit Your Review" : "Write a Review"}
       </h3>
 
       {error && (
@@ -183,38 +217,51 @@ export default function ReviewForm({
       </div>
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={loading || rating === 0}
-        className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-      >
-        {loading ? (
-          <>
-            <svg
-              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            Submitting...
-          </>
-        ) : (
-          "Submit Review"
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={loading || rating === 0}
+          className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              {existingReview ? "Updating..." : "Submitting..."}
+            </>
+          ) : existingReview ? (
+            "Update Review"
+          ) : (
+            "Submit Review"
+          )}
+        </button>
+        {existingReview && onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+          >
+            Cancel
+          </button>
         )}
-      </button>
+      </div>
 
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
         Your review will be posted immediately and can be reported by other

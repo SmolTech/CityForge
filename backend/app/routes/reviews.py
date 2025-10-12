@@ -150,6 +150,43 @@ def get_review_summary(card_id):
     )
 
 
+@bp.route("/api/reviews/<int:review_id>", methods=["PUT"])
+@jwt_required()
+def update_review(review_id):
+    """Update a review (only by the review owner)."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_active:
+        return jsonify({"message": "User not found or inactive"}), 404
+
+    review = Review.query.get_or_404(review_id)
+
+    # Check if user owns this review
+    if review.user_id != user_id:
+        return jsonify({"message": "You can only edit your own reviews"}), 403
+
+    data = request.get_json()
+
+    # Validate required fields
+    if not data or "rating" not in data:
+        return jsonify({"message": "Rating is required"}), 400
+
+    rating = data.get("rating")
+    if not isinstance(rating, int) or rating < 1 or rating > 5:
+        return jsonify({"message": "Rating must be an integer between 1 and 5"}), 400
+
+    # Update review fields
+    review.rating = rating
+    review.title = data.get("title", "").strip()[:200]
+    review.comment = data.get("comment", "").strip()
+    review.updated_date = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify({"message": "Review updated successfully", "review": review.to_dict()})
+
+
 @bp.route("/api/reviews/<int:review_id>/report", methods=["POST"])
 @jwt_required()
 def report_review(review_id):
