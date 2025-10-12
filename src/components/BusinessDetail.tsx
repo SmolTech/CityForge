@@ -32,11 +32,19 @@ interface BusinessDetailProps {
   business: Business;
 }
 
+interface Review {
+  id: number;
+  rating: number;
+  title?: string;
+  comment?: string;
+}
+
 export default function BusinessDetail({ business }: BusinessDetailProps) {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
 
   const currentUrl =
     typeof window !== "undefined"
@@ -455,13 +463,21 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
           <div className="mb-8">
             <ReviewForm
               cardId={business.id}
-              onReviewSubmitted={() => setReviewRefreshKey((prev) => prev + 1)}
+              existingReview={editingReview || undefined}
+              onReviewSubmitted={() => {
+                setReviewRefreshKey((prev) => prev + 1);
+                setEditingReview(null);
+              }}
+              onCancel={() => setEditingReview(null)}
             />
           </div>
 
           {/* Reviews Display */}
           <div key={reviewRefreshKey}>
-            <ReviewDisplay cardId={business.id} />
+            <ReviewDisplay
+              cardId={business.id}
+              onEditReview={(review) => setEditingReview(review)}
+            />
           </div>
         </div>
       </div>

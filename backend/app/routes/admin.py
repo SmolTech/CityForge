@@ -1123,7 +1123,9 @@ def admin_hide_review(review_id):
     review.hidden = True
     db.session.commit()
 
-    return jsonify({"message": "Review hidden successfully", "review": review.to_dict(include_reported=True)})
+    return jsonify(
+        {"message": "Review hidden successfully", "review": review.to_dict(include_reported=True)}
+    )
 
 
 @bp.route("/reviews/<int:review_id>/unhide", methods=["POST"])
@@ -1143,7 +1145,9 @@ def admin_unhide_review(review_id):
     review.reported_reason = None
     db.session.commit()
 
-    return jsonify({"message": "Review unhidden successfully", "review": review.to_dict(include_reported=True)})
+    return jsonify(
+        {"message": "Review unhidden successfully", "review": review.to_dict(include_reported=True)}
+    )
 
 
 @bp.route("/reviews/<int:review_id>/dismiss-report", methods=["POST"])
@@ -1162,7 +1166,12 @@ def admin_dismiss_review_report(review_id):
     review.reported_reason = None
     db.session.commit()
 
-    return jsonify({"message": "Report dismissed successfully", "review": review.to_dict(include_reported=True)})
+    return jsonify(
+        {
+            "message": "Report dismissed successfully",
+            "review": review.to_dict(include_reported=True),
+        }
+    )
 
 
 @bp.route("/reviews/<int:review_id>", methods=["DELETE"])

@@ -28,9 +28,13 @@ export interface ReviewSummary {
 
 interface ReviewDisplayProps {
   cardId: number;
+  onEditReview?: (review: Review) => void;
 }
 
-export default function ReviewDisplay({ cardId }: ReviewDisplayProps) {
+export default function ReviewDisplay({
+  cardId,
+  onEditReview,
+}: ReviewDisplayProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +44,7 @@ export default function ReviewDisplay({ cardId }: ReviewDisplayProps) {
   );
   const [reportReason, setReportReason] = useState("");
   const [reportSuccess, setReportSuccess] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -69,6 +74,19 @@ export default function ReviewDisplay({ cardId }: ReviewDisplayProps) {
   useEffect(() => {
     loadReviews();
     loadSummary();
+
+    // Get current user ID
+    const loadCurrentUser = async () => {
+      if (apiClient.isAuthenticated()) {
+        try {
+          const response = await apiClient.getCurrentUser();
+          setCurrentUserId(response.user.id);
+        } catch (err) {
+          console.error("Failed to load current user:", err);
+        }
+      }
+    };
+    loadCurrentUser();
   }, [loadReviews, loadSummary]);
 
   const formatDate = (dateString: string) => {
@@ -235,13 +253,25 @@ export default function ReviewDisplay({ cardId }: ReviewDisplayProps) {
                     {formatDate(review.created_date)}
                   </span>
                   {apiClient.isAuthenticated() && (
-                    <button
-                      onClick={() => setReportingReviewId(review.id)}
-                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                      title="Report this review"
-                    >
-                      Report
-                    </button>
+                    <>
+                      {review.user && review.user.id === currentUserId ? (
+                        <button
+                          onClick={() => onEditReview?.(review)}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                          title="Edit your review"
+                        >
+                          Edit
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setReportingReviewId(review.id)}
+                          className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          title="Report this review"
+                        >
+                          Report
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
