@@ -1,0 +1,6 @@
+# Ignore nginx configuration - false positive for H2C smuggling
+# We need WebSocket upgrade headers for Next.js hot reload
+nginx.conf
+
+# Ignore test files - they use test passwords intentionally
+backend/tests/

@@ -42,17 +42,36 @@ python -m venv .venv
 
 #### Developing With Docker
 
+The Docker Compose setup includes an nginx reverse proxy that mirrors the Kubernetes ingress configuration.
+
 ```bash
 docker-compose up --build
 ```
 
 --build can be excluded to use previous container build
 
-To run the services in the backgroup, run:
+To run the services in the background, run:
 
 ```bash
 docker-compose up --build -d
 ```
+
+##### Architecture
+
+The Docker Compose setup includes:
+
+- **nginx**: Reverse proxy on port 80 (entry point)
+- **frontend**: Next.js app (internal port 3000)
+- **backend**: Flask API (internal port 5000)
+- **postgres**: PostgreSQL database (port 5432)
+- **opensearch**: Search engine (ports 9200, 9600)
+- **indexer**: Website crawler and indexer
+
+Routing (matches Kubernetes ingress):
+
+- `http://localhost/` → Frontend (Next.js)
+- `http://localhost/api/config` → Frontend (Next.js API route)
+- `http://localhost/api/*` → Backend (Flask API)
 
 ##### Initial database initialization for the first time
 
@@ -62,7 +81,7 @@ docker exec -it cityforge-backend python init_db.py
 
 ##### Access web interface
 
-[http://localhost:3000](http://localhost:3000)
+[http://localhost](http://localhost) (via nginx proxy)
 
 #### Useful NPM commands
 
@@ -142,9 +161,12 @@ This project includes git hooks for code quality and security:
 ├── .github/
 │   └── workflows/         # GitHub Actions CI/CD
 ├── .husky/                # Git hooks
+├── k8s/                   # Kubernetes manifests
 ├── public/                # Static assets
 ├── scripts/               # Build and deployment scripts
 ├── templates/             # Email templates
+├── docker-compose.yml     # Docker Compose configuration
+├── nginx.conf             # Nginx reverse proxy config (for Docker Compose)
 ├── Dockerfile             # Frontend container
 └── README.md              # Project documentation
 ```
