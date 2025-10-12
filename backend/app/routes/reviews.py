@@ -14,15 +14,15 @@ bp = Blueprint("reviews", __name__)
 
 @bp.route("/api/cards/<int:card_id>/reviews", methods=["GET"])
 def get_card_reviews(card_id):
-    """Get all approved reviews for a specific card."""
+    """Get all non-hidden reviews for a specific card."""
     card = Card.query.get_or_404(card_id)
 
     # Get pagination parameters
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
 
-    # Query approved reviews only
-    query = Review.query.filter_by(card_id=card_id, approved=True).order_by(
+    # Query non-hidden reviews only
+    query = Review.query.filter_by(card_id=card_id, hidden=False).order_by(
         Review.created_date.desc()
     )
 
@@ -31,7 +31,7 @@ def get_card_reviews(card_id):
 
     # Calculate average rating
     avg_rating = (
-        db.session.query(func.avg(Review.rating)).filter_by(card_id=card_id, approved=True).scalar()
+        db.session.query(func.avg(Review.rating)).filter_by(card_id=card_id, hidden=False).scalar()
     )
 
     return jsonify(
@@ -40,7 +40,7 @@ def get_card_reviews(card_id):
             "total": total_count,
             "offset": offset,
             "limit": limit,
-            "average_rating": round(avg_rating, 1) if avg_rating else None,
+            "average_rating": round(float(avg_rating), 1) if avg_rating else None,
         }
     )
 
@@ -71,14 +71,14 @@ def create_review(card_id):
     if existing_review:
         return jsonify({"message": "You have already reviewed this business"}), 400
 
-    # Create new review
+    # Create new review (auto-approved)
     review = Review(
         card_id=card_id,
         user_id=user_id,
         rating=rating,
         title=data.get("title", "").strip()[:200],  # Limit title length
         comment=data.get("comment", "").strip(),
-        approved=False,  # Reviews need approval by default
+        hidden=False,  # Reviews are visible by default
     )
 
     db.session.add(review)
@@ -87,7 +87,7 @@ def create_review(card_id):
     return (
         jsonify(
             {
-                "message": "Review submitted successfully and is pending approval",
+                "message": "Review submitted successfully",
                 "review": review.to_dict(),
             }
         ),
@@ -123,10 +123,10 @@ def get_review_summary(card_id):
     """Get review statistics for a card."""
     card = Card.query.get_or_404(card_id)
 
-    # Get rating distribution
+    # Get rating distribution for non-hidden reviews
     rating_counts = (
         db.session.query(Review.rating, func.count(Review.id))
-        .filter_by(card_id=card_id, approved=True)
+        .filter_by(card_id=card_id, hidden=False)
         .group_by(Review.rating)
         .all()
     )
@@ -137,14 +137,43 @@ def get_review_summary(card_id):
 
     total_reviews = sum(distribution.values())
     avg_rating = (
-        db.session.query(func.avg(Review.rating)).filter_by(card_id=card_id, approved=True).scalar()
+        db.session.query(func.avg(Review.rating)).filter_by(card_id=card_id, hidden=False).scalar()
     )
 
     return jsonify(
         {
             "card_id": card_id,
             "total_reviews": total_reviews,
-            "average_rating": round(avg_rating, 1) if avg_rating else None,
+            "average_rating": round(float(avg_rating), 1) if avg_rating else None,
             "rating_distribution": distribution,
         }
     )
+
+
+@bp.route("/api/reviews/<int:review_id>/report", methods=["POST"])
+@jwt_required()
+def report_review(review_id):
+    """Report a review as inappropriate."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_active:
+        return jsonify({"message": "User not found or inactive"}), 404
+
+    review = Review.query.get_or_404(review_id)
+    data = request.get_json()
+
+    # Validate reason
+    reason = data.get("reason", "").strip() if data else ""
+    if not reason:
+        return jsonify({"message": "Report reason is required"}), 400
+
+    # Update review with report
+    review.reported = True
+    review.reported_by = user_id
+    review.reported_date = datetime.utcnow()
+    review.reported_reason = reason
+
+    db.session.commit()
+
+    return jsonify({"message": "Review reported successfully"}), 200

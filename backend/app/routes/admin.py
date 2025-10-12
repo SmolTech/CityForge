@@ -1064,21 +1064,22 @@ def admin_delete_help_wanted_post(post_id):
 @bp.route("/reviews", methods=["GET"])
 @jwt_required()
 def admin_get_reviews():
+    """Get all reviews for admin, optionally filtered by reported status."""
     admin_check = require_admin()
     if admin_check:
         return admin_check
 
-    status = request.args.get("status", "pending")
+    status = request.args.get("status", "all")  # all, reported, hidden
     card_id = request.args.get("card_id", type=int)
     limit = request.args.get("limit", 50, type=int)
     offset = request.args.get("offset", 0, type=int)
 
     query = Review.query
 
-    if status == "approved":
-        query = query.filter_by(approved=True)
-    elif status == "pending":
-        query = query.filter_by(approved=False)
+    if status == "reported":
+        query = query.filter_by(reported=True)
+    elif status == "hidden":
+        query = query.filter_by(hidden=True)
 
     if card_id:
         query = query.filter_by(card_id=card_id)
@@ -1086,10 +1087,10 @@ def admin_get_reviews():
     total_count = query.count()
     reviews = query.order_by(Review.created_date.desc()).offset(offset).limit(limit).all()
 
-    # Include card information with each review
+    # Include card information and reported info with each review
     reviews_data = []
     for review in reviews:
-        review_dict = review.to_dict()
+        review_dict = review.to_dict(include_reported=True)
         if review.card:
             review_dict["card"] = {
                 "id": review.card.id,
@@ -1108,56 +1109,66 @@ def admin_get_reviews():
     )
 
 
-@bp.route("/reviews/<int:review_id>/approve", methods=["POST"])
+@bp.route("/reviews/<int:review_id>/hide", methods=["POST"])
 @jwt_required()
-def admin_approve_review(review_id):
+def admin_hide_review(review_id):
+    """Hide a reported review."""
     admin_check = require_admin()
     if admin_check:
         return admin_check
 
-    user_id = int(get_jwt_identity())
     review = Review.query.get_or_404(review_id)
+    data = request.get_json() or {}
 
-    if review.approved:
-        return jsonify({"message": "Review is already approved"}), 400
-
-    review.approved = True
-    review.approved_by = user_id
-    review.approved_date = datetime.utcnow()
-
+    review.hidden = True
     db.session.commit()
 
-    return jsonify({"message": "Review approved successfully", "review": review.to_dict()})
+    return jsonify({"message": "Review hidden successfully", "review": review.to_dict(include_reported=True)})
 
 
-@bp.route("/reviews/<int:review_id>/reject", methods=["POST"])
+@bp.route("/reviews/<int:review_id>/unhide", methods=["POST"])
 @jwt_required()
-def admin_reject_review(review_id):
+def admin_unhide_review(review_id):
+    """Unhide a review and clear its report."""
     admin_check = require_admin()
     if admin_check:
         return admin_check
 
     review = Review.query.get_or_404(review_id)
 
-    if not review.approved:
-        # Already not approved, just delete it
-        db.session.delete(review)
-        db.session.commit()
-        return jsonify({"message": "Review rejected and deleted"})
-
-    # If it was previously approved, unapprove it
-    review.approved = False
-    review.approved_by = None
-    review.approved_date = None
-
+    review.hidden = False
+    review.reported = False
+    review.reported_by = None
+    review.reported_date = None
+    review.reported_reason = None
     db.session.commit()
 
-    return jsonify({"message": "Review unapproved successfully", "review": review.to_dict()})
+    return jsonify({"message": "Review unhidden successfully", "review": review.to_dict(include_reported=True)})
+
+
+@bp.route("/reviews/<int:review_id>/dismiss-report", methods=["POST"])
+@jwt_required()
+def admin_dismiss_review_report(review_id):
+    """Dismiss a report without hiding the review."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    review = Review.query.get_or_404(review_id)
+
+    review.reported = False
+    review.reported_by = None
+    review.reported_date = None
+    review.reported_reason = None
+    db.session.commit()
+
+    return jsonify({"message": "Report dismissed successfully", "review": review.to_dict(include_reported=True)})
 
 
 @bp.route("/reviews/<int:review_id>", methods=["DELETE"])
 @jwt_required()
 def admin_delete_review(review_id):
+    """Permanently delete a review."""
     admin_check = require_admin()
     if admin_check:
         return admin_check

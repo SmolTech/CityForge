@@ -12,28 +12,29 @@ class Review(db.Model):
     rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
     title = db.Column(db.String(200))
     comment = db.Column(db.Text)
-    approved = db.Column(db.Boolean, default=False, index=True)
-    approved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    approved_date = db.Column(db.DateTime)
+    reported = db.Column(db.Boolean, default=False, index=True)
+    reported_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reported_date = db.Column(db.DateTime)
+    reported_reason = db.Column(db.Text)
+    hidden = db.Column(db.Boolean, default=False, index=True)
     created_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     card = db.relationship("Card", backref="reviews")
     user = db.relationship("User", foreign_keys=[user_id], backref="reviews")
-    approver = db.relationship("User", foreign_keys=[approved_by], backref="approved_reviews")
+    reporter = db.relationship("User", foreign_keys=[reported_by], backref="reported_reviews")
 
-    def to_dict(self, include_user=True):
+    def to_dict(self, include_user=True, include_reported=False):
         data = {
             "id": self.id,
             "card_id": self.card_id,
             "rating": self.rating,
             "title": self.title,
             "comment": self.comment,
-            "approved": self.approved,
+            "hidden": self.hidden,
             "created_date": self.created_date.isoformat(),
             "updated_date": self.updated_date.isoformat(),
-            "approved_date": self.approved_date.isoformat() if self.approved_date else None,
         }
 
         if include_user and self.user:
@@ -43,8 +44,17 @@ class Review(db.Model):
                 "last_name": self.user.last_name,
             }
 
-        if self.approver:
-            data["approver"] = self.approver.to_dict()
+        # Include reported info for admin views
+        if include_reported:
+            data["reported"] = self.reported
+            data["reported_date"] = self.reported_date.isoformat() if self.reported_date else None
+            data["reported_reason"] = self.reported_reason
+            if self.reporter:
+                data["reporter"] = {
+                    "id": self.reporter.id,
+                    "first_name": self.reporter.first_name,
+                    "last_name": self.reporter.last_name,
+                }
 
         return data
 
