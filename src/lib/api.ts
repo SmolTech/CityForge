@@ -287,8 +287,8 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid
+        if (response.status === 401 && endpoint !== "/api/auth/login") {
+          // Token expired or invalid (but not a login failure)
           this.logout();
           window.location.href = "/login";
         }
