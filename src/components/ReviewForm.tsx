@@ -32,13 +32,12 @@ export default function ReviewForm({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const token =
         typeof window !== "undefined"
           ? localStorage.getItem("auth_token")
           : null;
 
-      const response = await fetch(`${apiUrl}/api/cards/${cardId}/reviews`, {
+      const response = await fetch(`/api/cards/${cardId}/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,8 +111,7 @@ export default function ReviewForm({
           Review Submitted!
         </h3>
         <p className="text-green-700 dark:text-green-300">
-          Thank you for your review. It will be visible once approved by an
-          administrator.
+          Thank you for your review!
         </p>
       </div>
     );
@@ -219,8 +217,8 @@ export default function ReviewForm({
       </button>
 
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-        Your review will be visible after it&apos;s approved by an
-        administrator.
+        Your review will be posted immediately and can be reported by other
+        users if inappropriate.
       </p>
     </form>
   );

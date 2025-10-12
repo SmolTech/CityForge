@@ -461,12 +461,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
 
           {/* Reviews Display */}
           <div key={reviewRefreshKey}>
-            <ReviewDisplay
-              cardId={business.id}
-              apiUrl={
-                process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-              }
-            />
+            <ReviewDisplay cardId={business.id} />
           </div>
         </div>
       </div>
