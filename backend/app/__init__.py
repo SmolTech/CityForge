@@ -85,7 +85,7 @@ def create_app():
         return User.query.filter_by(id=int(identity)).one_or_none()
 
     # Register blueprints
-    from app.routes import admin, auth, cards, help_wanted, resources, search, upload
+    from app.routes import admin, auth, cards, help_wanted, resources, reviews, search, upload
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(cards.bp)
@@ -94,6 +94,7 @@ def create_app():
     app.register_blueprint(search.bp)
     app.register_blueprint(upload.bp)
     app.register_blueprint(help_wanted.bp)
+    app.register_blueprint(reviews.bp)
 
     # Health check
     @app.route("/health", methods=["GET"])

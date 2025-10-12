@@ -8,6 +8,7 @@ from app import db
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
 from app.models.help_wanted import HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
+from app.models.review import Review
 from app.models.user import User
 from app.utils.helpers import require_admin
 
@@ -1057,3 +1058,112 @@ def admin_delete_help_wanted_post(post_id):
     db.session.commit()
 
     return jsonify({"message": "Help wanted post deleted successfully"})
+
+
+# Review Management
+@bp.route("/reviews", methods=["GET"])
+@jwt_required()
+def admin_get_reviews():
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    status = request.args.get("status", "pending")
+    card_id = request.args.get("card_id", type=int)
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = Review.query
+
+    if status == "approved":
+        query = query.filter_by(approved=True)
+    elif status == "pending":
+        query = query.filter_by(approved=False)
+
+    if card_id:
+        query = query.filter_by(card_id=card_id)
+
+    total_count = query.count()
+    reviews = query.order_by(Review.created_date.desc()).offset(offset).limit(limit).all()
+
+    # Include card information with each review
+    reviews_data = []
+    for review in reviews:
+        review_dict = review.to_dict()
+        if review.card:
+            review_dict["card"] = {
+                "id": review.card.id,
+                "name": review.card.name,
+                "image_url": review.card.image_url,
+            }
+        reviews_data.append(review_dict)
+
+    return jsonify(
+        {
+            "reviews": reviews_data,
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/reviews/<int:review_id>/approve", methods=["POST"])
+@jwt_required()
+def admin_approve_review(review_id):
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    review = Review.query.get_or_404(review_id)
+
+    if review.approved:
+        return jsonify({"message": "Review is already approved"}), 400
+
+    review.approved = True
+    review.approved_by = user_id
+    review.approved_date = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify({"message": "Review approved successfully", "review": review.to_dict()})
+
+
+@bp.route("/reviews/<int:review_id>/reject", methods=["POST"])
+@jwt_required()
+def admin_reject_review(review_id):
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    review = Review.query.get_or_404(review_id)
+
+    if not review.approved:
+        # Already not approved, just delete it
+        db.session.delete(review)
+        db.session.commit()
+        return jsonify({"message": "Review rejected and deleted"})
+
+    # If it was previously approved, unapprove it
+    review.approved = False
+    review.approved_by = None
+    review.approved_date = None
+
+    db.session.commit()
+
+    return jsonify({"message": "Review unapproved successfully", "review": review.to_dict()})
+
+
+@bp.route("/reviews/<int:review_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_review(review_id):
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    review = Review.query.get_or_404(review_id)
+    db.session.delete(review)
+    db.session.commit()
+
+    return jsonify({"message": "Review deleted successfully"})
