@@ -218,6 +218,42 @@ export interface HelpWantedReportsResponse {
   limit: number;
 }
 
+export interface AdminReview {
+  id: number;
+  card_id: number;
+  rating: number;
+  title?: string;
+  comment?: string;
+  hidden: boolean;
+  created_date: string;
+  updated_date: string;
+  reported: boolean;
+  reported_date?: string;
+  reported_reason?: string;
+  user?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
+  reporter?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
+  card?: {
+    id: number;
+    name: string;
+    image_url?: string;
+  };
+}
+
+export interface AdminReviewsResponse {
+  reviews: AdminReview[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -1030,6 +1066,60 @@ class ApiClient {
     postId: number
   ): Promise<{ message: string }> {
     return this.request(`/api/admin/help-wanted/posts/${postId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // Admin Review methods
+  async adminGetReviews(params?: {
+    status?: "all" | "reported" | "hidden";
+    card_id?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminReviewsResponse> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.status) searchParams.append("status", params.status);
+    if (params?.card_id)
+      searchParams.append("card_id", params.card_id.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.offset) searchParams.append("offset", params.offset.toString());
+
+    const query = searchParams.toString();
+    return this.request<AdminReviewsResponse>(
+      `/api/admin/reviews${query ? `?${query}` : ""}`
+    );
+  }
+
+  async adminHideReview(reviewId: number): Promise<{
+    message: string;
+    review: AdminReview;
+  }> {
+    return this.request(`/api/admin/reviews/${reviewId}/hide`, {
+      method: "POST",
+    });
+  }
+
+  async adminUnhideReview(reviewId: number): Promise<{
+    message: string;
+    review: AdminReview;
+  }> {
+    return this.request(`/api/admin/reviews/${reviewId}/unhide`, {
+      method: "POST",
+    });
+  }
+
+  async adminDismissReviewReport(reviewId: number): Promise<{
+    message: string;
+    review: AdminReview;
+  }> {
+    return this.request(`/api/admin/reviews/${reviewId}/dismiss-report`, {
+      method: "POST",
+    });
+  }
+
+  async adminDeleteReview(reviewId: number): Promise<{ message: string }> {
+    return this.request(`/api/admin/reviews/${reviewId}`, {
       method: "DELETE",
     });
   }

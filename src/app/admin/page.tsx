@@ -32,6 +32,7 @@ export default function AdminPage() {
     | "users"
     | "tags"
     | "resources"
+    | "reviews"
   >("pending");
   const [loading, setLoading] = useState(true);
   const [siteTitle, setSiteTitle] = useState("");
@@ -60,6 +61,13 @@ export default function AdminPage() {
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [showAddTag, setShowAddTag] = useState(false);
   const [deletingTag, setDeletingTag] = useState<Tag | null>(null);
+
+  // Reviews state
+  const [reviews, setReviews] = useState<import("@/lib/api").AdminReview[]>([]);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [reviewsFilter, setReviewsFilter] = useState<
+    "all" | "reported" | "hidden"
+  >("reported");
 
   // Resources state
   const [resourcesTab, setResourcesTab] = useState<
@@ -109,10 +117,18 @@ export default function AdminPage() {
       loadUsers();
     } else if (activeTab === "tags") {
       loadTags();
+    } else if (activeTab === "reviews") {
+      loadReviews();
     } else if (activeTab === "resources") {
       loadResourcesData();
     }
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (activeTab === "reviews") {
+      loadReviews();
+    }
+  }, [reviewsFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeTab === "resources") {
@@ -252,6 +268,20 @@ export default function AdminPage() {
       setTags(tags);
     } catch (error) {
       console.error("Failed to load tags:", error);
+    }
+  };
+
+  const loadReviews = async () => {
+    try {
+      const response = await apiClient.adminGetReviews({
+        status: reviewsFilter,
+        limit: 100,
+        offset: 0,
+      });
+      setReviews(response.reviews);
+      setTotalReviews(response.total);
+    } catch (error) {
+      console.error("Failed to load reviews:", error);
     }
   };
 
@@ -788,6 +818,21 @@ export default function AdminPage() {
               }`}
             >
               Tags
+            </button>
+            <button
+              onClick={() => setActiveTab("reviews")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === "reviews"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              Reviews
+              {reviews.filter((r) => r.reported).length > 0 && (
+                <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                  {reviews.filter((r) => r.reported).length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("resources")}
@@ -1553,6 +1598,256 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "reviews" && (
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Reviews Management
+                </h2>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setReviewsFilter("reported")}
+                    className={`px-4 py-2 text-sm font-medium rounded ${
+                      reviewsFilter === "reported"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    Reported ({reviews.filter((r) => r.reported).length})
+                  </button>
+                  <button
+                    onClick={() => setReviewsFilter("hidden")}
+                    className={`px-4 py-2 text-sm font-medium rounded ${
+                      reviewsFilter === "hidden"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    Hidden ({reviews.filter((r) => r.hidden).length})
+                  </button>
+                  <button
+                    onClick={() => setReviewsFilter("all")}
+                    className={`px-4 py-2 text-sm font-medium rounded ${
+                      reviewsFilter === "all"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    All ({totalReviews})
+                  </button>
+                </div>
+              </div>
+
+              {reviews.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                    No reviews found
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {reviewsFilter === "reported"
+                      ? "No reported reviews at this time."
+                      : reviewsFilter === "hidden"
+                        ? "No hidden reviews."
+                        : "No reviews in the system yet."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className={`border rounded-lg p-4 ${
+                        review.reported
+                          ? "border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20"
+                          : review.hidden
+                            ? "border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800"
+                            : "border-gray-200 dark:border-gray-700"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <svg
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < review.rating
+                                      ? "text-yellow-400"
+                                      : "text-gray-300 dark:text-gray-600"
+                                  }`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            {review.user && (
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {review.user.first_name} {review.user.last_name}
+                              </span>
+                            )}
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(
+                                review.created_date
+                              ).toLocaleDateString()}
+                            </span>
+                            {review.hidden && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                Hidden
+                              </span>
+                            )}
+                            {review.reported && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200">
+                                Reported
+                              </span>
+                            )}
+                          </div>
+                          {review.card && (
+                            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              Business: <strong>{review.card.name}</strong>
+                            </div>
+                          )}
+                          {review.title && (
+                            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-1">
+                              {review.title}
+                            </h3>
+                          )}
+                          {review.comment && (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                              {review.comment}
+                            </p>
+                          )}
+                          {review.reported && review.reported_reason && (
+                            <div className="mt-3 p-3 bg-red-100 dark:bg-red-900/30 rounded border border-red-200 dark:border-red-800">
+                              <div className="flex items-start">
+                                <svg
+                                  className="h-5 w-5 text-red-600 dark:text-red-400 mr-2 mt-0.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                  />
+                                </svg>
+                                <div>
+                                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                    Report Reason:
+                                  </p>
+                                  <p className="text-sm text-red-700 dark:text-red-300">
+                                    {review.reported_reason}
+                                  </p>
+                                  {review.reporter && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                      Reported by: {review.reporter.first_name}{" "}
+                                      {review.reporter.last_name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col space-y-2 ml-4">
+                          {!review.hidden && (
+                            <button
+                              onClick={async () => {
+                                if (
+                                  confirm(
+                                    "Are you sure you want to hide this review?"
+                                  )
+                                ) {
+                                  try {
+                                    await apiClient.adminHideReview(review.id);
+                                    await loadReviews();
+                                  } catch {
+                                    alert("Failed to hide review");
+                                  }
+                                }
+                              }}
+                              className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded"
+                            >
+                              Hide
+                            </button>
+                          )}
+                          {review.hidden && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await apiClient.adminUnhideReview(review.id);
+                                  await loadReviews();
+                                } catch {
+                                  alert("Failed to unhide review");
+                                }
+                              }}
+                              className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded"
+                            >
+                              Unhide
+                            </button>
+                          )}
+                          {review.reported && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await apiClient.adminDismissReviewReport(
+                                    review.id
+                                  );
+                                  await loadReviews();
+                                } catch {
+                                  alert("Failed to dismiss report");
+                                }
+                              }}
+                              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+                            >
+                              Dismiss Report
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (
+                                confirm(
+                                  "Are you sure you want to permanently delete this review?"
+                                )
+                              ) {
+                                try {
+                                  await apiClient.adminDeleteReview(review.id);
+                                  await loadReviews();
+                                } catch {
+                                  alert("Failed to delete review");
+                                }
+                              }
+                            }}
+                            className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
