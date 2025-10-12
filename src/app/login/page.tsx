@@ -45,6 +45,10 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch {
+      // Clear any stale tokens on login failure
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_token");
+      }
       setError("Invalid email or password");
     } finally {
       setLoading(false);
