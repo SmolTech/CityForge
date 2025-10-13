@@ -16,6 +16,7 @@ def get_cards():
     tag_mode = request.args.get("tag_mode", "and").lower()
     featured_only = request.args.get("featured", "false").lower() == "true"
     include_share_urls = request.args.get("share_urls", "false").lower() == "true"
+    include_ratings = request.args.get("ratings", "false").lower() == "true"
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
 
@@ -50,7 +51,10 @@ def get_cards():
 
     return jsonify(
         {
-            "cards": [card.to_dict(include_share_url=include_share_urls) for card in cards],
+            "cards": [
+                card.to_dict(include_share_url=include_share_urls, include_ratings=include_ratings)
+                for card in cards
+            ],
             "total": total_count,
             "offset": offset,
             "limit": limit,
@@ -62,7 +66,10 @@ def get_cards():
 def get_card(card_id):
     card = Card.query.get_or_404(card_id)
     include_share_url = request.args.get("share_url", "false").lower() == "true"
-    return jsonify(card.to_dict(include_share_url=include_share_url))
+    include_ratings = request.args.get("ratings", "false").lower() == "true"
+    return jsonify(
+        card.to_dict(include_share_url=include_share_url, include_ratings=include_ratings)
+    )
 
 
 @bp.route("/api/business/<int:business_id>", methods=["GET"])
@@ -74,7 +81,8 @@ def get_business(business_id, slug=None):
     if slug and slug != card.slug:
         return jsonify({"redirect": f"/business/{business_id}/{card.slug}"}), 301
 
-    return jsonify(card.to_dict(include_share_url=True))
+    include_ratings = request.args.get("ratings", "true").lower() == "true"
+    return jsonify(card.to_dict(include_share_url=True, include_ratings=include_ratings))
 
 
 @bp.route("/api/tags", methods=["GET"])
