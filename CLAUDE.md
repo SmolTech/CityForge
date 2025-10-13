@@ -53,8 +53,13 @@ npm run typecheck     # TypeScript validation
 # From backend/ directory
 pip install -r requirements.txt
 
-# Initialize database (prompts for admin email and password)
-python init_db.py
+# Run database migrations (creates/updates schema)
+alembic upgrade head
+# OR use the helper script
+python migrations.py upgrade
+
+# Initialize database with default data (only run once on new databases)
+python init_db.py  # Prompts for admin email and password
 
 # Development server
 python app.py  # Runs on port 5000
@@ -101,17 +106,71 @@ The project enforces code quality through automated git hooks:
 
 ## Key Development Notes
 
+### Database Migrations
+
+CityForge uses **Alembic** for database schema versioning and migrations. This allows you to:
+
+- Track schema changes through version control
+- Safely upgrade/downgrade between versions
+- Automatically generate migrations from model changes
+- Roll back changes if needed
+
+**Migration Commands:**
+
+```bash
+# Check migration status
+python migrations.py status
+alembic current
+
+# Upgrade to latest version
+python migrations.py upgrade
+alembic upgrade head
+
+# Downgrade one version
+python migrations.py downgrade
+alembic downgrade -1
+
+# Create new migration after changing models
+python migrations.py create "add new column"
+alembic revision --autogenerate -m "add new column"
+
+# View migration history
+python migrations.py history
+alembic history --verbose
+```
+
+**Deployment:**
+
+Migrations run automatically on deployment:
+
+- **Kubernetes**: Init container runs `alembic upgrade head` before backend starts
+- **Docker Compose**: Separate `migrate` service runs before backend container starts
+- **Manual**: Run `alembic upgrade head` or `python migrations.py upgrade`
+
+**For New Databases:**
+
+1. Run migrations: `alembic upgrade head`
+2. Initialize default data: `python init_db.py` (prompts for admin credentials)
+
+**Important Notes:**
+
+- Migration files are in `backend/alembic/versions/`
+- Always review auto-generated migrations before committing
+- Never use default credentials with `init_db.py` - it requires interactive input for security
+- The initial migration (001) captures all existing tables
+
 ### Database Initialization
 
-The `init_db.py` script creates database tables and prompts for admin credentials:
+The `init_db.py` script seeds default configuration data and creates an admin user:
 
 ```bash
 cd backend
-python init_db.py
+alembic upgrade head  # First, ensure schema is up to date
+python init_db.py     # Then initialize default data
 # Prompts for admin email and password
 ```
 
-**Important**: Never use default credentials. The script requires interactive input for security.
+**Important**: This script is for initial setup only. Schema changes must be done through Alembic migrations.
 
 ### Database Schema
 

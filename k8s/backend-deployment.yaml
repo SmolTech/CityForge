@@ -25,6 +25,37 @@ spec:
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
+      initContainers:
+        - name: migrate
+          image: ghcr.io/smoltech/cityforge-backend
+          imagePullPolicy: Always
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: POSTGRES_HOST
+              value: "community-db"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "community"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: community.community-db.credentials.postgresql.acid.zalan.do
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: community.community-db.credentials.postgresql.acid.zalan.do
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: backend
           securityContext:

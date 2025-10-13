@@ -1,0 +1,28 @@
+Generic single-database configuration for CityForge.
+
+This directory contains Alembic migrations for the CityForge database schema.
+
+## Quick Start
+
+Generate a new migration after changing models:
+alembic revision --autogenerate -m "description of changes"
+
+Apply all pending migrations:
+alembic upgrade head
+
+Rollback one migration:
+alembic downgrade -1
+
+Show current migration version:
+alembic current
+
+Show migration history:
+alembic history --verbose
+
+## Helper Script
+
+Use the migrations.py helper script for common operations:
+python migrations.py status
+python migrations.py upgrade
+python migrations.py downgrade
+python migrations.py create "add new column"
