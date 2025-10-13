@@ -34,6 +34,8 @@ export interface Card {
   approved_date?: string;
   slug?: string;
   share_url?: string;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 export interface CardSubmission {
@@ -409,6 +411,7 @@ class ApiClient {
     limit?: number;
     offset?: number;
     includeShareUrls?: boolean;
+    includeRatings?: boolean;
   }): Promise<CardsResponse> {
     const searchParams = new URLSearchParams();
 
@@ -422,6 +425,7 @@ class ApiClient {
     if (params?.limit) searchParams.append("limit", params.limit.toString());
     if (params?.offset) searchParams.append("offset", params.offset.toString());
     if (params?.includeShareUrls) searchParams.append("share_urls", "true");
+    if (params?.includeRatings) searchParams.append("ratings", "true");
 
     const query = searchParams.toString();
     return this.request<CardsResponse>(`/api/cards${query ? `?${query}` : ""}`);

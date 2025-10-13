@@ -58,7 +58,7 @@ class Card(db.Model):
         """Generate shareable URL for this business."""
         return f"/business/{self.id}/{self.slug}"
 
-    def to_dict(self, include_share_url=False):
+    def to_dict(self, include_share_url=False, include_ratings=False):
         data = {
             "id": self.id,
             "name": self.name,
@@ -83,6 +83,17 @@ class Card(db.Model):
         if include_share_url:
             data["slug"] = self.slug
             data["share_url"] = self.share_url
+
+        if include_ratings:
+            # Calculate average rating from non-hidden reviews
+            visible_reviews = [r for r in self.reviews if not r.hidden]
+            if visible_reviews:
+                avg_rating = sum(r.rating for r in visible_reviews) / len(visible_reviews)
+                data["average_rating"] = round(avg_rating, 1)
+                data["review_count"] = len(visible_reviews)
+            else:
+                data["average_rating"] = None
+                data["review_count"] = 0
 
         return data
 

@@ -98,6 +98,7 @@ export default function Home() {
           tagMode: tagFilterMode,
           featured: showFeaturedOnly || undefined,
           includeShareUrls: true,
+          includeRatings: true,
           limit: ITEMS_PER_PAGE,
           offset: offset,
         }),
