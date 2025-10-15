@@ -16,6 +16,7 @@ export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagFilterMode, setTagFilterMode] = useState<"and" | "or">("and");
@@ -90,6 +91,7 @@ export default function Home() {
   async function loadData() {
     try {
       setLoading(true);
+      setError(null);
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
       const [cardsResponse, tagsResponse] = await Promise.all([
         apiClient.getCards({
@@ -109,6 +111,14 @@ export default function Home() {
       setTags(tagsResponse);
     } catch (error) {
       console.error("Failed to fetch data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      setError(
+        `Failed to load directory: ${errorMessage}. Please check that the backend API is running and accessible.`
+      );
+      setCards([]);
+      setTags([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -205,11 +215,61 @@ export default function Home() {
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               </div>
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-6 w-6 text-red-600 dark:text-red-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                      Error Loading Directory
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                      <p>{error}</p>
+                    </div>
+                    <div className="mt-4">
+                      <button
+                        onClick={() => loadData()}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : cards.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 dark:text-gray-400 text-lg">
                   No cards found matching your criteria.
                 </p>
+                {(searchTerm ||
+                  selectedTags.length > 0 ||
+                  showFeaturedOnly) && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedTags([]);
+                      setShowFeaturedOnly(false);
+                    }}
+                    className="mt-4 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             ) : (
               <>
