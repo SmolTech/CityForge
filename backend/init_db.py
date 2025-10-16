@@ -10,17 +10,7 @@ def init_database(skip_admin_prompt=False):
 
     with app.app_context():
         # Import all models to ensure they're registered with SQLAlchemy
-        from app.models.card import Card, CardModification, CardSubmission, Tag
-        from app.models.forum import (
-            ForumCategory,
-            ForumCategoryRequest,
-            ForumPost,
-            ForumReport,
-            ForumThread,
-        )
-        from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
         from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
-        from app.models.review import Review
         from app.models.user import User
 
         # Create all tables
@@ -45,26 +35,23 @@ def init_database(skip_admin_prompt=False):
         # Migration 1: Extend tags.name from VARCHAR(50) to VARCHAR(500)
         if "tags" in inspector.get_table_names():
             columns = {col["name"]: col for col in inspector.get_columns("tags")}
-            if "name" in columns:
-                # Check current length (PostgreSQL specific)
-                if db.engine.dialect.name == "postgresql":
-                    result = db.session.execute(
-                        text(
-                            """
+            # Check current length (PostgreSQL specific)
+            if "name" in columns and db.engine.dialect.name == "postgresql":
+                result = db.session.execute(
+                    text(
+                        """
                         SELECT character_maximum_length
                         FROM information_schema.columns
                         WHERE table_name = 'tags' AND column_name = 'name'
                     """
-                        )
                     )
-                    current_length = result.fetchone()
-                    if current_length and current_length[0] != 500:
-                        print("Migrating tags.name column to VARCHAR(500)...")
-                        db.session.execute(
-                            text("ALTER TABLE tags ALTER COLUMN name TYPE VARCHAR(500)")
-                        )
-                        db.session.commit()
-                        migrations_applied += 1
+                )
+                current_length = result.fetchone()
+                if current_length and current_length[0] != 500:
+                    print("Migrating tags.name column to VARCHAR(500)...")
+                    db.session.execute(text("ALTER TABLE tags ALTER COLUMN name TYPE VARCHAR(500)"))
+                    db.session.commit()
+                    migrations_applied += 1
 
         # Migration 2: Add address_override_url to cards, card_submissions, card_modifications
         for table in ["cards", "card_submissions", "card_modifications"]:
