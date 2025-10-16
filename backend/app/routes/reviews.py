@@ -15,7 +15,7 @@ bp = Blueprint("reviews", __name__)
 @bp.route("/api/cards/<int:card_id>/reviews", methods=["GET"])
 def get_card_reviews(card_id):
     """Get all non-hidden reviews for a specific card."""
-    card = Card.query.get_or_404(card_id)
+    Card.query.get_or_404(card_id)  # Verify card exists
 
     # Get pagination parameters
     limit = request.args.get("limit", 100, type=int)
@@ -55,7 +55,7 @@ def create_review(card_id):
     if not user or not user.is_active:
         return jsonify({"message": "User not found or inactive"}), 404
 
-    card = Card.query.get_or_404(card_id)
+    Card.query.get_or_404(card_id)  # Verify card exists
     data = request.get_json()
 
     # Validate required fields
@@ -121,7 +121,7 @@ def get_my_reviews():
 @bp.route("/api/cards/<int:card_id>/reviews/summary", methods=["GET"])
 def get_review_summary(card_id):
     """Get review statistics for a card."""
-    card = Card.query.get_or_404(card_id)
+    Card.query.get_or_404(card_id)  # Verify card exists
 
     # Get rating distribution for non-hidden reviews
     rating_counts = (

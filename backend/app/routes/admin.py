@@ -9,7 +9,6 @@ from app.models.card import Card, CardModification, CardSubmission, Tag, card_ta
 from app.models.forum import (
     ForumCategory,
     ForumCategoryRequest,
-    ForumPost,
     ForumReport,
     ForumThread,
 )
@@ -1125,7 +1124,6 @@ def admin_hide_review(review_id):
         return admin_check
 
     review = Review.query.get_or_404(review_id)
-    data = request.get_json() or {}
 
     review.hidden = True
     db.session.commit()
@@ -1310,7 +1308,7 @@ def admin_delete_forum_category(category_id):
     db.session.delete(category)
     db.session.commit()
 
-    message = f"Category deleted successfully"
+    message = "Category deleted successfully"
     if thread_count > 0:
         message += f" along with {thread_count} thread{'s' if thread_count != 1 else ''}"
 
@@ -1513,7 +1511,7 @@ def admin_delete_forum_thread(thread_id):
     db.session.delete(thread)
     db.session.commit()
 
-    message = f"Thread deleted successfully"
+    message = "Thread deleted successfully"
     if post_count > 0:
         message += f" along with {post_count} post{'s' if post_count != 1 else ''}"
 
