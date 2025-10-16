@@ -5,8 +5,8 @@ import { loadAppConfig } from "@/lib/server-config";
 
 export const dynamic = "force-dynamic";
 
-export default function SearchPage() {
-  const appConfig = loadAppConfig();
+export default async function SearchPage() {
+  const appConfig = await loadAppConfig();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
