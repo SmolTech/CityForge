@@ -32,6 +32,14 @@ export default function AdminResourcesPage() {
     useState<ResourceItem | null>(null);
   const [showAddResourceItem, setShowAddResourceItem] = useState(false);
 
+  // Delete confirmation state
+  const [deletingQuickAccessId, setDeletingQuickAccessId] = useState<
+    number | null
+  >(null);
+  const [deletingResourceItemId, setDeletingResourceItemId] = useState<
+    number | null
+  >(null);
+
   const [error, setError] = useState<string | null>(null);
 
   const checkAuth = useCallback(async () => {
@@ -117,10 +125,9 @@ export default function AdminResourcesPage() {
   };
 
   const handleDeleteQuickAccess = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this quick access item?"))
-      return;
     try {
       await apiClient.adminDeleteQuickAccessItem(id);
+      setDeletingQuickAccessId(null);
       loadQuickAccessItems();
     } catch (error) {
       setError("Failed to delete quick access item");
@@ -162,9 +169,9 @@ export default function AdminResourcesPage() {
   };
 
   const handleDeleteResourceItem = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this resource item?")) return;
     try {
       await apiClient.adminDeleteResourceItem(id);
+      setDeletingResourceItemId(null);
       loadResourceItems();
     } catch (error) {
       setError("Failed to delete resource item");
@@ -282,7 +289,7 @@ export default function AdminResourcesPage() {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleDeleteQuickAccess(index + 1)
+                                  setDeletingQuickAccessId(index + 1)
                                 }
                                 className="text-red-600 hover:text-red-800 dark:text-red-400"
                               >
@@ -373,7 +380,7 @@ export default function AdminResourcesPage() {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleDeleteResourceItem(item.id)
+                                  setDeletingResourceItemId(item.id)
                                 }
                                 className="text-red-600 hover:text-red-800 dark:text-red-400"
                               >
@@ -391,6 +398,64 @@ export default function AdminResourcesPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Quick Access Confirmation Modal */}
+      {deletingQuickAccessId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Quick Access Item
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this quick access item? This
+              action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingQuickAccessId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteQuickAccess(deletingQuickAccessId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Resource Item Confirmation Modal */}
+      {deletingResourceItemId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Resource Item
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this resource item? This action
+              cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingResourceItemId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteResourceItem(deletingResourceItemId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

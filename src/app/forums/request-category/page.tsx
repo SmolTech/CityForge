@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
@@ -12,6 +12,23 @@ export default function RequestCategoryPage() {
   const [description, setDescription] = useState("");
   const [justification, setJustification] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [siteTitle, setSiteTitle] = useState("Community Website");
+
+  useEffect(() => {
+    loadSiteConfig();
+  }, []);
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteTitle(config.site?.title || "Community Website");
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +54,7 @@ export default function RequestCategoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Forums" />
+      <Navigation currentPage="Forums" siteTitle={siteTitle} />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
