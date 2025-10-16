@@ -15,6 +15,7 @@ export default function HelpWantedPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [siteConfig, setSiteConfig] = useState<{
     shortName: string;
+    title: string;
   } | null>(null);
   const router = useRouter();
 
@@ -32,11 +33,17 @@ export default function HelpWantedPage() {
       const response = await fetch("/api/config");
       if (response.ok) {
         const config = await response.json();
-        setSiteConfig({ shortName: config.site?.shortName || "Community" });
+        setSiteConfig({
+          shortName: config.site?.shortName || "Community",
+          title: config.site?.title || "Community Website",
+        });
       }
     } catch (error) {
       console.error("Failed to load site config:", error);
-      setSiteConfig({ shortName: "Community" });
+      setSiteConfig({
+        shortName: "Community",
+        title: "Community Website",
+      });
     }
   };
 
@@ -107,7 +114,10 @@ export default function HelpWantedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Classifieds" />
+      <Navigation
+        currentPage="Classifieds"
+        siteTitle={siteConfig?.title || "Community Website"}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
