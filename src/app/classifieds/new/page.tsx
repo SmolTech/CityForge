@@ -16,13 +16,30 @@ export default function NewHelpWantedPage() {
   const [contactPreference, setContactPreference] = useState("message");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [siteConfig, setSiteConfig] = useState<{
+    title: string;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!apiClient.isAuthenticated()) {
       router.push("/login?redirect=/classifieds/new");
     }
+    loadSiteConfig();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteConfig({ title: config.site?.title || "Community Website" });
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+      setSiteConfig({ title: "Community Website" });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +67,10 @@ export default function NewHelpWantedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Classifieds" />
+      <Navigation
+        currentPage="Classifieds"
+        siteTitle={siteConfig?.title || "Community Website"}
+      />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

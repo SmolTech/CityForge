@@ -21,13 +21,30 @@ export default function HelpWantedDetailPage() {
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
     null
   );
+  const [siteConfig, setSiteConfig] = useState<{
+    title: string;
+  } | null>(null);
   const router = useRouter();
   const params = useParams();
   const postId = parseInt(params.id as string);
 
   useEffect(() => {
     loadPost();
+    loadSiteConfig();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteConfig({ title: config.site?.title || "Community Website" });
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+      setSiteConfig({ title: "Community Website" });
+    }
+  };
 
   const loadPost = async () => {
     try {
@@ -177,7 +194,10 @@ export default function HelpWantedDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Classifieds" />
+      <Navigation
+        currentPage="Classifieds"
+        siteTitle={siteConfig?.title || "Community Website"}
+      />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Post Header */}
