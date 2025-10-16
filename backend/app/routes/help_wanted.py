@@ -1,4 +1,3 @@
-from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -156,7 +155,7 @@ def create_comment(post_id):
     if not user or not user.is_active:
         return jsonify({"message": "User not found or inactive"}), 404
 
-    post = HelpWantedPost.query.get_or_404(post_id)
+    HelpWantedPost.query.get_or_404(post_id)  # Verify post exists
     data = request.get_json()
 
     if not data or "content" not in data:

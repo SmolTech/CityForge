@@ -146,6 +146,16 @@ export default function Navigation({
             >
               Resources
             </Link>
+            <Link
+              href="/forums"
+              className={`${
+                currentPage === "Forums"
+                  ? "text-blue-600 dark:text-blue-400 font-semibold"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+              }`}
+            >
+              Forums
+            </Link>
             {!loading && (
               <>
                 {isAuthenticated ? (
@@ -354,6 +364,17 @@ export default function Navigation({
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Resources
+              </Link>
+              <Link
+                href="/forums"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  currentPage === "Forums"
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
+                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Forums
               </Link>
               {!loading && (
                 <>
