@@ -52,6 +52,7 @@ function ResourcesContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  const [siteTitle, setSiteTitle] = useState("Loading...");
 
   useEffect(() => {
     async function fetchResources() {
@@ -59,6 +60,7 @@ function ResourcesContent() {
         setLoading(true);
         const data = await apiClient.getResources();
         setResourcesData(data);
+        setSiteTitle(data.site.title);
       } catch (err) {
         console.error("Failed to fetch resources:", err);
         setError("Failed to load resources. Please try again later.");
@@ -90,7 +92,7 @@ function ResourcesContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation currentPage="Resources" siteTitle="Loading..." />
+        <Navigation currentPage="Resources" siteTitle={siteTitle} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -106,7 +108,7 @@ function ResourcesContent() {
   if (error || !resourcesData) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation currentPage="Resources" siteTitle="Community Website" />
+        <Navigation currentPage="Resources" siteTitle={siteTitle} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <p className="text-red-600 dark:text-red-400">
