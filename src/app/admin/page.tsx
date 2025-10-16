@@ -711,10 +711,10 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Quick Access - Help Wanted */}
+        {/* Quick Access - Classifieds */}
         <div className="mb-6">
           <Link
-            href="/admin/help-wanted"
+            href="/admin/classifieds"
             className="block bg-gradient-to-r from-red-500 to-orange-500 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
           >
             <div className="flex items-center justify-between">
@@ -736,10 +736,10 @@ export default function AdminPage() {
                 </div>
                 <div className="ml-4">
                   <h3 className="text-xl font-bold text-white">
-                    Help Wanted Reports
+                    Classifieds Reports
                   </h3>
                   <p className="text-white text-opacity-90 text-sm">
-                    Review and moderate help wanted posts and reports
+                    Review and moderate classified posts and reports
                   </p>
                 </div>
               </div>

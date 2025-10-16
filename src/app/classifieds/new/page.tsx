@@ -20,7 +20,7 @@ export default function NewHelpWantedPage() {
 
   useEffect(() => {
     if (!apiClient.isAuthenticated()) {
-      router.push("/login?redirect=/help-wanted/new");
+      router.push("/login?redirect=/classifieds/new");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -39,7 +39,7 @@ export default function NewHelpWantedPage() {
         contact_preference: contactPreference,
       });
 
-      router.push(`/help-wanted/${post.id}`);
+      router.push(`/classifieds/${post.id}`);
     } catch (err) {
       console.error("Failed to create post:", err);
       setError("Failed to create post. Please try again.");
@@ -50,12 +50,12 @@ export default function NewHelpWantedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Help Wanted" />
+      <Navigation currentPage="Classifieds" />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Post a Help Wanted Request
+            Post a Classified
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Looking for help, collaborators, or offering an opportunity? Share

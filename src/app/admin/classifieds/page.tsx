@@ -155,10 +155,10 @@ export default function AdminHelpWantedPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Help Wanted Administration
+                Classifieds Administration
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
-                Manage reports and moderate help wanted posts
+                Manage reports and moderate classified posts
               </p>
             </div>
             <Link
@@ -282,7 +282,7 @@ export default function AdminHelpWantedPage() {
                           ).toLocaleDateString()}
                         </div>
                         <Link
-                          href={`/help-wanted/${report.post.id}`}
+                          href={`/classifieds/${report.post.id}`}
                           className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 mt-2 inline-block"
                         >
                           View full post →
@@ -315,7 +315,7 @@ export default function AdminHelpWantedPage() {
             {posts.length === 0 ? (
               <div className="p-12 text-center">
                 <p className="text-gray-500 dark:text-gray-400">
-                  No help wanted posts yet.
+                  No classified posts yet.
                 </p>
               </div>
             ) : (
@@ -363,7 +363,7 @@ export default function AdminHelpWantedPage() {
                       </div>
                       <div className="ml-4 flex gap-2">
                         <Link
-                          href={`/help-wanted/${post.id}`}
+                          href={`/classifieds/${post.id}`}
                           className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
                           View
@@ -474,10 +474,10 @@ export default function AdminHelpWantedPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Delete Help Wanted Post
+              Delete Classified Post
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete this help wanted post? This action
+              Are you sure you want to delete this classified post? This action
               cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">

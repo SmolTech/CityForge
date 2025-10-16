@@ -32,7 +32,7 @@ export default function HelpWantedDetailPage() {
   const loadPost = async () => {
     try {
       if (!apiClient.isAuthenticated()) {
-        router.push("/login?redirect=/help-wanted/" + postId);
+        router.push("/login?redirect=/classifieds/" + postId);
         return;
       }
 
@@ -45,7 +45,7 @@ export default function HelpWantedDetailPage() {
       setCurrentUser(userData.user);
     } catch (error) {
       console.error("Failed to load post:", error);
-      router.push("/help-wanted");
+      router.push("/classifieds");
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ export default function HelpWantedDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Help Wanted" />
+      <Navigation currentPage="Classifieds" />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Post Header */}
