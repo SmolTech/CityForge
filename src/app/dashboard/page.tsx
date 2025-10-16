@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [siteConfig, setSiteConfig] = useState<{
     shortName: string;
+    title: string;
   } | null>(null);
   const router = useRouter();
 
@@ -26,11 +27,14 @@ export default function DashboardPage() {
       const response = await fetch("/api/config");
       if (response.ok) {
         const config = await response.json();
-        setSiteConfig({ shortName: config.site?.shortName || "community" });
+        setSiteConfig({
+          shortName: config.site?.shortName || "community",
+          title: config.site?.title || "Community Website",
+        });
       }
     } catch (error) {
       console.error("Failed to load site config:", error);
-      setSiteConfig({ shortName: "community" });
+      setSiteConfig({ shortName: "community", title: "Community Website" });
     }
   };
 
@@ -81,7 +85,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Dashboard" />
+      <Navigation
+        currentPage="Dashboard"
+        siteTitle={siteConfig?.title || "Community Website"}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

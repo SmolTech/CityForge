@@ -23,6 +23,7 @@ export default function AdminHelpWantedPage() {
     "dismiss"
   );
   const [resolveNotes, setResolveNotes] = useState("");
+  const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -104,16 +105,9 @@ export default function AdminHelpWantedPage() {
   };
 
   const handleDeletePost = async (postId: number) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this post? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
     try {
       await apiClient.adminDeleteHelpWantedPost(postId);
+      setDeletingPostId(null);
       loadPosts();
     } catch (error) {
       console.error("Failed to delete post:", error);
@@ -375,7 +369,7 @@ export default function AdminHelpWantedPage() {
                           View
                         </Link>
                         <button
-                          onClick={() => handleDeletePost(post.id)}
+                          onClick={() => setDeletingPostId(post.id)}
                           className="px-3 py-1 text-sm border border-red-300 dark:border-red-600 rounded-md text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
                         >
                           Delete
@@ -469,6 +463,35 @@ export default function AdminHelpWantedPage() {
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 Resolve Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Post Confirmation Modal */}
+      {deletingPostId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Help Wanted Post
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this help wanted post? This action
+              cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingPostId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeletePost(deletingPostId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete Post
               </button>
             </div>
           </div>

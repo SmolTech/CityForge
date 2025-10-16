@@ -10,6 +10,7 @@ export default function ForumsPage() {
   const [loading, setLoading] = useState(true);
   const [siteConfig, setSiteConfig] = useState<{
     shortName: string;
+    title: string;
   } | null>(null);
 
   useEffect(() => {
@@ -22,7 +23,10 @@ export default function ForumsPage() {
       const configResponse = await fetch("/api/config");
       if (configResponse.ok) {
         const config = await configResponse.json();
-        setSiteConfig({ shortName: config.site?.shortName || "Community" });
+        setSiteConfig({
+          shortName: config.site?.shortName || "Community",
+          title: config.site?.title || "Community Website",
+        });
       }
 
       // Load categories with stats
@@ -45,7 +49,10 @@ export default function ForumsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Forums" />
+      <Navigation
+        currentPage="Forums"
+        siteTitle={siteConfig?.title || "Community Website"}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

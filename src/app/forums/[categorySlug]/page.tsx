@@ -13,10 +13,24 @@ export default function CategoryThreadsPage() {
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [loading, setLoading] = useState(true);
+  const [siteTitle, setSiteTitle] = useState("Community Website");
 
   useEffect(() => {
     loadData();
+    loadSiteConfig();
   }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadSiteConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSiteTitle(config.site?.title || "Community Website");
+      }
+    } catch (error) {
+      console.error("Failed to load site config:", error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -45,7 +59,7 @@ export default function CategoryThreadsPage() {
   if (!category) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Navigation currentPage="Forums" />
+        <Navigation currentPage="Forums" siteTitle={siteTitle} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -65,7 +79,7 @@ export default function CategoryThreadsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Forums" />
+      <Navigation currentPage="Forums" siteTitle={siteTitle} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}

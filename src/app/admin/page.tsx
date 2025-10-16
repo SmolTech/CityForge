@@ -83,6 +83,20 @@ export default function AdminPage() {
     useState<ResourceItem | null>(null);
   const [showAddResourceItem, setShowAddResourceItem] = useState(false);
 
+  // Modal state for deletions and prompts
+  const [deletingQuickAccessId, setDeletingQuickAccessId] = useState<
+    number | null
+  >(null);
+  const [deletingResourceItemId, setDeletingResourceItemId] = useState<
+    number | null
+  >(null);
+  const [rejectingSubmissionId, setRejectingSubmissionId] = useState<
+    number | null
+  >(null);
+  const [rejectionNotes, setRejectionNotes] = useState("");
+  const [hidingReviewId, setHidingReviewId] = useState<number | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<number | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -279,6 +293,28 @@ export default function AdminPage() {
     }
   };
 
+  const handleHideReview = async (reviewId: number) => {
+    try {
+      await apiClient.adminHideReview(reviewId);
+      setHidingReviewId(null);
+      await loadReviews();
+    } catch (error) {
+      console.error("Failed to hide review:", error);
+      alert("Failed to hide review");
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    try {
+      await apiClient.adminDeleteReview(reviewId);
+      setDeletingReviewId(null);
+      await loadReviews();
+    } catch (error) {
+      console.error("Failed to delete review:", error);
+      alert("Failed to delete review");
+    }
+  };
+
   const handleCreateTag = async (data: { name: string }) => {
     try {
       await apiClient.adminCreateTag(data);
@@ -365,10 +401,9 @@ export default function AdminPage() {
   };
 
   const handleDeleteQuickAccess = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this quick access item?"))
-      return;
     try {
       await apiClient.adminDeleteQuickAccessItem(id);
+      setDeletingQuickAccessId(null);
       await loadQuickAccessItems();
     } catch (error) {
       console.error("Failed to delete quick access item:", error);
@@ -399,9 +434,9 @@ export default function AdminPage() {
   };
 
   const handleDeleteResourceItem = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this resource item?")) return;
     try {
       await apiClient.adminDeleteResourceItem(id);
+      setDeletingResourceItemId(null);
       await loadResourceItems();
     } catch (error) {
       console.error("Failed to delete resource item:", error);
@@ -1034,11 +1069,8 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const notes = prompt(
-                                  "Enter rejection reason (optional):"
-                                );
-                                if (notes !== null)
-                                  handleRejectSubmission(submission.id, notes);
+                                setRejectingSubmissionId(submission.id);
+                                setRejectionNotes("");
                               }}
                               disabled={processingSubmission === submission.id}
                               className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded disabled:opacity-50"
@@ -1798,20 +1830,7 @@ export default function AdminPage() {
                         <div className="flex flex-col space-y-2 ml-4">
                           {!review.hidden && (
                             <button
-                              onClick={async () => {
-                                if (
-                                  confirm(
-                                    "Are you sure you want to hide this review?"
-                                  )
-                                ) {
-                                  try {
-                                    await apiClient.adminHideReview(review.id);
-                                    await loadReviews();
-                                  } catch {
-                                    alert("Failed to hide review");
-                                  }
-                                }
-                              }}
+                              onClick={() => setHidingReviewId(review.id)}
                               className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded"
                             >
                               Hide
@@ -1850,20 +1869,7 @@ export default function AdminPage() {
                             </button>
                           )}
                           <button
-                            onClick={async () => {
-                              if (
-                                confirm(
-                                  "Are you sure you want to permanently delete this review?"
-                                )
-                              ) {
-                                try {
-                                  await apiClient.adminDeleteReview(review.id);
-                                  await loadReviews();
-                                } catch {
-                                  alert("Failed to delete review");
-                                }
-                              }
-                            }}
+                            onClick={() => setDeletingReviewId(review.id)}
                             className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
                           >
                             Delete
@@ -1962,7 +1968,9 @@ export default function AdminPage() {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDeleteQuickAccess(index + 1)}
+                              onClick={() =>
+                                setDeletingQuickAccessId(index + 1)
+                              }
                               className="text-red-600 hover:text-red-800 dark:text-red-400"
                             >
                               Delete
@@ -2051,7 +2059,7 @@ export default function AdminPage() {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDeleteResourceItem(item.id)}
+                              onClick={() => setDeletingResourceItemId(item.id)}
                               className="text-red-600 hover:text-red-800 dark:text-red-400"
                             >
                               Delete
@@ -2286,6 +2294,166 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Quick Access Confirmation Modal */}
+      {deletingQuickAccessId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Quick Access Item
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this quick access item? This
+              action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingQuickAccessId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteQuickAccess(deletingQuickAccessId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Resource Item Confirmation Modal */}
+      {deletingResourceItemId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Resource Item
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this resource item? This action
+              cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingResourceItemId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteResourceItem(deletingResourceItemId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Submission Modal */}
+      {rejectingSubmissionId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Reject Submission
+            </h3>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Rejection Reason (Optional)
+              </label>
+              <textarea
+                value={rejectionNotes}
+                onChange={(e) => setRejectionNotes(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Enter rejection reason..."
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setRejectingSubmissionId(null);
+                  setRejectionNotes("");
+                }}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleRejectSubmission(rejectingSubmissionId, rejectionNotes);
+                  setRejectingSubmissionId(null);
+                  setRejectionNotes("");
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hide Review Confirmation Modal */}
+      {hidingReviewId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Hide Review
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to hide this review? It will no longer be
+              visible to users but can be unhidden later.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setHidingReviewId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleHideReview(hidingReviewId)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Hide Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Review Confirmation Modal */}
+      {deletingReviewId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Review
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to permanently delete this review? This
+              action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeletingReviewId(null)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteReview(deletingReviewId)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete Permanently
+              </button>
             </div>
           </div>
         </div>
