@@ -43,7 +43,7 @@ export default function HelpWantedPage() {
   const loadPosts = async () => {
     try {
       if (!apiClient.isAuthenticated()) {
-        router.push("/login?redirect=/help-wanted");
+        router.push("/login?redirect=/classifieds");
         return;
       }
 
@@ -54,7 +54,7 @@ export default function HelpWantedPage() {
       setPosts(response.posts);
     } catch (error) {
       console.error("Failed to load help wanted posts:", error);
-      router.push("/login?redirect=/help-wanted");
+      router.push("/login?redirect=/classifieds");
     } finally {
       setLoading(false);
     }
@@ -107,14 +107,14 @@ export default function HelpWantedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Help Wanted" />
+      <Navigation currentPage="Classifieds" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Help Wanted
+                Classifieds
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
                 {siteConfig?.shortName || "Community"} members looking for help,
@@ -122,7 +122,7 @@ export default function HelpWantedPage() {
               </p>
             </div>
             <Link
-              href="/help-wanted/new"
+              href="/classifieds/new"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               <svg
@@ -258,12 +258,12 @@ export default function HelpWantedPage() {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {searchQuery
                 ? "Try adjusting your search terms or filters"
-                : "Be the first to post a help wanted request!"}
+                : "Be the first to post a classified request!"}
             </p>
             {!searchQuery && (
               <div className="mt-6">
                 <Link
-                  href="/help-wanted/new"
+                  href="/classifieds/new"
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Post Request
@@ -276,7 +276,7 @@ export default function HelpWantedPage() {
             {filteredPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/help-wanted/${post.id}`}
+                href={`/classifieds/${post.id}`}
                 className="block bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <div className="p-6">

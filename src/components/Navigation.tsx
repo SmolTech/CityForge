@@ -90,32 +90,6 @@ export default function Navigation({
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {!loading && (
-              <>
-                {isAuthenticated ? (
-                  <Link
-                    href="/help-wanted"
-                    className={`${
-                      currentPage === "Help Wanted"
-                        ? "text-blue-600 dark:text-blue-400 font-semibold"
-                        : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                    }`}
-                  >
-                    Help Wanted
-                  </Link>
-                ) : (
-                  <div className="relative group">
-                    <span className="text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                      Help Wanted
-                    </span>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                      Login To View Help Wanted
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
             <Link
               href="/"
               className={`${
@@ -156,6 +130,32 @@ export default function Navigation({
             >
               Forums
             </Link>
+            {!loading && (
+              <>
+                {isAuthenticated ? (
+                  <Link
+                    href="/classifieds"
+                    className={`${
+                      currentPage === "Classifieds"
+                        ? "text-blue-600 dark:text-blue-400 font-semibold"
+                        : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    }`}
+                  >
+                    Classifieds
+                  </Link>
+                ) : (
+                  <div className="relative group">
+                    <span className="text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                      Classifieds
+                    </span>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
+                      Login To View Classifieds
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
             {!loading && (
               <>
                 {isAuthenticated ? (
@@ -305,33 +305,6 @@ export default function Navigation({
                   Welcome back, {user.first_name}!
                 </div>
               )}
-              {!loading && (
-                <>
-                  {isAuthenticated ? (
-                    <Link
-                      href="/help-wanted"
-                      className={`block px-3 py-2 rounded-md text-base font-medium ${
-                        currentPage === "Help Wanted"
-                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
-                          : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Help Wanted
-                    </Link>
-                  ) : (
-                    <div className="relative group">
-                      <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                        Help Wanted
-                      </span>
-                      <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                        Login To View Help Wanted
-                        <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
               <Link
                 href="/"
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
@@ -376,6 +349,33 @@ export default function Navigation({
               >
                 Forums
               </Link>
+              {!loading && (
+                <>
+                  {isAuthenticated ? (
+                    <Link
+                      href="/classifieds"
+                      className={`block px-3 py-2 rounded-md text-base font-medium ${
+                        currentPage === "Classifieds"
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900"
+                          : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Classifieds
+                    </Link>
+                  ) : (
+                    <div className="relative group">
+                      <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                        Classifieds
+                      </span>
+                      <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
+                        Login To View Classifieds
+                        <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               {!loading && (
                 <>
                   {isAuthenticated ? (

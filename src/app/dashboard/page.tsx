@@ -158,7 +158,7 @@ export default function DashboardPage() {
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Post Help Wanted
+                  Post Classified
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Request help from the {siteConfig?.shortName || "community"}
@@ -167,7 +167,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4">
               <Link
-                href="/help-wanted/new"
+                href="/classifieds/new"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
               >
                 Post Request
@@ -253,7 +253,7 @@ export default function DashboardPage() {
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Help Wanted Posts
+                  Classified Posts
                 </h3>
                 <p className="text-2xl font-bold text-purple-600">
                   {helpWantedPosts.filter((p) => p.status === "open").length}{" "}
@@ -347,14 +347,14 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Help Wanted Posts */}
+        {/* Classified Posts */}
         <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-              Your Help Wanted Posts
+              Your Classified Posts
             </h2>
             <Link
-              href="/help-wanted"
+              href="/classifieds"
               className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
             >
               View All Posts
@@ -377,7 +377,7 @@ export default function DashboardPage() {
                 />
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                No help wanted posts yet
+                No classified posts yet
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Post a request to get help from the{" "}
@@ -385,7 +385,7 @@ export default function DashboardPage() {
               </p>
               <div className="mt-6">
                 <Link
-                  href="/help-wanted/new"
+                  href="/classifieds/new"
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
                 >
                   Post Request
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                   key={post.id}
                   className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
-                  <Link href={`/help-wanted/${post.id}`}>
+                  <Link href={`/classifieds/${post.id}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
