@@ -91,14 +91,14 @@ export async function loadAppConfig(): Promise<AppConfig> {
 }
 
 // Legacy function for backwards compatibility
-export function loadResourcesConfig(): {
+export async function loadResourcesConfig(): Promise<{
   title: string;
   description: string;
   quickAccess: QuickAccessItem[];
   resources: ResourceItem[];
   footer: FooterConfig;
-} {
-  const config = loadAppConfig();
+}> {
+  const config = await loadAppConfig();
   return {
     title: config.resources.title,
     description: config.resources.description,
