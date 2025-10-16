@@ -3,7 +3,7 @@ import { loadAppConfig } from "@/lib/server-config";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const config = loadAppConfig();
+  const config = await loadAppConfig();
 
   const robotsContent = `User-agent: *
 Allow: /
