@@ -1,4 +1,11 @@
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
+from app.models.forum import (
+    ForumCategory,
+    ForumCategoryRequest,
+    ForumPost,
+    ForumReport,
+    ForumThread,
+)
 from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceCategory, ResourceConfig, ResourceItem
 from app.models.review import Review
@@ -19,4 +26,9 @@ __all__ = [
     "HelpWantedComment",
     "HelpWantedReport",
     "Review",
+    "ForumCategory",
+    "ForumCategoryRequest",
+    "ForumThread",
+    "ForumPost",
+    "ForumReport",
 ]
