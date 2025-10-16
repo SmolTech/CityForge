@@ -6,11 +6,17 @@ from sqlalchemy import func, text
 
 from app import db
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
+from app.models.forum import (
+    ForumCategory,
+    ForumCategoryRequest,
+    ForumReport,
+    ForumThread,
+)
 from app.models.help_wanted import HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 from app.models.review import Review
 from app.models.user import User
-from app.utils.helpers import require_admin
+from app.utils.helpers import generate_slug, require_admin
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -1118,7 +1124,6 @@ def admin_hide_review(review_id):
         return admin_check
 
     review = Review.query.get_or_404(review_id)
-    data = request.get_json() or {}
 
     review.hidden = True
     db.session.commit()
@@ -1187,3 +1192,405 @@ def admin_delete_review(review_id):
     db.session.commit()
 
     return jsonify({"message": "Review deleted successfully"})
+
+
+# Forum Category Management
+@bp.route("/forums/categories", methods=["GET"])
+@jwt_required()
+def admin_get_forum_categories():
+    """Get all forum categories (including inactive ones)."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    categories = ForumCategory.query.order_by(ForumCategory.display_order, ForumCategory.id).all()
+    return jsonify([cat.to_dict(include_stats=True) for cat in categories])
+
+
+@bp.route("/forums/categories", methods=["POST"])
+@jwt_required()
+def admin_create_forum_category():
+    """Create a new forum category."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data or not all(k in data for k in ["name", "description"]):
+        return jsonify({"message": "Missing required fields: name, description"}), 400
+
+    # Check if category with this name exists
+    existing = ForumCategory.query.filter_by(name=data["name"]).first()
+    if existing:
+        return jsonify({"message": "A category with this name already exists"}), 400
+
+    # Generate unique slug
+    base_slug = generate_slug(data["name"])
+    slug = base_slug
+    counter = 1
+    while ForumCategory.query.filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    category = ForumCategory(
+        name=data["name"],
+        description=data["description"],
+        slug=slug,
+        display_order=data.get("display_order", 0),
+        is_active=data.get("is_active", True),
+        created_by=user_id,
+    )
+
+    db.session.add(category)
+    db.session.commit()
+
+    return jsonify(category.to_dict()), 201
+
+
+@bp.route("/forums/categories/<int:category_id>", methods=["PUT"])
+@jwt_required()
+def admin_update_forum_category(category_id):
+    """Update a forum category."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    category = ForumCategory.query.get_or_404(category_id)
+    data = request.get_json()
+
+    if "name" in data:
+        # Check if new name conflicts with existing category
+        existing = (
+            ForumCategory.query.filter_by(name=data["name"])
+            .filter(ForumCategory.id != category_id)
+            .first()
+        )
+        if existing:
+            return jsonify({"message": "A category with this name already exists"}), 400
+
+        category.name = data["name"]
+        # Regenerate slug
+        base_slug = generate_slug(data["name"])
+        slug = base_slug
+        counter = 1
+        while (
+            ForumCategory.query.filter_by(slug=slug).filter(ForumCategory.id != category_id).first()
+        ):
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        category.slug = slug
+
+    if "description" in data:
+        category.description = data["description"]
+    if "display_order" in data:
+        category.display_order = data["display_order"]
+    if "is_active" in data:
+        category.is_active = data["is_active"]
+
+    db.session.commit()
+
+    return jsonify(category.to_dict())
+
+
+@bp.route("/forums/categories/<int:category_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_forum_category(category_id):
+    """Delete a forum category (and all its threads/posts)."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    category = ForumCategory.query.get_or_404(category_id)
+    thread_count = category.threads.count()
+
+    db.session.delete(category)
+    db.session.commit()
+
+    message = "Category deleted successfully"
+    if thread_count > 0:
+        message += f" along with {thread_count} thread{'s' if thread_count != 1 else ''}"
+
+    return jsonify({"message": message})
+
+
+# Forum Category Request Management
+@bp.route("/forums/category-requests", methods=["GET"])
+@jwt_required()
+def admin_get_forum_category_requests():
+    """Get all category requests."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    status = request.args.get("status", "pending")
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = ForumCategoryRequest.query
+
+    if status != "all":
+        query = query.filter_by(status=status)
+
+    total_count = query.count()
+    requests_list = (
+        query.order_by(ForumCategoryRequest.created_date.desc()).offset(offset).limit(limit).all()
+    )
+
+    return jsonify(
+        {
+            "requests": [req.to_dict() for req in requests_list],
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/forums/category-requests/<int:request_id>/approve", methods=["POST"])
+@jwt_required()
+def admin_approve_forum_category_request(request_id):
+    """Approve a category request and create the category."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    category_request = ForumCategoryRequest.query.get_or_404(request_id)
+
+    if category_request.status != "pending":
+        return jsonify({"message": "Request already reviewed"}), 400
+
+    # Check if category with this name exists
+    existing = ForumCategory.query.filter_by(name=category_request.name).first()
+    if existing:
+        return jsonify({"message": "A category with this name already exists"}), 400
+
+    # Generate unique slug
+    base_slug = generate_slug(category_request.name)
+    slug = base_slug
+    counter = 1
+    while ForumCategory.query.filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    # Create the category
+    category = ForumCategory(
+        name=category_request.name,
+        description=category_request.description,
+        slug=slug,
+        display_order=0,
+        is_active=True,
+        created_by=user_id,
+    )
+
+    db.session.add(category)
+    db.session.flush()  # Get category ID
+
+    # Update request
+    category_request.status = "approved"
+    category_request.reviewed_by = user_id
+    category_request.reviewed_date = datetime.utcnow()
+    category_request.category_id = category.id
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "message": "Category request approved and category created",
+            "category": category.to_dict(),
+            "request": category_request.to_dict(),
+        }
+    )
+
+
+@bp.route("/forums/category-requests/<int:request_id>/reject", methods=["POST"])
+@jwt_required()
+def admin_reject_forum_category_request(request_id):
+    """Reject a category request."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    category_request = ForumCategoryRequest.query.get_or_404(request_id)
+    data = request.get_json() or {}
+
+    if category_request.status != "pending":
+        return jsonify({"message": "Request already reviewed"}), 400
+
+    category_request.status = "rejected"
+    category_request.reviewed_by = user_id
+    category_request.reviewed_date = datetime.utcnow()
+    category_request.review_notes = data.get("notes", "")
+
+    db.session.commit()
+
+    return jsonify({"message": "Category request rejected", "request": category_request.to_dict()})
+
+
+# Forum Thread Management
+@bp.route("/forums/threads", methods=["GET"])
+@jwt_required()
+def admin_get_forum_threads():
+    """Get all forum threads with filtering."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    category_id = request.args.get("category_id", type=int)
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = ForumThread.query
+
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+
+    total_count = query.count()
+    threads = query.order_by(ForumThread.created_date.desc()).offset(offset).limit(limit).all()
+
+    return jsonify(
+        {
+            "threads": [thread.to_dict() for thread in threads],
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/forums/threads/<int:thread_id>/pin", methods=["POST"])
+@jwt_required()
+def admin_pin_forum_thread(thread_id):
+    """Pin or unpin a thread."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    thread = ForumThread.query.get_or_404(thread_id)
+    data = request.get_json() or {}
+
+    thread.is_pinned = data.get("is_pinned", not thread.is_pinned)
+    db.session.commit()
+
+    status = "pinned" if thread.is_pinned else "unpinned"
+    return jsonify({"message": f"Thread {status} successfully", "thread": thread.to_dict()})
+
+
+@bp.route("/forums/threads/<int:thread_id>/lock", methods=["POST"])
+@jwt_required()
+def admin_lock_forum_thread(thread_id):
+    """Lock or unlock a thread."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    thread = ForumThread.query.get_or_404(thread_id)
+    data = request.get_json() or {}
+
+    thread.is_locked = data.get("is_locked", not thread.is_locked)
+    db.session.commit()
+
+    status = "locked" if thread.is_locked else "unlocked"
+    return jsonify({"message": f"Thread {status} successfully", "thread": thread.to_dict()})
+
+
+@bp.route("/forums/threads/<int:thread_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_forum_thread(thread_id):
+    """Delete a forum thread (and all its posts)."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    thread = ForumThread.query.get_or_404(thread_id)
+    post_count = thread.posts.count()
+
+    db.session.delete(thread)
+    db.session.commit()
+
+    message = "Thread deleted successfully"
+    if post_count > 0:
+        message += f" along with {post_count} post{'s' if post_count != 1 else ''}"
+
+    return jsonify({"message": message})
+
+
+# Forum Report Management
+@bp.route("/forums/reports", methods=["GET"])
+@jwt_required()
+def admin_get_forum_reports():
+    """Get all forum reports."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    status = request.args.get("status", "pending")
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+
+    query = ForumReport.query
+
+    if status != "all":
+        query = query.filter_by(status=status)
+
+    total_count = query.count()
+    reports = query.order_by(ForumReport.created_date.desc()).offset(offset).limit(limit).all()
+
+    return jsonify(
+        {
+            "reports": [report.to_dict() for report in reports],
+            "total": total_count,
+            "offset": offset,
+            "limit": limit,
+        }
+    )
+
+
+@bp.route("/forums/reports/<int:report_id>/resolve", methods=["POST"])
+@jwt_required()
+def admin_resolve_forum_report(report_id):
+    """Resolve a forum report."""
+    admin_check = require_admin()
+    if admin_check:
+        return admin_check
+
+    user_id = int(get_jwt_identity())
+    report = ForumReport.query.get_or_404(report_id)
+    data = request.get_json() or {}
+
+    if report.status != "pending":
+        return jsonify({"message": "Report already reviewed"}), 400
+
+    action = data.get("action")  # 'dismiss', 'delete_post', 'delete_thread'
+
+    report.status = "resolved"
+    report.reviewed_by = user_id
+    report.reviewed_date = datetime.utcnow()
+    report.resolution_notes = data.get("notes", "")
+
+    # Decrement report count
+    if report.post_id:
+        # Report on a post
+        post = report.post
+        if post.report_count > 0:
+            post.report_count -= 1
+
+        if action == "delete_post":
+            db.session.delete(post)
+            report.resolution_notes = f"Post deleted. {report.resolution_notes}".strip()
+    else:
+        # Report on a thread
+        thread = report.thread
+        if thread.report_count > 0:
+            thread.report_count -= 1
+
+        if action == "delete_thread":
+            db.session.delete(thread)
+            report.resolution_notes = f"Thread deleted. {report.resolution_notes}".strip()
+
+    db.session.commit()
+
+    return jsonify({"message": "Report resolved successfully", "report": report.to_dict()})

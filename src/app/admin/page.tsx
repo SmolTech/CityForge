@@ -727,6 +727,57 @@ export default function AdminPage() {
           </Link>
         </div>
 
+        {/* Quick Access - Forums */}
+        <div className="mb-6">
+          <Link
+            href="/admin/forums"
+            className="block bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-10 w-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-xl font-bold text-white">
+                    Forums Management
+                  </h3>
+                  <p className="text-white text-opacity-90 text-sm">
+                    Manage categories, category requests, and forum reports
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-6 w-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* Tabs */}
         <div className="mb-6">
           <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">

@@ -1,6 +1,6 @@
 {
   "name": "cityforge",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -26,6 +26,7 @@
     ]
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "next": "^15.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

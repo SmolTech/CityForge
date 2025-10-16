@@ -1,19 +1,127 @@
 import getpass
+import os
 import sys
 
 from app import create_app, db
 
 
-def init_database():
+def init_database(skip_admin_prompt=False):
     app = create_app()
 
     with app.app_context():
+        # Import all models to ensure they're registered with SQLAlchemy
+        from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
+        from app.models.user import User
+
+        # Create all tables
         db.create_all()
 
         print("Database tables created successfully!")
+        print("  - All core tables")
+        print("  - Forum tables (categories, threads, posts, reports)")
+        print("  - Help wanted tables")
+        print("  - Review tables")
+        print()
 
-        from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
-        from app.models.user import User
+        # Run schema migrations for existing databases
+        print("\n=== Schema Migrations ===")
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(db.engine)
+
+        # Check and add missing columns to existing tables
+        migrations_applied = 0
+
+        # Migration 1: Extend tags.name from VARCHAR(50) to VARCHAR(500)
+        if "tags" in inspector.get_table_names():
+            columns = {col["name"]: col for col in inspector.get_columns("tags")}
+            # Check current length (PostgreSQL specific)
+            if "name" in columns and db.engine.dialect.name == "postgresql":
+                result = db.session.execute(
+                    text(
+                        """
+                        SELECT character_maximum_length
+                        FROM information_schema.columns
+                        WHERE table_name = 'tags' AND column_name = 'name'
+                    """
+                    )
+                )
+                current_length = result.fetchone()
+                if current_length and current_length[0] != 500:
+                    print("Migrating tags.name column to VARCHAR(500)...")
+                    db.session.execute(text("ALTER TABLE tags ALTER COLUMN name TYPE VARCHAR(500)"))
+                    db.session.commit()
+                    migrations_applied += 1
+
+        # Migration 2: Add address_override_url to cards, card_submissions, card_modifications
+        for table in ["cards", "card_submissions", "card_modifications"]:
+            if table in inspector.get_table_names():
+                columns = [col["name"] for col in inspector.get_columns(table)]
+                if "address_override_url" not in columns:
+                    print(f"Adding address_override_url column to {table}...")
+                    db.session.execute(
+                        # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+                        text(f"ALTER TABLE {table} ADD COLUMN address_override_url VARCHAR(500)")
+                    )
+                    db.session.commit()
+                    migrations_applied += 1
+
+        # Migration 3: Add report_count to help_wanted_posts
+        if "help_wanted_posts" in inspector.get_table_names():
+            columns = [col["name"] for col in inspector.get_columns("help_wanted_posts")]
+            if "report_count" not in columns:
+                print("Adding report_count column to help_wanted_posts...")
+                db.session.execute(
+                    text(
+                        "ALTER TABLE help_wanted_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL"
+                    )
+                )
+                db.session.commit()
+                migrations_applied += 1
+
+        # Migration 4: Convert reviews from approval-based to reporting-based
+        if "reviews" in inspector.get_table_names():
+            columns = [col["name"] for col in inspector.get_columns("reviews")]
+            if "approved" in columns and "reported" not in columns:
+                print("Migrating reviews table to reporting-based system...")
+
+                # Add new columns
+                db.session.execute(
+                    text("ALTER TABLE reviews ADD COLUMN reported BOOLEAN DEFAULT FALSE NOT NULL")
+                )
+                db.session.execute(
+                    text("ALTER TABLE reviews ADD COLUMN reported_by INTEGER REFERENCES users(id)")
+                )
+                db.session.execute(text("ALTER TABLE reviews ADD COLUMN reported_date TIMESTAMP"))
+                db.session.execute(text("ALTER TABLE reviews ADD COLUMN reported_reason TEXT"))
+                db.session.execute(
+                    text("ALTER TABLE reviews ADD COLUMN hidden BOOLEAN DEFAULT FALSE NOT NULL")
+                )
+
+                # Migrate data: unapproved reviews become hidden
+                db.session.execute(text("UPDATE reviews SET hidden = TRUE WHERE approved = FALSE"))
+
+                # Drop old columns
+                db.session.execute(text("ALTER TABLE reviews DROP COLUMN approved"))
+                db.session.execute(text("ALTER TABLE reviews DROP COLUMN approved_by"))
+                db.session.execute(text("ALTER TABLE reviews DROP COLUMN approved_date"))
+
+                # Create indexes
+                db.session.execute(
+                    text("CREATE INDEX IF NOT EXISTS ix_reviews_reported ON reviews(reported)")
+                )
+                db.session.execute(
+                    text("CREATE INDEX IF NOT EXISTS ix_reviews_hidden ON reviews(hidden)")
+                )
+
+                db.session.commit()
+                migrations_applied += 1
+
+        if migrations_applied > 0:
+            print(f"Applied {migrations_applied} schema migration(s)")
+        else:
+            print("Schema is up to date, no migrations needed")
+        print()
 
         # Create default site configuration
         print("\n=== Site Configuration Setup ===")
@@ -188,43 +296,90 @@ def init_database():
 
         # Create admin user
         print("\n=== Admin User Setup ===")
-        admin_email = input("Enter admin email address: ").strip()
 
-        if not admin_email:
-            print("Error: Email address is required")
-            sys.exit(1)
+        # Check for environment variables (for init containers)
+        admin_email = os.getenv("ADMIN_EMAIL")
+        admin_password = os.getenv("ADMIN_PASSWORD")
 
-        admin_user = User.query.filter_by(email=admin_email).first()
-        if admin_user:
-            print(f"Admin user with email {admin_email} already exists")
+        if skip_admin_prompt:
+            if not admin_email or not admin_password:
+                print("Skipping admin user creation (set ADMIN_EMAIL and ADMIN_PASSWORD to create)")
+            else:
+                admin_user = User.query.filter_by(email=admin_email).first()
+                if admin_user:
+                    print(f"Admin user with email {admin_email} already exists")
+                else:
+                    # Validate password before creating user
+                    is_valid, message = User.validate_password(admin_password)
+                    if not is_valid:
+                        print(f"Error: {message}")
+                        print("Admin user creation failed - password does not meet requirements")
+                    else:
+                        admin_user = User(
+                            email=admin_email, first_name="Admin", last_name="User", role="admin"
+                        )
+                        # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+                        admin_user.set_password(admin_password)
+
+                        db.session.add(admin_user)
+                        db.session.commit()
+                        print(f"Admin user created: {admin_email}")
         else:
-            admin_password = getpass.getpass("Enter admin password: ")
-            admin_password_confirm = getpass.getpass("Confirm admin password: ")
+            # Interactive mode
+            if not admin_email:
+                admin_email = input("Enter admin email address: ").strip()
 
-            if not admin_password:
-                print("Error: Password is required")
+            if not admin_email:
+                print("Error: Email address is required")
                 sys.exit(1)
 
-            if admin_password != admin_password_confirm:
-                print("Error: Passwords do not match")
-                sys.exit(1)
+            admin_user = User.query.filter_by(email=admin_email).first()
+            if admin_user:
+                print(f"Admin user with email {admin_email} already exists")
+            else:
+                if not admin_password:
+                    admin_password = getpass.getpass("Enter admin password: ")
+                    admin_password_confirm = getpass.getpass("Confirm admin password: ")
+                else:
+                    admin_password_confirm = admin_password
 
-            # Validate password before creating user
-            is_valid, message = User.validate_password(admin_password)
-            if not is_valid:
-                print(f"Error: {message}")
-                sys.exit(1)
+                if not admin_password:
+                    print("Error: Password is required")
+                    sys.exit(1)
 
-            admin_user = User(email=admin_email, first_name="Admin", last_name="User", role="admin")
-            # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
-            admin_user.set_password(admin_password)
+                if admin_password != admin_password_confirm:
+                    print("Error: Passwords do not match")
+                    sys.exit(1)
 
-            db.session.add(admin_user)
-            db.session.commit()
-            print(f"Admin user created: {admin_email}")
+                # Validate password before creating user
+                is_valid, message = User.validate_password(admin_password)
+                if not is_valid:
+                    print(f"Error: {message}")
+                    sys.exit(1)
+
+                admin_user = User(
+                    email=admin_email, first_name="Admin", last_name="User", role="admin"
+                )
+                # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+                admin_user.set_password(admin_password)
+
+                db.session.add(admin_user)
+                db.session.commit()
+                print(f"Admin user created: {admin_email}")
 
         print("\nDatabase initialization completed successfully!")
 
 
 if __name__ == "__main__":
-    init_database()
+    # Check for --non-interactive flag for init containers
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Initialize CityForge database")
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Run in non-interactive mode (for init containers). Reads ADMIN_EMAIL and ADMIN_PASSWORD from environment.",
+    )
+    args = parser.parse_args()
+
+    init_database(skip_admin_prompt=args.non_interactive)
