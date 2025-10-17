@@ -1,5 +1,7 @@
 import pytest
 
+from app.models.token_blacklist import TokenBlacklist
+
 
 @pytest.mark.unit
 class TestAuthRoutes:
@@ -87,7 +89,7 @@ class TestAuthRoutes:
         assert response.status_code == 400
         assert "Missing email or password" in response.json["message"]
 
-    def test_logout(self, client, user_token):
+    def test_logout(self, client, user_token, db_session):
         """Test logout"""
         response = client.post(
             "/api/auth/logout", headers={"Authorization": f"Bearer {user_token}"}
@@ -95,6 +97,45 @@ class TestAuthRoutes:
 
         assert response.status_code == 200
         assert "logged out" in response.json["message"]
+
+    def test_logout_adds_token_to_blacklist(self, client, user_token, db_session):
+        """Test that logout adds token to blacklist"""
+        # Logout
+        response = client.post(
+            "/api/auth/logout", headers={"Authorization": f"Bearer {user_token}"}
+        )
+
+        assert response.status_code == 200
+
+        # Verify token was added to blacklist
+        # We need to decode the token to get the JTI, but we can check count
+        blacklisted_count = TokenBlacklist.query.count()
+        assert blacklisted_count > 0
+
+    def test_logout_token_cannot_be_reused(self, client, user_token, db_session):
+        """Test that logged out token cannot be used"""
+        # Logout
+        client.post("/api/auth/logout", headers={"Authorization": f"Bearer {user_token}"})
+
+        # Try to use the token again
+        response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {user_token}"})
+
+        # Should be unauthorized because token is blacklisted
+        assert response.status_code == 401
+
+    def test_multiple_logouts_same_token(self, client, user_token, db_session):
+        """Test that logging out with same token multiple times is handled"""
+        # First logout
+        response1 = client.post(
+            "/api/auth/logout", headers={"Authorization": f"Bearer {user_token}"}
+        )
+        assert response1.status_code == 200
+
+        # Second logout with same token should fail (token is blacklisted)
+        response2 = client.post(
+            "/api/auth/logout", headers={"Authorization": f"Bearer {user_token}"}
+        )
+        assert response2.status_code == 401
 
     def test_get_current_user(self, client, user_token, regular_user):
         """Test getting current user"""
