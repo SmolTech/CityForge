@@ -99,9 +99,83 @@ The project enforces code quality through automated git hooks:
 
 ## Key Development Notes
 
-### Database Initialization
+### Database Migrations
 
-The `init_db.py` script creates database tables and prompts for admin credentials:
+The project uses **Flask-Migrate** (Alembic wrapper) for database schema version control and migrations.
+
+#### Migration Workflow
+
+**After making model changes:**
+
+```bash
+cd backend
+export FLASK_APP=app:create_app
+
+# Generate migration from model changes
+flask db migrate -m "Description of changes"
+
+# Review the generated migration file in migrations/versions/
+
+# Apply migration to database
+flask db upgrade
+
+# To rollback last migration
+flask db downgrade
+```
+
+#### Common Migration Commands
+
+```bash
+# View current migration version
+flask db current
+
+# View migration history
+flask db history
+
+# Upgrade to specific version
+flask db upgrade <revision>
+
+# Downgrade to specific version
+flask db downgrade <revision>
+
+# Show SQL without executing
+flask db upgrade --sql
+```
+
+#### Deployment
+
+**Docker Compose:**
+Migrations run automatically on container startup via:
+
+```bash
+flask db upgrade && gunicorn ...
+```
+
+**Kubernetes:**
+Migrations run automatically via init container before backend pods start:
+
+- Init container runs `flask db upgrade`
+- Main container starts only after successful migration
+- See: `k8s/backend-deployment.yaml`
+
+**Manual Migration Job (Kubernetes):**
+
+```bash
+kubectl apply -f k8s/migration-job.yaml
+kubectl logs job/db-migration -n community
+```
+
+#### Migration Best Practices
+
+1. **Always review** generated migrations before committing
+2. **Test migrations** on a copy of production data
+3. **Backup database** before running migrations in production
+4. **Never edit** applied migrations - create new ones instead
+5. **Commit migrations** to version control with your model changes
+
+#### Database Initialization (Legacy)
+
+For **new deployments only**, the `init_db.py` script can create initial tables:
 
 ```bash
 cd backend
@@ -109,7 +183,11 @@ python init_db.py
 # Prompts for admin email and password
 ```
 
-**Important**: Never use default credentials. The script requires interactive input for security.
+**Important**:
+
+- Use `flask db upgrade` for existing databases
+- `init_db.py` drops all tables - **never run in production**
+- The script is kept for reference and testing only
 
 ### Database Schema
 
