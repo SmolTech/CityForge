@@ -137,14 +137,28 @@ The application uses database-backed JWT token blacklisting for secure logout:
 
 - When users log out, their tokens are added to the `token_blacklist` table
 - Tokens are checked against the blacklist on every authenticated request
-- Expired tokens should be cleaned up periodically using:
-  ```bash
-  python cleanup_expired_tokens.py
-  ```
-- Consider setting up a cron job to run cleanup daily:
-  ```bash
-  0 2 * * * cd /path/to/backend && python cleanup_expired_tokens.py
-  ```
+- Expired tokens are automatically cleaned up by a Kubernetes CronJob
+
+**Kubernetes Deployment:**
+The token cleanup runs automatically as a CronJob (see `k8s/token-cleanup-cronjob.yaml`):
+
+- Runs daily at 3 AM Eastern Time
+- Uses the backend Docker image
+- Connects to the database to remove expired tokens
+- Resource limits: 256Mi memory, 200m CPU
+
+**Manual Cleanup (Local Development):**
+
+```bash
+cd backend
+python cleanup_expired_tokens.py
+```
+
+**Traditional Cron (Non-Kubernetes):**
+
+```bash
+0 3 * * * cd /path/to/backend && python cleanup_expired_tokens.py
+```
 
 ### API Endpoints
 

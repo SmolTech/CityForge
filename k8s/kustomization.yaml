@@ -10,6 +10,7 @@ resources:
   - ingress.yaml
   - opensearch.yaml
   - indexer-cronjob.yaml
+  - token-cleanup-cronjob.yaml
 
 images:
   - name: ghcr.io/smoltech/cityforge-frontend
