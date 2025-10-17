@@ -6,7 +6,7 @@ to ensure consistent error handling across all API endpoints.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
@@ -25,14 +25,14 @@ class APIError(Exception):
     """
 
     def __init__(
-        self, message: str, status_code: int = 400, payload: Optional[Dict[str, Any]] = None
+        self, message: str, status_code: int = 400, payload: dict[str, Any] | None = None
     ):
         super().__init__()
         self.message = message
         self.status_code = status_code
         self.payload = payload or {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert error to dictionary for JSON response."""
         error_dict = {
             "error": {
@@ -48,14 +48,16 @@ class APIError(Exception):
 class ValidationError(APIError):
     """Raised when request data fails validation."""
 
-    def __init__(self, message: str, payload: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, payload: dict[str, Any] | None = None):
         super().__init__(message, status_code=400, payload=payload)
 
 
 class NotFoundError(APIError):
     """Raised when a requested resource is not found."""
 
-    def __init__(self, message: str = "Resource not found", payload: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, message: str = "Resource not found", payload: dict[str, Any] | None = None
+    ):
         super().__init__(message, status_code=404, payload=payload)
 
 
@@ -63,7 +65,7 @@ class UnauthorizedError(APIError):
     """Raised when authentication is required or failed."""
 
     def __init__(
-        self, message: str = "Authentication required", payload: Optional[Dict[str, Any]] = None
+        self, message: str = "Authentication required", payload: dict[str, Any] | None = None
     ):
         super().__init__(message, status_code=401, payload=payload)
 
@@ -72,7 +74,7 @@ class ForbiddenError(APIError):
     """Raised when user doesn't have permission for the action."""
 
     def __init__(
-        self, message: str = "Permission denied", payload: Optional[Dict[str, Any]] = None
+        self, message: str = "Permission denied", payload: dict[str, Any] | None = None
     ):
         super().__init__(message, status_code=403, payload=payload)
 
@@ -80,7 +82,7 @@ class ForbiddenError(APIError):
 class ConflictError(APIError):
     """Raised when there's a conflict with existing data."""
 
-    def __init__(self, message: str, payload: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, payload: dict[str, Any] | None = None):
         super().__init__(message, status_code=409, payload=payload)
 
 
