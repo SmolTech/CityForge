@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import func
 
-from app import db
+from app import db, limiter
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
 from app.models.user import User
 
@@ -10,6 +10,7 @@ bp = Blueprint("cards", __name__)
 
 
 @bp.route("/api/cards", methods=["GET"])
+@limiter.limit("100 per minute")
 def get_cards():
     search = request.args.get("search", "").strip()
     tags = request.args.getlist("tags")
@@ -100,6 +101,7 @@ def get_tags():
 
 @bp.route("/api/submissions", methods=["POST"])
 @jwt_required()
+@limiter.limit("10 per hour")
 def submit_card():
     user_id = int(get_jwt_identity())
     data = request.get_json()
@@ -141,6 +143,7 @@ def get_user_submissions():
 
 @bp.route("/api/cards/<int:card_id>/suggest-edit", methods=["POST"])
 @jwt_required()
+@limiter.limit("10 per hour")
 def suggest_card_edit(card_id):
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)

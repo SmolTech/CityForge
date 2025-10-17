@@ -152,6 +152,7 @@ flask db upgrade && gunicorn ...
 ```
 
 **Kubernetes:**
+
 Migrations run automatically via init container before backend pods start:
 
 - Init container runs `flask db upgrade`
@@ -181,6 +182,7 @@ For **new deployments only**, the `init_db.py` script can create initial tables:
 cd backend
 python init_db.py
 # Prompts for admin email and password
+
 ```
 
 **Important**:
@@ -236,6 +238,68 @@ python cleanup_expired_tokens.py
 
 ```bash
 0 3 * * * cd /path/to/backend && python cleanup_expired_tokens.py
+```
+
+### API Rate Limiting
+
+The backend implements Flask-Limiter for API rate limiting to protect against:
+
+- Brute force attacks on authentication endpoints
+- Resource exhaustion (DoS)
+- Spam submissions
+- Account enumeration
+
+#### Rate Limits by Endpoint Type
+
+**Authentication:**
+
+- **Login** (`/api/auth/login`): 5 requests per minute
+- **Registration** (`/api/auth/register`): 3 requests per hour
+- **Email update** (`/api/auth/update-email`): 5 requests per hour
+- **Password update** (`/api/auth/update-password`): 5 requests per hour
+
+**Public API Reads:**
+
+- **Card listing** (`/api/cards`): 100 requests per minute
+- **Search** (`/api/search`): 60 requests per minute
+
+**User Submissions:**
+
+- **Card submissions** (`/api/submissions`): 10 requests per hour
+- **Suggest edits** (`/api/cards/<id>/suggest-edit`): 10 requests per hour
+- **File uploads** (`/api/upload`): 20 requests per hour
+
+**Default Limits:**
+
+- All other endpoints: 200 requests per day, 50 per hour
+
+#### Rate Limit Responses
+
+When rate limit is exceeded, the API returns:
+
+```json
+{
+  "error": {
+    "message": "Rate limit exceeded. Please try again later.",
+    "code": 429,
+    "details": {
+      "description": "5 per 1 minute"
+    }
+  }
+}
+```
+
+#### Storage
+
+Rate limits use in-memory storage (`memory://`) for simplicity. For production deployments with multiple backend instances, consider using Redis:
+
+```python
+# backend/app/__init__.py
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="redis://redis-host:6379"
+)
 ```
 
 ### API Endpoints
