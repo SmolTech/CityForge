@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
 
-from app import blacklisted_tokens, db
+from app import db
+from app.models.token_blacklist import TokenBlacklist
 from app.models.user import User
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -58,8 +59,23 @@ def login():
 @bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
-    jti = get_jwt()["jti"]
-    blacklisted_tokens.add(jti)
+    jwt_data = get_jwt()
+    jti = jwt_data["jti"]
+    token_type = jwt_data.get("type", "access")
+    user_id = get_jwt_identity()
+
+    # Get token expiration from JWT payload
+    exp_timestamp = jwt_data.get("exp")
+    expires_at = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+
+    # Add token to database blacklist
+    TokenBlacklist.add_token_to_blacklist(
+        jti=jti,
+        token_type=token_type,
+        user_id=int(user_id),
+        expires_at=expires_at
+    )
+
     return jsonify({"message": "Successfully logged out"})
 
 
