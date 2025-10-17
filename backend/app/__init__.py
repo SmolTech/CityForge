@@ -5,6 +5,8 @@ from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from opensearchpy import OpenSearch
@@ -14,6 +16,11 @@ db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 bcrypt = Bcrypt()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
 opensearch_client = None
 
 
@@ -56,6 +63,7 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
+    limiter.init_app(app)
 
     # OpenSearch configuration
     global opensearch_client
@@ -119,6 +127,24 @@ def create_app():
     from app.utils.errors import register_error_handlers
 
     register_error_handlers(app)
+
+    # Custom rate limit error handler
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        from flask import jsonify
+
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "message": "Rate limit exceeded. Please try again later.",
+                        "code": 429,
+                        "details": {"description": str(e.description)},
+                    }
+                }
+            ),
+            429,
+        )
 
     # Health check
     @app.route("/health", methods=["GET"])

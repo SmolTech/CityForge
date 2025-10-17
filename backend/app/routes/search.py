@@ -2,12 +2,13 @@ import os
 
 from flask import Blueprint, jsonify, request
 
-from app import opensearch_client
+from app import limiter, opensearch_client
 
 bp = Blueprint("search", __name__)
 
 
 @bp.route("/api/search", methods=["GET"])
+@limiter.limit("60 per minute")
 def search_resources():
     """Search the indexed resources using OpenSearch"""
     try:

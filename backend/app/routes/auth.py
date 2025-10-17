@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
 
-from app import db
+from app import db, limiter
 from app.models.token_blacklist import TokenBlacklist
 from app.models.user import User
 
@@ -11,6 +11,7 @@ bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 @bp.route("/register", methods=["POST"])
+@limiter.limit("3 per hour")
 def register():
     data = request.get_json()
     if not data or not all(k in data for k in ["email", "password", "first_name", "last_name"]):
@@ -38,6 +39,7 @@ def register():
 
 
 @bp.route("/login", methods=["POST"])
+@limiter.limit("5 per minute")
 def login():
     data = request.get_json()
     if not data or not all(k in data for k in ["email", "password"]):
@@ -87,6 +89,7 @@ def get_current_user():
 
 @bp.route("/update-email", methods=["PUT"])
 @jwt_required()
+@limiter.limit("5 per hour")
 def update_email():
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
@@ -121,6 +124,7 @@ def update_email():
 
 @bp.route("/update-password", methods=["PUT"])
 @jwt_required()
+@limiter.limit("5 per hour")
 def update_password():
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
