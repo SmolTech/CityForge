@@ -70,10 +70,7 @@ def logout():
 
     # Add token to database blacklist
     TokenBlacklist.add_token_to_blacklist(
-        jti=jti,
-        token_type=token_type,
-        user_id=int(user_id),
-        expires_at=expires_at
+        jti=jti, token_type=token_type, user_id=int(user_id), expires_at=expires_at
     )
 
     return jsonify({"message": "Successfully logged out"})
