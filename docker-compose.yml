@@ -51,6 +51,7 @@ services:
       JWT_SECRET_KEY: change-this-in-production
       UPLOAD_FOLDER: /app/uploads
       FLASK_ENV: production
+      FLASK_APP: app:create_app
     volumes:
       - backend_uploads:/app/uploads
     expose:
@@ -60,6 +61,9 @@ services:
         condition: service_healthy
       opensearch:
         condition: service_healthy
+    command: >
+      sh -c "flask db upgrade &&
+             gunicorn --bind 0.0.0.0:5000 --workers 4 wsgi:app"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
       interval: 10s

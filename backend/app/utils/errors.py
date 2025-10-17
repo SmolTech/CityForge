@@ -24,9 +24,7 @@ class APIError(Exception):
         payload: Additional error details (optional)
     """
 
-    def __init__(
-        self, message: str, status_code: int = 400, payload: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str, status_code: int = 400, payload: dict[str, Any] | None = None):
         super().__init__()
         self.message = message
         self.status_code = status_code
@@ -55,9 +53,7 @@ class ValidationError(APIError):
 class NotFoundError(APIError):
     """Raised when a requested resource is not found."""
 
-    def __init__(
-        self, message: str = "Resource not found", payload: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str = "Resource not found", payload: dict[str, Any] | None = None):
         super().__init__(message, status_code=404, payload=payload)
 
 
@@ -73,9 +69,7 @@ class UnauthorizedError(APIError):
 class ForbiddenError(APIError):
     """Raised when user doesn't have permission for the action."""
 
-    def __init__(
-        self, message: str = "Permission denied", payload: dict[str, Any] | None = None
-    ):
+    def __init__(self, message: str = "Permission denied", payload: dict[str, Any] | None = None):
         super().__init__(message, status_code=403, payload=payload)
 
 
