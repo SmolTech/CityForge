@@ -35,6 +35,7 @@ export class ApiClient {
       });
 
       if (!response.ok) {
+        // Handle 401 Unauthorized
         if (response.status === 401 && endpoint !== "/api/auth/login") {
           // Token expired or invalid (but not a login failure)
           if (typeof window !== "undefined") {
@@ -43,18 +44,32 @@ export class ApiClient {
           }
         }
 
-        // Try to extract error message from response
-        let errorMessage = `HTTP error! status: ${response.status}`;
+        // Try to extract structured error from response
+        let errorMessage = `Request failed with status ${response.status}`;
+        let errorDetails = null;
+
         try {
           const errorData = await response.json();
-          if (errorData.message) {
+          // Check for structured error response
+          if (errorData.error) {
+            errorMessage = errorData.error.message || errorMessage;
+            errorDetails = errorData.error.details;
+          } else if (errorData.message) {
+            // Fallback to simple message field
             errorMessage = errorData.message;
           }
         } catch {
           // If response is not JSON, use default message
         }
 
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage) as Error & {
+          status?: number;
+          details?: unknown;
+        };
+        error.status = response.status;
+        error.details = errorDetails;
+
+        throw error;
       }
 
       return await response.json();
