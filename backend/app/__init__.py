@@ -19,6 +19,11 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
 
+    # Configure logging
+    from app.utils.logging_config import configure_logging
+
+    configure_logging(app)
+
     # Configuration
     app.config["JWT_SECRET_KEY"] = os.getenv(
         "JWT_SECRET_KEY", "dev-secret-key-change-in-production"
@@ -106,6 +111,11 @@ def create_app():
     app.register_blueprint(help_wanted.bp)
     app.register_blueprint(reviews.bp)
     app.register_blueprint(forums.bp)
+
+    # Register error handlers
+    from app.utils.errors import register_error_handlers
+
+    register_error_handlers(app)
 
     # Health check
     @app.route("/health", methods=["GET"])
