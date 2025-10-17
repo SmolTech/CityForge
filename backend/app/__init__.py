@@ -115,6 +115,3 @@ def create_app():
         return jsonify({"status": "healthy", "service": "community-backend"})
 
     return app
-
-
-# For gunicorn, import and create app in app.py instead

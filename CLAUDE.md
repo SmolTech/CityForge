@@ -55,7 +55,7 @@ pip install -r requirements.txt
 python init_db.py
 
 # Development server
-python app.py  # Runs on port 5000
+python app/__init__.py  # Runs on port 5000
 
 # Run tests
 ./run_tests.sh
