@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -9,7 +9,7 @@ from app.models.token_blacklist import TokenBlacklist
 class TestTokenBlacklistModel:
     def test_token_blacklist_creation(self, db_session):
         """Test creating a token blacklist entry"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
         token = TokenBlacklist(
             jti="test-jti-123",
             token_type="access",
@@ -28,7 +28,7 @@ class TestTokenBlacklistModel:
 
     def test_add_token_to_blacklist(self, db_session):
         """Test adding token to blacklist using class method"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         TokenBlacklist.add_token_to_blacklist(
             jti="test-jti-456",
@@ -45,7 +45,7 @@ class TestTokenBlacklistModel:
 
     def test_is_jti_blacklisted_true(self, db_session):
         """Test checking if JTI is blacklisted (should return True)"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
         TokenBlacklist.add_token_to_blacklist(
             jti="blacklisted-jti",
             token_type="access",
@@ -62,7 +62,7 @@ class TestTokenBlacklistModel:
     def test_cleanup_expired_tokens(self, db_session):
         """Test cleaning up expired tokens"""
         # Add an expired token
-        expired_time = datetime.now(timezone.utc) - timedelta(days=1)
+        expired_time = datetime.now(UTC) - timedelta(days=1)
         TokenBlacklist.add_token_to_blacklist(
             jti="expired-jti",
             token_type="access",
@@ -71,7 +71,7 @@ class TestTokenBlacklistModel:
         )
 
         # Add a valid token
-        valid_time = datetime.now(timezone.utc) + timedelta(days=7)
+        valid_time = datetime.now(UTC) + timedelta(days=7)
         TokenBlacklist.add_token_to_blacklist(
             jti="valid-jti",
             token_type="access",
@@ -88,7 +88,7 @@ class TestTokenBlacklistModel:
 
     def test_multiple_tokens_same_user(self, db_session, admin_user):
         """Test that multiple tokens can be blacklisted for the same user"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         TokenBlacklist.add_token_to_blacklist(
             jti="user-token-1",
@@ -113,7 +113,7 @@ class TestTokenBlacklistModel:
 
     def test_token_blacklist_relationship(self, db_session, admin_user):
         """Test relationship between token blacklist and user"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         TokenBlacklist.add_token_to_blacklist(
             jti="relationship-test",
@@ -129,7 +129,7 @@ class TestTokenBlacklistModel:
 
     def test_token_blacklist_unique_jti(self, db_session):
         """Test that JTI must be unique"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         TokenBlacklist.add_token_to_blacklist(
             jti="unique-jti",
@@ -139,7 +139,9 @@ class TestTokenBlacklistModel:
         )
 
         # Attempting to add same JTI should raise an error
-        with pytest.raises(Exception):  # SQLAlchemy will raise IntegrityError
+        from sqlalchemy.exc import IntegrityError
+
+        with pytest.raises(IntegrityError):  # noqa: PT011
             TokenBlacklist.add_token_to_blacklist(
                 jti="unique-jti",
                 token_type="access",
@@ -150,7 +152,7 @@ class TestTokenBlacklistModel:
     def test_cleanup_no_expired_tokens(self, db_session):
         """Test cleanup when there are no expired tokens"""
         # Add only valid tokens
-        valid_time = datetime.now(timezone.utc) + timedelta(days=7)
+        valid_time = datetime.now(UTC) + timedelta(days=7)
         TokenBlacklist.add_token_to_blacklist(
             jti="valid-only",
             token_type="access",
@@ -164,7 +166,7 @@ class TestTokenBlacklistModel:
 
     def test_token_type_access_and_refresh(self, db_session):
         """Test both access and refresh token types"""
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(UTC) + timedelta(days=7)
 
         TokenBlacklist.add_token_to_blacklist(
             jti="access-token",

@@ -12,7 +12,7 @@ Cron example (run daily at 2 AM):
     0 2 * * * cd /path/to/backend && python cleanup_expired_tokens.py
 """
 
-from app import create_app, db
+from app import create_app
 from app.models.token_blacklist import TokenBlacklist
 
 

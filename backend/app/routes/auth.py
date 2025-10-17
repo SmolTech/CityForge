@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
@@ -66,7 +66,7 @@ def logout():
 
     # Get token expiration from JWT payload
     exp_timestamp = jwt_data.get("exp")
-    expires_at = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    expires_at = datetime.fromtimestamp(exp_timestamp, tz=UTC)
 
     # Add token to database blacklist
     TokenBlacklist.add_token_to_blacklist(
