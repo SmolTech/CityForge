@@ -122,6 +122,7 @@ The Flask backend defines the following main models:
 - `Tag`: Tags for categorizing cards
 - `CardSubmission`: User-submitted cards pending admin approval
 - `CardModification`: User-suggested edits to existing cards
+- `TokenBlacklist`: Revoked JWT tokens (logout implementation)
 
 **Resource Models:**
 
@@ -129,6 +130,21 @@ The Flask backend defines the following main models:
 - `ResourceItem`: Items in the resource directory
 - `QuickAccessItem`: Featured quick-access items
 - `ResourceConfig`: Site-wide configuration values
+
+### JWT Token Management
+
+The application uses database-backed JWT token blacklisting for secure logout:
+
+- When users log out, their tokens are added to the `token_blacklist` table
+- Tokens are checked against the blacklist on every authenticated request
+- Expired tokens should be cleaned up periodically using:
+  ```bash
+  python cleanup_expired_tokens.py
+  ```
+- Consider setting up a cron job to run cleanup daily:
+  ```bash
+  0 2 * * * cd /path/to/backend && python cleanup_expired_tokens.py
+  ```
 
 ### API Endpoints
 

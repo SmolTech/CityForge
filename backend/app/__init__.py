@@ -14,9 +14,6 @@ jwt = JWTManager()
 bcrypt = Bcrypt()
 opensearch_client = None
 
-# JWT token blacklist (in production, use Redis or database)
-blacklisted_tokens = set()
-
 
 def create_app():
     app = Flask(__name__)
@@ -71,7 +68,10 @@ def create_app():
     # JWT callbacks
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(_jwt_header, jwt_payload):
-        return jwt_payload["jti"] in blacklisted_tokens
+        from app.models.token_blacklist import TokenBlacklist
+
+        jti = jwt_payload["jti"]
+        return TokenBlacklist.is_jti_blacklisted(jti)
 
     @jwt.user_identity_loader
     def user_identity_lookup(user):
