@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app import db
 
@@ -15,7 +15,7 @@ class TokenBlacklist(db.Model):
     jti = db.Column(db.String(36), nullable=False, unique=True, index=True)
     token_type = db.Column(db.String(10), nullable=False)  # 'access' or 'refresh'
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    revoked_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    revoked_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(UTC))
     expires_at = db.Column(db.DateTime, nullable=False)
 
     user = db.relationship("User", backref="revoked_tokens")
@@ -43,7 +43,7 @@ class TokenBlacklist(db.Model):
         Remove expired tokens from the blacklist.
         This should be called periodically (e.g., via a cron job).
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_tokens = cls.query.filter(cls.expires_at < now).all()
         for token in expired_tokens:
             db.session.delete(token)

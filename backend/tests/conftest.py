@@ -4,7 +4,7 @@ import pytest
 
 from app import create_app, db
 from app.models import Card, QuickAccessItem, ResourceConfig, ResourceItem, Tag, User
-from app.models.token_blacklist import TokenBlacklist
+from app.models.token_blacklist import TokenBlacklist  # noqa: F401
 
 
 @pytest.fixture(scope="session")
