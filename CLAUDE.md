@@ -408,13 +408,23 @@ The application supports configurable pagination limits via the site configurati
 
 **Setting Custom Pagination Limit:**
 
-Add or update the configuration value in the database:
+**Option 1: Via Admin UI (Recommended)**
+
+1. Login as an admin user
+2. Navigate to Site Settings (`/site-config`)
+3. Find "Items Per Page" in the "Pagination & Display" section
+4. Set desired value (5-100)
+5. Click "Save All Changes"
+
+**Option 2: Direct Database Update**
 
 ```sql
 INSERT INTO resource_config (key, value, description)
 VALUES ('pagination_default_limit', '30', 'Default number of items per page in directory listings')
 ON CONFLICT (key) DO UPDATE SET value = '30';
 ```
+
+Changes take effect after cache expires (10 minutes) or immediately with a hard refresh.
 
 **Frontend Usage:**
 
