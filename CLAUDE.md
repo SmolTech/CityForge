@@ -581,13 +581,97 @@ The API client (`src/lib/api/client.ts`) implements Next.js fetch caching with `
 
 ### Search Functionality
 
-The indexer component (`indexer/indexer.py`) provides full-text search:
+The indexer component (`indexer/indexer.py`) provides full-text search with error recovery capabilities:
+
+**Features:**
 
 - Crawls business card websites (respects robots.txt)
 - Discovers and parses sitemaps
 - Indexes content into OpenSearch
 - Supports multi-page indexing per business
+- **Database-backed progress tracking** for error recovery
+- **Automatic resume** after crashes or interruptions
+- **Retry logic** for failed indexing jobs (max 3 attempts)
 - Runs as a scheduled job or on-demand
+
+**Progress Tracking:**
+
+The indexer uses the `IndexingJob` database table to track the status of each business card's indexing:
+
+- **Status tracking**: pending, in_progress, completed, failed
+- **Progress tracking**: Pages indexed vs total pages
+- **Error logging**: Last error message for failed jobs
+- **Retry tracking**: Number of retry attempts (max 3)
+
+**CLI Commands:**
+
+```bash
+# Full indexing (index all resources)
+python indexer.py
+
+# Resume interrupted indexing (skip completed)
+python indexer.py --mode resume
+
+# Retry failed indexing jobs only
+python indexer.py --mode retry
+
+# Re-index a specific business card by ID
+python indexer.py --reindex-resource 10042
+
+# Reset all jobs and start fresh
+python indexer.py --reset
+
+# Disable tracking (faster, no resume support)
+python indexer.py --no-tracking
+```
+
+**Modes:**
+
+- **full** (default): Index all business cards, including previously completed ones
+- **resume**: Skip already completed business cards, index only pending/failed
+- **retry**: Retry only failed jobs that haven't exceeded max retries (3)
+
+**Error Recovery Process:**
+
+1. Indexer creates or updates `IndexingJob` record for each business card
+2. Status set to `in_progress` before indexing begins
+3. Progress tracked as pages are indexed
+4. On success: Status set to `completed`, error cleared
+5. On failure: Status set to `failed`, error message logged
+6. Retry with `--mode retry` to attempt failed jobs again
+7. Jobs are skipped after 3 failed retry attempts
+
+**Example Workflow:**
+
+```bash
+# Initial indexing (indexes 100 business cards)
+python indexer.py
+
+# Crashes after 60 cards...
+
+# Resume where it left off
+python indexer.py --mode resume
+# Only indexes the remaining 40 cards
+
+# If some failed, retry them
+python indexer.py --mode retry
+# Retries only the failed cards (max 3 attempts each)
+```
+
+**Database Model:**
+
+The `IndexingJob` table tracks:
+
+```python
+resource_id: int          # Business card ID (offset by 10000)
+status: str               # pending, in_progress, completed, failed
+pages_indexed: int        # Number of pages successfully indexed
+total_pages: int          # Total pages discovered for the site
+last_error: str           # Error message if failed
+started_at: datetime      # When indexing started
+completed_at: datetime    # When indexing completed
+retry_count: int          # Number of retry attempts (max 3)
+```
 
 ### Environment Variables
 

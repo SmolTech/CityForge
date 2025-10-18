@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
+import sys
 import json
 import requests
 import time
+from datetime import UTC, datetime
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
@@ -11,12 +14,18 @@ from opensearchpy import OpenSearch
 import logging
 import xml.etree.ElementTree as ET
 
+# Add backend to path for database models
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+
+from app import create_app, db
+from app.models.indexing_job import IndexingJob
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class ResourceIndexer:
-    def __init__(self):
+    def __init__(self, use_tracking=True):
         self.opensearch_host = os.getenv('OPENSEARCH_HOST', 'opensearch-service')
         self.opensearch_port = int(os.getenv('OPENSEARCH_PORT', '9200'))
         self.namespace = os.getenv('NAMESPACE', 'default')
@@ -39,6 +48,13 @@ class ResourceIndexer:
 
         # User agent for robots.txt compliance
         self.user_agent = 'ResourceIndexer/1.0'
+
+        # Initialize Flask app for database tracking
+        self.use_tracking = use_tracking
+        if use_tracking:
+            self.app = create_app()
+            self.app_context = self.app.app_context()
+            self.app_context.push()
 
 
     def get_robots_parser(self, base_domain):
@@ -381,16 +397,27 @@ class ResourceIndexer:
             logger.error(f"Failed to index page {page_url} for {resource['title']}: {e}")
             return False
 
-    def index_resource(self, resource):
+    def index_resource(self, resource, job=None):
         """Index all pages for a single resource using sitemap discovery"""
         try:
             # Get all URLs for this site
             all_urls = self.get_all_site_urls(resource['url'])
 
+            # Update job with total pages if tracking enabled
+            if job and self.use_tracking:
+                job.total_pages = len(all_urls)
+                job.pages_indexed = 0
+                db.session.commit()
+
             success_count = 0
             for i, page_url in enumerate(all_urls):
                 if self.index_single_page(resource, page_url, i):
                     success_count += 1
+
+                    # Update progress if tracking enabled
+                    if job and self.use_tracking:
+                        job.pages_indexed = success_count
+                        db.session.commit()
 
                 # Small delay between pages to be respectful
                 time.sleep(0.5)
@@ -403,9 +430,14 @@ class ResourceIndexer:
             return False
 
 
-    def index_all_resources(self):
-        """Index all resources from business cards"""
-        logger.info("Starting resource indexing process")
+    def index_all_resources(self, mode='full'):
+        """
+        Index all resources from business cards
+
+        Args:
+            mode: 'full' (index all), 'resume' (skip completed), 'retry' (retry failed only)
+        """
+        logger.info(f"Starting resource indexing process (mode: {mode})")
 
         # Load business cards with websites
         business_resources = self.load_business_cards()
@@ -420,18 +452,166 @@ class ResourceIndexer:
 
         # Index each resource
         success_count = 0
+        skipped_count = 0
+        failed_count = 0
+
         for resource in business_resources:
-            if self.index_resource(resource):
-                success_count += 1
+            resource_id = resource['id']
+
+            # Get or create job record if tracking enabled
+            if self.use_tracking:
+                job = IndexingJob.get_or_create(resource_id)
+
+                # Check if should skip based on mode
+                if mode == 'resume' and job.status == 'completed':
+                    logger.info(f"Skipping {resource['title']} (already completed)")
+                    skipped_count += 1
+                    continue
+                elif mode == 'retry' and job.status != 'failed':
+                    logger.info(f"Skipping {resource['title']} (not in failed status)")
+                    skipped_count += 1
+                    continue
+                elif mode == 'retry' and job.retry_count >= 3:
+                    logger.info(f"Skipping {resource['title']} (max retries reached)")
+                    skipped_count += 1
+                    continue
+
+                # Update job status to in_progress
+                job.status = 'in_progress'
+                job.started_at = datetime.now(UTC)
+                if mode == 'retry':
+                    job.retry_count += 1
+                db.session.commit()
+            else:
+                job = None
+
+            # Index the resource
+            try:
+                if self.index_resource(resource, job):
+                    success_count += 1
+
+                    # Update job status to completed
+                    if job and self.use_tracking:
+                        job.status = 'completed'
+                        job.completed_at = datetime.now(UTC)
+                        job.last_error = None
+                        db.session.commit()
+                else:
+                    failed_count += 1
+
+                    # Update job status to failed
+                    if job and self.use_tracking:
+                        job.status = 'failed'
+                        job.last_error = "Indexing returned False"
+                        db.session.commit()
+
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Exception while indexing {resource['title']}: {e}")
+
+                # Update job status to failed with error message
+                if job and self.use_tracking:
+                    job.status = 'failed'
+                    job.last_error = str(e)
+                    db.session.commit()
 
             # Small delay between requests to be respectful
             time.sleep(1)
 
-        logger.info(f"Indexing complete. Successfully indexed {success_count}/{len(business_resources)} business cards")
+        logger.info(f"Indexing complete. Success: {success_count}, Failed: {failed_count}, Skipped: {skipped_count}, Total: {len(business_resources)}")
 
 def main():
-    indexer = ResourceIndexer()
-    indexer.index_all_resources()
+    parser = argparse.ArgumentParser(
+        description='Index business card websites into OpenSearch with error recovery'
+    )
+
+    parser.add_argument(
+        '--mode',
+        choices=['full', 'resume', 'retry'],
+        default='full',
+        help='Indexing mode: full (index all), resume (skip completed), retry (retry failed only)'
+    )
+
+    parser.add_argument(
+        '--reset',
+        action='store_true',
+        help='Reset all indexing jobs to pending status before starting'
+    )
+
+    parser.add_argument(
+        '--no-tracking',
+        action='store_true',
+        help='Disable database tracking (faster but no resume/retry support)'
+    )
+
+    parser.add_argument(
+        '--reindex-resource',
+        type=int,
+        metavar='ID',
+        help='Re-index a specific resource by ID'
+    )
+
+    args = parser.parse_args()
+
+    # Initialize indexer
+    use_tracking = not args.no_tracking
+    indexer = ResourceIndexer(use_tracking=use_tracking)
+
+    # Handle reset option
+    if args.reset and use_tracking:
+        logger.info("Resetting all indexing jobs...")
+        IndexingJob.reset_all_jobs()
+        logger.info("All jobs reset to pending status")
+
+    # Handle single resource reindex
+    if args.reindex_resource:
+        logger.info(f"Re-indexing resource ID: {args.reindex_resource}")
+
+        # Load all resources to find the one to reindex
+        resources = indexer.load_business_cards()
+        resource = next((r for r in resources if r['id'] == args.reindex_resource), None)
+
+        if not resource:
+            logger.error(f"Resource {args.reindex_resource} not found")
+            return
+
+        # Create index if needed
+        indexer.create_index_if_not_exists()
+
+        # Get or create job if tracking enabled
+        if use_tracking:
+            job = IndexingJob.get_or_create(args.reindex_resource)
+            job.status = 'in_progress'
+            job.started_at = datetime.now(UTC)
+            job.retry_count = 0
+            db.session.commit()
+        else:
+            job = None
+
+        # Index the resource
+        try:
+            if indexer.index_resource(resource, job):
+                logger.info(f"Successfully re-indexed {resource['title']}")
+                if job and use_tracking:
+                    job.status = 'completed'
+                    job.completed_at = datetime.now(UTC)
+                    job.last_error = None
+                    db.session.commit()
+            else:
+                logger.error(f"Failed to re-index {resource['title']}")
+                if job and use_tracking:
+                    job.status = 'failed'
+                    job.last_error = "Indexing returned False"
+                    db.session.commit()
+        except Exception as e:
+            logger.error(f"Exception while re-indexing {resource['title']}: {e}")
+            if job and use_tracking:
+                job.status = 'failed'
+                job.last_error = str(e)
+                db.session.commit()
+    else:
+        # Index all resources with specified mode
+        indexer.index_all_resources(mode=args.mode)
 
 if __name__ == "__main__":
     main()
