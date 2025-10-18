@@ -664,6 +664,7 @@ The `IndexingJob` table tracks:
 
 ```python
 resource_id: int          # Business card ID (offset by 10000)
+
 status: str               # pending, in_progress, completed, failed
 pages_indexed: int        # Number of pages successfully indexed
 total_pages: int          # Total pages discovered for the site
