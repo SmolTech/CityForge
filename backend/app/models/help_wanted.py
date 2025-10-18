@@ -20,7 +20,9 @@ class HelpWantedPost(db.Model):
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), index=True)
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_posts")
@@ -69,7 +71,9 @@ class HelpWantedComment(db.Model):
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_comments")
