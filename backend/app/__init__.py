@@ -58,7 +58,9 @@ def create_app():
     app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
     app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
     app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Disabled for now (can enable later with CSRF tokens)
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = (
+        False  # Disabled for now (can enable later with CSRF tokens)
+    )
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
     app.config["JWT_COOKIE_DOMAIN"] = None  # Same domain only
 
