@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, User } from "@/lib/api";
-import { CLIENT_CONFIG } from "@/lib/client-config";
+import { useConfig } from "@/contexts/ConfigContext";
 
 interface NavigationProps {
   currentPage?: string;
@@ -15,8 +15,10 @@ interface NavigationProps {
 export default function Navigation({
   currentPage = "",
   showWelcomeMessage = false,
-  siteTitle = CLIENT_CONFIG.SITE_TITLE,
+  siteTitle,
 }: NavigationProps) {
+  const config = useConfig();
+  const actualSiteTitle = siteTitle || config.site.title;
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function Navigation({
               href="/"
               className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"
             >
-              {siteTitle}
+              {actualSiteTitle}
             </Link>
             {showWelcomeMessage && user && (
               <p className="hidden sm:block text-sm text-gray-600 dark:text-gray-400 ml-4">
