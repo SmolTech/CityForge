@@ -30,6 +30,7 @@ export async function GET() {
     return NextResponse.json(
       {
         site: config.site,
+        pagination: config.pagination || { defaultLimit: 20 },
       },
       {
         headers: {
@@ -56,6 +57,9 @@ export async function GET() {
           domain: "community.local",
           shortName: "Community",
           fullName: "Community Website",
+        },
+        pagination: {
+          defaultLimit: 20,
         },
       },
       {
