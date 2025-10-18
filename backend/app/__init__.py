@@ -58,6 +58,40 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # SQLAlchemy connection pool configuration
+    # Determine environment (default to development if not specified)
+    flask_env = os.getenv("FLASK_ENV", "development").lower()
+    is_production = flask_env == "production"
+
+    # Configure connection pool based on environment
+    pool_config = {
+        # Test connections before using (detects broken connections)
+        "pool_pre_ping": True,
+        # Recycle connections after 1 hour to prevent stale connections
+        "pool_recycle": 3600,
+        # Timeout waiting for connection from pool (seconds)
+        "pool_timeout": 30,
+    }
+
+    if is_production:
+        # Production: larger pool for higher traffic
+        pool_config.update(
+            {
+                "pool_size": 10,  # Maximum connections in pool
+                "max_overflow": 20,  # Additional connections beyond pool_size
+            }
+        )
+    else:
+        # Development: smaller pool to conserve resources
+        pool_config.update(
+            {
+                "pool_size": 5,  # Maximum connections in pool
+                "max_overflow": 10,  # Additional connections beyond pool_size
+            }
+        )
+
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = pool_config
+
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
