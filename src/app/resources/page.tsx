@@ -3,7 +3,7 @@
 import React, { useEffect, useState, Suspense } from "react";
 import Navigation from "@/components/Navigation";
 import { apiClient } from "@/lib/api";
-import { iconComponents, getColorClasses } from "@/lib/resources";
+import { getIconComponent, getColorClasses } from "@/lib/resources";
 import { useConfig } from "@/contexts/ConfigContext";
 
 interface ResourcesData {
@@ -123,7 +123,7 @@ function ResourcesContent() {
             >
               <div className="text-center">
                 <div className="w-8 h-8 mx-auto mb-3">
-                  {React.createElement(iconComponents[item.icon], {
+                  {React.createElement(getIconComponent(item.icon), {
                     className: "w-8 h-8",
                   })}
                 </div>
@@ -164,7 +164,7 @@ function ResourcesContent() {
                   >
                     <div className="flex items-start space-x-4">
                       <div className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1">
-                        {React.createElement(iconComponents[resource.icon], {
+                        {React.createElement(getIconComponent(resource.icon), {
                           className: "w-6 h-6",
                         })}
                       </div>

@@ -44,7 +44,8 @@ export async function loadAppConfig(): Promise<AppConfig> {
   try {
     // Fetch from Next.js API route (which in turn fetches from Python backend)
     // Use absolute URL for server-side fetch
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const baseUrl =
+      process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
     const response = await fetch(`${baseUrl}/api/config`, {
       cache: "no-store", // Always get fresh config
     });

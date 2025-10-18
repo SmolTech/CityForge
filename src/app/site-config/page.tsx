@@ -63,7 +63,9 @@ export default function SiteConfigPage() {
       for (const config of configs) {
         if (formData[config.key] !== config.value) {
           await apiClient.adminUpdateResourceConfig(config.id, {
-            value: formData[config.key],
+            ...(formData[config.key] !== undefined && {
+              value: formData[config.key],
+            }),
           });
         }
       }
@@ -148,23 +150,24 @@ export default function SiteConfigPage() {
 
     configs.forEach((config) => {
       if (config.key.startsWith("site_")) {
-        groups["Site Information"].push(config);
+        groups["Site Information"]?.push(config);
       } else if (config.key.startsWith("resources_")) {
-        groups["Resources Page"].push(config);
+        groups["Resources Page"]?.push(config);
       } else if (config.key.startsWith("directory_")) {
-        groups["Directory Page"].push(config);
+        groups["Directory Page"]?.push(config);
       } else if (config.key.startsWith("pagination_")) {
-        groups["Pagination & Display"].push(config);
+        groups["Pagination & Display"]?.push(config);
       } else if (config.key.startsWith("copyright_")) {
-        groups["Copyright & Legal"].push(config);
+        groups["Copyright & Legal"]?.push(config);
       } else {
-        groups["Other"].push(config);
+        groups["Other"]?.push(config);
       }
     });
 
     // Remove empty groups
     Object.keys(groups).forEach((key) => {
-      if (groups[key].length === 0) {
+      const group = groups[key];
+      if (group && group.length === 0) {
         delete groups[key];
       }
     });

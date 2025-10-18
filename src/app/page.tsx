@@ -54,10 +54,10 @@ export default function Home() {
       const offset = (currentPage - 1) * itemsPerPage;
       const [cardsResponse, tagsResponse] = await Promise.all([
         apiClient.getCards({
-          search: searchTerm || undefined,
-          tags: selectedTags.length > 0 ? selectedTags : undefined,
+          ...(searchTerm && { search: searchTerm }),
+          ...(selectedTags.length > 0 && { tags: selectedTags }),
           tagMode: tagFilterMode,
-          featured: showFeaturedOnly || undefined,
+          ...(showFeaturedOnly && { featured: showFeaturedOnly }),
           includeShareUrls: true,
           includeRatings: true,
           limit: itemsPerPage,

@@ -47,11 +47,17 @@ export default function CardEditForm({
       const submitData: Partial<Card & { tags: string[] }> = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        website_url: formData.website_url.trim() || undefined,
-        phone_number: formData.phone_number.trim() || undefined,
-        email: formData.email.trim() || undefined,
-        address: formData.address.trim() || undefined,
-        address_override_url: formData.address_override_url.trim() || undefined,
+        ...(formData.website_url.trim() && {
+          website_url: formData.website_url.trim(),
+        }),
+        ...(formData.phone_number.trim() && {
+          phone_number: formData.phone_number.trim(),
+        }),
+        ...(formData.email.trim() && { email: formData.email.trim() }),
+        ...(formData.address.trim() && { address: formData.address.trim() }),
+        ...(formData.address_override_url.trim() && {
+          address_override_url: formData.address_override_url.trim(),
+        }),
         tags: tags,
       };
 

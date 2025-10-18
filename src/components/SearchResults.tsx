@@ -105,7 +105,9 @@ export default function SearchResults({ results }: SearchResultsProps) {
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   <HighlightedText
                     text={result.title}
-                    highlights={result.highlights?.title}
+                    {...(result.highlights?.title && {
+                      highlights: result.highlights.title,
+                    })}
                   />
                 </h3>
                 <CategoryBadge category={result.category} />
@@ -131,7 +133,9 @@ export default function SearchResults({ results }: SearchResultsProps) {
               <p className="text-gray-600 dark:text-gray-300 mb-3 italic">
                 <HighlightedText
                   text={result.description}
-                  highlights={result.highlights?.description}
+                  {...(result.highlights?.description && {
+                    highlights: result.highlights.description,
+                  })}
                 />
               </p>
             )}

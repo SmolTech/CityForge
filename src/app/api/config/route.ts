@@ -8,8 +8,8 @@ export async function GET() {
     // Fetch site configuration from backend API
     // Use BACKEND_API_URL for server-side requests to backend container
     const backendUrl =
-      process.env.BACKEND_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
+      process.env["BACKEND_API_URL"] ||
+      process.env["NEXT_PUBLIC_API_URL"] ||
       "http://localhost:5000";
 
     console.log(`Fetching site config from: ${backendUrl}/api/site-config`);

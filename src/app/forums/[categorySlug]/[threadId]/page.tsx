@@ -12,8 +12,8 @@ import { useConfig } from "@/contexts/ConfigContext";
 export default function ThreadPage() {
   const params = useParams();
   const router = useRouter();
-  const categorySlug = params.categorySlug as string;
-  const threadId = parseInt(params.threadId as string);
+  const categorySlug = params["categorySlug"] as string;
+  const threadId = parseInt(params["threadId"] as string);
   const config = useConfig();
   const siteTitle = config.site.title;
 
