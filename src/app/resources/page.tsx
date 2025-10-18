@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import Navigation from "@/components/Navigation";
 import { apiClient } from "@/lib/api";
 import { iconComponents, getColorClasses } from "@/lib/resources";
+import { useConfig } from "@/contexts/ConfigContext";
 
 interface ResourcesData {
   site: {
@@ -39,20 +40,15 @@ interface ResourcesData {
   };
 }
 
-interface SiteConfig {
-  copyright: string;
-  copyrightHolder: string;
-  copyrightUrl: string;
-}
-
 function ResourcesContent() {
+  const config = useConfig();
+  const siteConfig = config.site;
   const [resourcesData, setResourcesData] = useState<ResourcesData | null>(
     null
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [siteTitle, setSiteTitle] = useState("Loading...");
+  const [siteTitle, setSiteTitle] = useState(siteConfig.title);
 
   useEffect(() => {
     async function fetchResources() {
@@ -69,24 +65,7 @@ function ResourcesContent() {
       }
     }
 
-    async function fetchSiteConfig() {
-      try {
-        const response = await fetch("/api/config");
-        if (response.ok) {
-          const config = await response.json();
-          setSiteConfig({
-            copyright: config.site.copyright,
-            copyrightHolder: config.site.copyrightHolder,
-            copyrightUrl: config.site.copyrightUrl,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load site config:", error);
-      }
-    }
-
     fetchResources();
-    fetchSiteConfig();
   }, []);
 
   if (loading) {
@@ -120,24 +99,24 @@ function ResourcesContent() {
     );
   }
 
-  const config = resourcesData;
+  const resourceConfig = resourcesData;
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Resources" siteTitle={config.site.title} />
+      <Navigation currentPage="Resources" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            {config.title}
+            {resourceConfig.title}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            {config.description}
+            {resourceConfig.description}
           </p>
         </div>
 
         {/* Quick Access Cards */}
         <div className="mb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {config.quickAccess.map((item) => (
+          {resourceConfig.quickAccess.map((item) => (
             <div
               key={item.id}
               className={`bg-gradient-to-br ${getColorClasses(item.color)} text-white rounded-lg p-6 transition-all`}
@@ -169,14 +148,14 @@ function ResourcesContent() {
 
         {/* Resource Categories */}
         {Array.from(
-          new Set(config.resources.map((resource) => resource.category))
+          new Set(resourceConfig.resources.map((resource) => resource.category))
         ).map((category) => (
           <div key={category} className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               {category}
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {config.resources
+              {resourceConfig.resources
                 .filter((resource) => resource.category === category)
                 .map((resource) => (
                   <div
@@ -298,13 +277,13 @@ function ResourcesContent() {
         <div className="mt-16 bg-gray-100 dark:bg-gray-800 rounded-lg p-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              {config.footer.title}
+              {resourceConfig.footer.title}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
-              {config.footer.description}
+              {resourceConfig.footer.description}
             </p>
             <a
-              href={`mailto:${config.footer.contactEmail}`}
+              href={`mailto:${resourceConfig.footer.contactEmail}`}
               className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
             >
               <svg
@@ -320,7 +299,7 @@ function ResourcesContent() {
                   d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                 />
               </svg>
-              {config.footer.buttonText}
+              {resourceConfig.footer.buttonText}
             </a>
           </div>
         </div>

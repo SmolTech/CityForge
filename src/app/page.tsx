@@ -8,11 +8,13 @@ import TagCloud from "@/components/TagCloud";
 import FilterPanel from "@/components/FilterPanel";
 import Navigation from "@/components/Navigation";
 import Pagination from "@/components/Pagination";
-import { CLIENT_CONFIG } from "@/lib/client-config";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const ITEMS_PER_PAGE = 20;
 
 export default function Home() {
+  const config = useConfig();
+  const siteConfig = config.site;
   const [cards, setCards] = useState<Card[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,58 +26,16 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [siteConfig, setSiteConfig] = useState<{
-    title: string;
-    tagline: string;
-    directoryDescription: string;
-    copyright: string;
-    copyrightHolder: string;
-    copyrightUrl: string;
-  } | null>(null);
 
   useEffect(() => {
     loadData();
     checkAuth();
-    loadSiteConfig();
   }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedTags, tagFilterMode, showFeaturedOnly]);
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteConfig(config.site);
-      } else {
-        // Set fallback config on failure
-        setSiteConfig({
-          title: CLIENT_CONFIG.SITE_TITLE,
-          tagline: "Community Directory",
-          directoryDescription:
-            "Discover local businesses, events, news, and community resources. Search by name, description, or use tags to find exactly what you're looking for.",
-          copyright: "2025",
-          copyrightHolder: "SmolTech",
-          copyrightUrl: "https://www.smoltech.us",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
-      // Set fallback config on error
-      setSiteConfig({
-        title: CLIENT_CONFIG.SITE_TITLE,
-        tagline: "Community Directory",
-        directoryDescription:
-          "Discover local businesses, events, news, and community resources. Search by name, description, or use tags to find exactly what you're looking for.",
-        copyright: "2025",
-        copyrightHolder: "SmolTech",
-        copyrightUrl: "https://www.smoltech.us",
-      });
-    }
-  };
 
   const checkAuth = async () => {
     if (apiClient.isAuthenticated()) {
@@ -144,7 +104,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-900 dark:via-blue-950/20 dark:to-slate-900">
-      <Navigation currentPage="Directory" siteTitle={siteConfig?.title || ""} />
+      <Navigation currentPage="Directory" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {siteConfig && (

@@ -5,38 +5,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, User, CardSubmission, HelpWantedPost } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function DashboardPage() {
+  const config = useConfig();
+  const siteConfig = config.site;
   const [, setUser] = useState<User | null>(null);
   const [submissions, setSubmissions] = useState<CardSubmission[]>([]);
   const [helpWantedPosts, setHelpWantedPosts] = useState<HelpWantedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [siteConfig, setSiteConfig] = useState<{
-    shortName: string;
-    title: string;
-  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     loadData();
-    loadSiteConfig();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteConfig({
-          shortName: config.site?.shortName || "community",
-          title: config.site?.title || "Community Website",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
-      setSiteConfig({ shortName: "community", title: "Community Website" });
-    }
-  };
 
   const loadData = async () => {
     try {
@@ -85,10 +67,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation
-        currentPage="Dashboard"
-        siteTitle={siteConfig?.title || "Community Website"}
-      />
+      <Navigation currentPage="Dashboard" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -124,8 +103,7 @@ export default function DashboardPage() {
                   Submit New Content
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Add a business, event, or other{" "}
-                  {siteConfig?.shortName || "community"} content
+                  Add a business, event, or other {siteConfig.shortName} content
                 </p>
               </div>
             </div>
@@ -161,7 +139,7 @@ export default function DashboardPage() {
                   Post Classified
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Request help from the {siteConfig?.shortName || "community"}
+                  Request help from the {siteConfig.shortName}
                 </p>
               </div>
             </div>
@@ -294,7 +272,7 @@ export default function DashboardPage() {
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Get started by submitting your first piece of{" "}
-                {siteConfig?.shortName || "community"} content.
+                {siteConfig.shortName} content.
               </p>
               <div className="mt-6">
                 <Link
@@ -380,8 +358,7 @@ export default function DashboardPage() {
                 No classified posts yet
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Post a request to get help from the{" "}
-                {siteConfig?.shortName || "community"}.
+                Post a request to get help from the {siteConfig.shortName}.
               </p>
               <div className="mt-6">
                 <Link
