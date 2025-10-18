@@ -127,7 +127,10 @@ def get_site_config():
                     "copyrightUrl": config_dict.get("site_copyright_url", "#"),
                     "shortName": config_dict.get("site_short_name", "Community"),
                     "fullName": config_dict.get("site_full_name", "Community Website"),
-                }
+                },
+                "pagination": {
+                    "defaultLimit": int(config_dict.get("pagination_default_limit", "20")),
+                },
             }
         )
         # Cache for 10 minutes (600 seconds)

@@ -52,6 +52,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             contactEmail: "admin@community.local",
             buttonText: "Contact Us",
           },
+          pagination: {
+            defaultLimit: 20,
+          },
         });
       } finally {
         setLoading(false);

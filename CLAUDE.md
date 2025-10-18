@@ -392,8 +392,56 @@ function MyComponent() {
 - `quickAccess`: Quick access items for resources page
 - `resourceItems`: Resource directory items
 - `footer`: Footer configuration
+- `pagination`: Pagination settings (defaultLimit)
 
 **Important**: Always use `useConfig()` hook instead of directly fetching `/api/config` to avoid redundant API calls.
+
+### Pagination Configuration
+
+The application supports configurable pagination limits via the site configuration system:
+
+**Default Behavior:**
+
+- Default pagination limit: **20 items per page**
+- Configurable via `ResourceConfig` table with key `pagination_default_limit`
+- Automatically loaded from backend and available in frontend via `useConfig().pagination.defaultLimit`
+
+**Setting Custom Pagination Limit:**
+
+Add or update the configuration value in the database:
+
+```sql
+INSERT INTO resource_config (key, value, description)
+VALUES ('pagination_default_limit', '30', 'Default number of items per page in directory listings')
+ON CONFLICT (key) DO UPDATE SET value = '30';
+```
+
+**Frontend Usage:**
+
+```tsx
+import { useConfig } from "@/contexts/ConfigContext";
+
+function MyPage() {
+  const config = useConfig();
+  const itemsPerPage = config.pagination.defaultLimit; // Uses configured value
+
+  // Use in pagination logic
+  const offset = (currentPage - 1) * itemsPerPage;
+}
+```
+
+**Backend API Response:**
+
+The `/api/site-config` endpoint returns:
+
+```json
+{
+  "site": { ... },
+  "pagination": {
+    "defaultLimit": 20
+  }
+}
+```
 
 ### API Response Caching
 

@@ -20,12 +20,17 @@ export interface ResourcesConfig {
   description: string;
 }
 
+export interface PaginationConfig {
+  defaultLimit: number;
+}
+
 export interface AppConfig {
   site: SiteConfig;
   resources: ResourcesConfig;
   quickAccess: QuickAccessItem[];
   resourceItems: ResourceItem[];
   footer: FooterConfig;
+  pagination: PaginationConfig;
 }
 
 export interface QuickAccessItem {

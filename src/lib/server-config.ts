@@ -36,6 +36,9 @@ export async function loadAppConfig(): Promise<AppConfig> {
       contactEmail: "admin@community.local",
       buttonText: "Contact Us",
     },
+    pagination: {
+      defaultLimit: 20,
+    },
   };
 
   try {
@@ -84,6 +87,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
       quickAccess: defaultConfig.quickAccess,
       resourceItems: defaultConfig.resourceItems,
       footer: defaultConfig.footer,
+      pagination: backendConfig.pagination || defaultConfig.pagination,
     };
   } catch (error) {
     console.error("Error loading app config:", error);

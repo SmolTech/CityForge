@@ -10,11 +10,10 @@ import Navigation from "@/components/Navigation";
 import Pagination from "@/components/Pagination";
 import { useConfig } from "@/contexts/ConfigContext";
 
-const ITEMS_PER_PAGE = 20;
-
 export default function Home() {
   const config = useConfig();
   const siteConfig = config.site;
+  const itemsPerPage = config.pagination.defaultLimit;
   const [cards, setCards] = useState<Card[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +51,7 @@ export default function Home() {
     try {
       setLoading(true);
       setError(null);
-      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+      const offset = (currentPage - 1) * itemsPerPage;
       const [cardsResponse, tagsResponse] = await Promise.all([
         apiClient.getCards({
           search: searchTerm || undefined,
@@ -61,7 +60,7 @@ export default function Home() {
           featured: showFeaturedOnly || undefined,
           includeShareUrls: true,
           includeRatings: true,
-          limit: ITEMS_PER_PAGE,
+          limit: itemsPerPage,
           offset: offset,
         }),
         apiClient.getTags(),
@@ -241,7 +240,7 @@ export default function Home() {
                 <Pagination
                   currentPage={currentPage}
                   totalItems={totalItems}
-                  itemsPerPage={ITEMS_PER_PAGE}
+                  itemsPerPage={itemsPerPage}
                   onPageChange={handlePageChange}
                 />
               </>
