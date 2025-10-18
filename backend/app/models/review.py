@@ -18,7 +18,9 @@ class Review(db.Model):
     reported_reason = db.Column(db.Text)
     hidden = db.Column(db.Boolean, default=False, index=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), index=True)
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     card = db.relationship("Card", backref="reviews")

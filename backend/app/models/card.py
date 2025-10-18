@@ -40,7 +40,9 @@ class Card(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     approved_date = db.Column(db.DateTime)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     tags = db.relationship(
         "Tag", secondary=card_tags, lazy="subquery", backref=db.backref("cards", lazy=True)

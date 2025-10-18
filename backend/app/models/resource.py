@@ -62,7 +62,9 @@ class ResourceItem(db.Model):
     display_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     def to_dict(self):
         return {
@@ -85,7 +87,9 @@ class ResourceConfig(db.Model):
     value = db.Column(db.Text, nullable=False)
     description = db.Column(db.String(500), nullable=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_date = db.Column(
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     def to_dict(self):
         return {
