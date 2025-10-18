@@ -87,7 +87,7 @@ def login():
     user = User.query.filter_by(email=validated_data["email"].lower()).first()
 
     if user and user.check_password(validated_data["password"]) and user.is_active:
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(UTC)
         db.session.commit()
 
         access_token = create_access_token(identity=user.id)

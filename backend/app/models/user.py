@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import bcrypt, db
 
@@ -13,7 +13,7 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="user")  # 'admin' or 'user'
     is_active = db.Column(db.Boolean, default=True)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     last_login = db.Column(db.DateTime)
 
     @staticmethod

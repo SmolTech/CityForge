@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import db
 
@@ -19,8 +19,8 @@ class HelpWantedPost(db.Model):
     report_count = db.Column(db.Integer, default=0, nullable=False)  # Number of pending reports
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), index=True)
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_posts")
@@ -68,8 +68,8 @@ class HelpWantedComment(db.Model):
     )  # For threaded replies
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="help_wanted_comments")
@@ -114,7 +114,7 @@ class HelpWantedReport(db.Model):
     reported_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     reviewed_date = db.Column(db.DateTime)
     resolution_notes = db.Column(db.Text)
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import db
 
@@ -17,8 +17,8 @@ class Review(db.Model):
     reported_date = db.Column(db.DateTime)
     reported_reason = db.Column(db.Text)
     hidden = db.Column(db.Boolean, default=False, index=True)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), index=True)
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     card = db.relationship("Card", backref="reviews")
