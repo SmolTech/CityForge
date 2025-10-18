@@ -383,6 +383,63 @@ function MyComponent() {
 
 **Important**: Always use `useConfig()` hook instead of directly fetching `/api/config` to avoid redundant API calls.
 
+### API Response Caching
+
+The application implements multi-layer caching to improve performance and reduce server load:
+
+#### Backend Cache Headers (Flask)
+
+Flask routes set HTTP cache headers using `Cache-Control`:
+
+**Cache Durations:**
+
+- **Tags** (`/api/tags`): 5 minutes (300s)
+- **Site Config** (`/api/site-config`): 10 minutes (600s)
+- **Cards List** (`/api/cards`): 1 minute (60s)
+- **Individual Card** (`/api/cards/<id>`, `/api/business/<id>`): 5 minutes (300s)
+- **Resources** (`/api/resources`): 5 minutes (300s)
+
+**Implementation:**
+
+```python
+response = jsonify(data)
+response.headers["Cache-Control"] = "public, max-age=300"
+return response
+```
+
+**Important**: User-specific endpoints (auth, submissions, dashboard) are NOT cached to ensure fresh data.
+
+#### Frontend Caching (Next.js)
+
+The API client (`src/lib/api/client.ts`) implements Next.js fetch caching with `revalidate`:
+
+**Caching Strategy:**
+
+- Only caches GET requests
+- Skips caching for authenticated requests (user-specific data)
+- Automatically applies appropriate cache duration based on endpoint
+
+**Next.js API Route** (`src/app/api/config/route.ts`):
+
+- Uses `revalidate: 300` for 5-minute cache
+- Implements `stale-while-revalidate` pattern for better UX
+- Falls back to default config if backend is unavailable
+
+#### Benefits
+
+- **Faster Page Loads**: Cached responses served from browser/CDN
+- **Reduced Server Load**: Fewer database queries for frequently accessed data
+- **Better Offline Support**: Stale content served while revalidating
+- **Improved Scalability**: CDN can serve cached responses
+
+#### Cache Invalidation
+
+- **Time-Based**: Automatic expiration based on `max-age`
+- **Manual**: Admin actions (creating/editing cards) don't trigger automatic invalidation
+- **Browser**: Users can hard-refresh (Ctrl+Shift+R) to bypass cache
+
+**Note**: For production with multiple backend instances, consider implementing cache invalidation via Redis pub/sub or database triggers.
+
 ### Styling
 
 - Tailwind CSS v4 with custom configuration

@@ -50,7 +50,7 @@ def get_cards():
     total_count = query.count()
     cards = query.order_by(Card.featured.desc(), Card.name.asc()).offset(offset).limit(limit).all()
 
-    return jsonify(
+    response = jsonify(
         {
             "cards": [
                 card.to_dict(include_share_url=include_share_urls, include_ratings=include_ratings)
@@ -61,6 +61,9 @@ def get_cards():
             "limit": limit,
         }
     )
+    # Cache for 1 minute (60 seconds)
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return response
 
 
 @bp.route("/api/cards/<int:card_id>", methods=["GET"])
@@ -68,9 +71,12 @@ def get_card(card_id):
     card = Card.query.get_or_404(card_id)
     include_share_url = request.args.get("share_url", "false").lower() == "true"
     include_ratings = request.args.get("ratings", "false").lower() == "true"
-    return jsonify(
+    response = jsonify(
         card.to_dict(include_share_url=include_share_url, include_ratings=include_ratings)
     )
+    # Cache for 5 minutes (300 seconds)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @bp.route("/api/business/<int:business_id>", methods=["GET"])
@@ -83,7 +89,10 @@ def get_business(business_id, slug=None):
         return jsonify({"redirect": f"/business/{business_id}/{card.slug}"}), 301
 
     include_ratings = request.args.get("ratings", "true").lower() == "true"
-    return jsonify(card.to_dict(include_share_url=True, include_ratings=include_ratings))
+    response = jsonify(card.to_dict(include_share_url=True, include_ratings=include_ratings))
+    # Cache for 5 minutes (300 seconds)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @bp.route("/api/tags", methods=["GET"])
@@ -96,7 +105,10 @@ def get_tags():
         .all()
     )
 
-    return jsonify([{"name": tag_name, "count": count} for tag_name, count in tags_with_counts])
+    response = jsonify([{"name": tag_name, "count": count} for tag_name, count in tags_with_counts])
+    # Cache for 5 minutes (300 seconds)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @bp.route("/api/submissions", methods=["POST"])

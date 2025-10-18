@@ -108,7 +108,7 @@ def get_site_config():
         config_items = ResourceConfig.query.all()
         config_dict = {item.key: item.value for item in config_items}
 
-        return jsonify(
+        response = jsonify(
             {
                 "site": {
                     "title": config_dict.get("site_title", "Community Website"),
@@ -130,6 +130,9 @@ def get_site_config():
                 }
             }
         )
+        # Cache for 10 minutes (600 seconds)
+        response.headers["Cache-Control"] = "public, max-age=600"
+        return response
     except Exception as e:
         current_app.logger.error(f"Error getting site config: {str(e)}")
         return jsonify({"error": "Failed to load site configuration"}), 500
@@ -163,7 +166,10 @@ def get_resources():
             "footer": config["footer"],
         }
 
-        return jsonify(result)
+        response = jsonify(result)
+        # Cache for 5 minutes (300 seconds) - resources change less frequently
+        response.headers["Cache-Control"] = "public, max-age=300"
+        return response
     except Exception as e:
         current_app.logger.error(f"Error getting complete resources data: {str(e)}")
         return jsonify({"error": "Failed to load resources data"}), 500
