@@ -117,7 +117,9 @@ def admin_create_card():
                 db.session.add(tag)
             card.tags.append(tag)
     elif validated_data.get("tags_text"):
-        tag_names = [tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()]
+        tag_names = [
+            tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()
+        ]
         for tag_name in tag_names:
             tag = Tag.query.filter_by(name=tag_name).first()
             if not tag:
@@ -183,7 +185,9 @@ def admin_update_card(card_id):
             card.tags.append(tag)
     elif "tags_text" in validated_data:
         card.tags.clear()
-        tag_names = [tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()]
+        tag_names = [
+            tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()
+        ]
         for tag_name in tag_names:
             tag = Tag.query.filter_by(name=tag_name).first()
             if not tag:
@@ -488,7 +492,9 @@ def admin_update_user(user_id):
     if "first_name" in data or "last_name" in data:
         schema = UserUpdateProfileSchema(partial=True)
         try:
-            validated_data = schema.load({"first_name": data.get("first_name"), "last_name": data.get("last_name")})
+            validated_data = schema.load(
+                {"first_name": data.get("first_name"), "last_name": data.get("last_name")}
+            )
             if "first_name" in validated_data:
                 user.first_name = validated_data["first_name"]
             if "last_name" in validated_data:
