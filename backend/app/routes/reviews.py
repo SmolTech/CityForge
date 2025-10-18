@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -184,7 +184,7 @@ def update_review(review_id):
     # Update review fields
     review.rating = validated_data["rating"]
     review.comment = validated_data.get("comment", "")
-    review.updated_date = datetime.utcnow()
+    review.updated_date = datetime.now(UTC)
 
     db.session.commit()
 
@@ -212,7 +212,7 @@ def report_review(review_id):
     # Update review with report
     review.reported = True
     review.reported_by = user_id
-    review.reported_date = datetime.utcnow()
+    review.reported_date = datetime.now(UTC)
     review.reported_reason = reason
 
     db.session.commit()

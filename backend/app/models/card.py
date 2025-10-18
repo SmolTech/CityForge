@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import db
 from app.utils.helpers import generate_slug
@@ -15,7 +15,7 @@ class Tag(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(500), nullable=False, unique=True, index=True)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "created_date": self.created_date.isoformat()}
@@ -39,8 +39,8 @@ class Card(db.Model):
     approved = db.Column(db.Boolean, default=True)
     approved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     approved_date = db.Column(db.DateTime)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     tags = db.relationship(
         "Tag", secondary=card_tags, lazy="subquery", backref=db.backref("cards", lazy=True)
@@ -117,7 +117,7 @@ class CardSubmission(db.Model):
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     review_notes = db.Column(db.Text)
     card_id = db.Column(db.Integer, db.ForeignKey("cards.id"), nullable=True)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     reviewed_date = db.Column(db.DateTime)
 
     submitter = db.relationship("User", foreign_keys=[submitted_by], backref="submissions")
@@ -166,7 +166,7 @@ class CardModification(db.Model):
     submitted_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     review_notes = db.Column(db.Text)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     reviewed_date = db.Column(db.DateTime)
 
     card = db.relationship("Card", backref="modifications")

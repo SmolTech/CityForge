@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -105,7 +105,7 @@ def admin_create_card():
         approved=True,
         created_by=user_id,
         approved_by=user_id,
-        approved_date=datetime.utcnow(),
+        approved_date=datetime.now(UTC),
     )
 
     # Handle tags from either tags array or tags_text
@@ -195,7 +195,7 @@ def admin_update_card(card_id):
                 db.session.add(tag)
             card.tags.append(tag)
 
-    card.updated_date = datetime.utcnow()
+    card.updated_date = datetime.now(UTC)
     db.session.commit()
 
     return jsonify(card.to_dict())
@@ -276,7 +276,7 @@ def admin_approve_submission(submission_id):
         approved=True,
         created_by=submission.submitted_by,
         approved_by=user_id,
-        approved_date=datetime.utcnow(),
+        approved_date=datetime.now(UTC),
     )
 
     if submission.tags_text:
@@ -292,7 +292,7 @@ def admin_approve_submission(submission_id):
 
     submission.status = "approved"
     submission.reviewed_by = user_id
-    submission.reviewed_date = datetime.utcnow()
+    submission.reviewed_date = datetime.now(UTC)
     submission.review_notes = data.get("notes", "")
     submission.card_id = card.id
 
@@ -323,7 +323,7 @@ def admin_reject_submission(submission_id):
 
     submission.status = "rejected"
     submission.reviewed_by = user_id
-    submission.reviewed_date = datetime.utcnow()
+    submission.reviewed_date = datetime.now(UTC)
     submission.review_notes = data.get("notes", "")
 
     db.session.commit()
@@ -386,7 +386,7 @@ def admin_approve_modification(modification_id):
     card.address_override_url = modification.address_override_url
     card.contact_name = modification.contact_name
     card.image_url = modification.image_url
-    card.updated_date = datetime.utcnow()
+    card.updated_date = datetime.now(UTC)
 
     card.tags.clear()
     if modification.tags_text:
@@ -402,7 +402,7 @@ def admin_approve_modification(modification_id):
 
     modification.status = "approved"
     modification.reviewed_by = user_id
-    modification.reviewed_date = datetime.utcnow()
+    modification.reviewed_date = datetime.now(UTC)
 
     db.session.commit()
 
@@ -431,7 +431,7 @@ def admin_reject_modification(modification_id):
 
     modification.status = "rejected"
     modification.reviewed_by = user_id
-    modification.reviewed_date = datetime.utcnow()
+    modification.reviewed_date = datetime.now(UTC)
     modification.review_notes = data.get("notes", "")
 
     db.session.commit()
@@ -719,7 +719,7 @@ def admin_update_resource_config(config_id):
         if "description" in data:
             config.description = data["description"]
 
-        config.updated_date = datetime.utcnow()
+        config.updated_date = datetime.now(UTC)
         db.session.commit()
 
         return jsonify(
@@ -994,7 +994,7 @@ def admin_update_resource_item(item_id):
         if "is_active" in data:
             item.is_active = data["is_active"]
 
-        item.updated_date = datetime.utcnow()
+        item.updated_date = datetime.now(UTC)
         db.session.commit()
 
         return jsonify({"message": "Resource item updated successfully", "item": item.to_dict()})
@@ -1071,7 +1071,7 @@ def admin_resolve_help_wanted_report(report_id):
 
     report.status = "resolved"
     report.reviewed_by = user_id
-    report.reviewed_date = datetime.utcnow()
+    report.reviewed_date = datetime.now(UTC)
     report.resolution_notes = data.get("notes", "")
 
     # Decrement report count on the post
@@ -1461,7 +1461,7 @@ def admin_approve_forum_category_request(request_id):
     # Update request
     category_request.status = "approved"
     category_request.reviewed_by = user_id
-    category_request.reviewed_date = datetime.utcnow()
+    category_request.reviewed_date = datetime.now(UTC)
     category_request.category_id = category.id
 
     db.session.commit()
@@ -1492,7 +1492,7 @@ def admin_reject_forum_category_request(request_id):
 
     category_request.status = "rejected"
     category_request.reviewed_by = user_id
-    category_request.reviewed_date = datetime.utcnow()
+    category_request.reviewed_date = datetime.now(UTC)
     category_request.review_notes = data.get("notes", "")
 
     db.session.commit()
@@ -1638,7 +1638,7 @@ def admin_resolve_forum_report(report_id):
 
     report.status = "resolved"
     report.reviewed_by = user_id
-    report.reviewed_date = datetime.utcnow()
+    report.reviewed_date = datetime.now(UTC)
     report.resolution_notes = data.get("notes", "")
 
     # Decrement report count

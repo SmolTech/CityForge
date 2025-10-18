@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -295,7 +295,7 @@ def create_post(thread_id):
     db.session.add(post)
 
     # Update thread's updated_date
-    thread.updated_date = datetime.utcnow()
+    thread.updated_date = datetime.now(UTC)
 
     db.session.commit()
 
@@ -329,7 +329,7 @@ def update_post(post_id):
 
     post.content = validated_data["content"]
     post.edited_by = user_id
-    post.edited_date = datetime.utcnow()
+    post.edited_date = datetime.now(UTC)
 
     db.session.commit()
 

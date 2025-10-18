@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import db
 
@@ -14,8 +14,8 @@ class ForumCategory(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     creator = db.relationship("User", foreign_keys=[created_by], backref="created_forum_categories")
@@ -62,7 +62,7 @@ class ForumCategoryRequest(db.Model):
     requested_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     reviewed_date = db.Column(db.DateTime)
     review_notes = db.Column(db.Text)
     category_id = db.Column(
@@ -104,9 +104,9 @@ class ForumThread(db.Model):
     report_count = db.Column(db.Integer, default=0, nullable=False)
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), index=True)
     updated_date = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True
+        db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), index=True
     )
 
     # Relationships
@@ -166,8 +166,8 @@ class ForumPost(db.Model):
     report_count = db.Column(db.Integer, default=0, nullable=False)
 
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     edited_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     edited_date = db.Column(db.DateTime)
 
@@ -214,7 +214,7 @@ class ForumReport(db.Model):
     reported_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     reviewed_date = db.Column(db.DateTime)
     resolution_notes = db.Column(db.Text)
 
