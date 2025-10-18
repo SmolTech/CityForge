@@ -4,6 +4,7 @@ import "./globals.css";
 import { loadAppConfig } from "@/lib/server-config";
 import { ToastProvider } from "@/components/Toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ConfigProvider } from "@/contexts/ConfigContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <ToastProvider>{children}</ToastProvider>
+          <ConfigProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </ConfigProvider>
         </ErrorBoundary>
       </body>
     </html>

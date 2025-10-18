@@ -348,6 +348,41 @@ Uses Next.js 15 app router with the following pages:
 - `/settings` - User settings
 - `/admin` - Admin dashboard (admin users only)
 
+### Configuration Management
+
+The frontend uses React Context API to manage and share site configuration across all components:
+
+**ConfigContext** (`src/contexts/ConfigContext.tsx`):
+
+- Loads configuration once on app mount from `/api/config`
+- Provides centralized access to site configuration via `useConfig()` hook
+- Includes fallback configuration if API fetch fails
+
+- Eliminates duplicate API calls across components
+
+**Usage in components:**
+
+```tsx
+import { useConfig } from "@/contexts/ConfigContext";
+
+function MyComponent() {
+  const config = useConfig();
+  const siteConfig = config.site;
+
+  return <h1>{siteConfig.title}</h1>;
+}
+```
+
+**Configuration structure:**
+
+- `site`: Site-wide settings (title, description, copyright, etc.)
+- `resources`: Resource directory configuration
+- `quickAccess`: Quick access items for resources page
+- `resourceItems`: Resource directory items
+- `footer`: Footer configuration
+
+**Important**: Always use `useConfig()` hook instead of directly fetching `/api/config` to avoid redundant API calls.
+
 ### Styling
 
 - Tailwind CSS v4 with custom configuration
