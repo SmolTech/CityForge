@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { apiClient, ForumThread, ForumPost, ForumCategory } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function ThreadPage() {
   const params = useParams();
+  const router = useRouter();
   const categorySlug = params.categorySlug as string;
   const threadId = parseInt(params.threadId as string);
+  const config = useConfig();
+  const siteTitle = config.site.title;
 
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [thread, setThread] = useState<ForumThread | null>(null);
@@ -26,25 +30,16 @@ export default function ThreadPage() {
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
-  const [siteTitle, setSiteTitle] = useState("Community Website");
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!apiClient.isAuthenticated()) {
+      router.push(`/login?redirect=/forums/${categorySlug}/${threadId}`);
+      return;
+    }
     loadData();
     loadCurrentUser();
-    loadSiteConfig();
   }, [threadId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteTitle(config.site?.title || "Community Website");
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
-    }
-  };
 
   const loadCurrentUser = async () => {
     try {
@@ -68,6 +63,10 @@ export default function ThreadPage() {
       setPosts(threadData.posts || []);
     } catch (error) {
       console.error("Failed to load thread data:", error);
+      // If unauthorized, redirect to login
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push(`/login?redirect=/forums/${categorySlug}/${threadId}`);
+      }
     } finally {
       setLoading(false);
     }

@@ -5,30 +5,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function RequestCategoryPage() {
   const router = useRouter();
+  const config = useConfig();
+  const siteTitle = config.site.title;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [justification, setJustification] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [siteTitle, setSiteTitle] = useState("Community Website");
 
   useEffect(() => {
-    loadSiteConfig();
-  }, []);
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteTitle(config.site?.title || "Community Website");
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
+    // Check if user is authenticated
+    if (!apiClient.isAuthenticated()) {
+      router.push("/login?redirect=/forums/request-category");
+      return;
     }
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,8 +41,13 @@ export default function RequestCategoryPage() {
       router.push("/forums");
     } catch (error) {
       console.error("Failed to submit category request:", error);
-      alert("Failed to submit category request. Please try again.");
-      setSubmitting(false);
+      // If unauthorized, redirect to login
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login?redirect=/forums/request-category");
+      } else {
+        alert("Failed to submit category request. Please try again.");
+        setSubmitting(false);
+      }
     }
   };
 

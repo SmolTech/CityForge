@@ -1,39 +1,39 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ForumCategory } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function ForumsPage() {
+  const router = useRouter();
+  const config = useConfig();
+  const siteConfig = config.site;
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [siteConfig, setSiteConfig] = useState<{
-    shortName: string;
-    title: string;
-  } | null>(null);
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!apiClient.isAuthenticated()) {
+      router.push("/login?redirect=/forums");
+      return;
+    }
     loadData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
-      // Load site config
-      const configResponse = await fetch("/api/config");
-      if (configResponse.ok) {
-        const config = await configResponse.json();
-        setSiteConfig({
-          shortName: config.site?.shortName || "Community",
-          title: config.site?.title || "Community Website",
-        });
-      }
-
       // Load categories with stats
       const categoriesData = await apiClient.getForumCategories(true);
       setCategories(categoriesData);
     } catch (error) {
       console.error("Failed to load forums data:", error);
+      // If unauthorized, redirect to login
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login?redirect=/forums");
+      }
     } finally {
       setLoading(false);
     }
@@ -49,10 +49,7 @@ export default function ForumsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation
-        currentPage="Forums"
-        siteTitle={siteConfig?.title || "Community Website"}
-      />
+      <Navigation currentPage="Forums" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -63,7 +60,7 @@ export default function ForumsPage() {
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Discuss topics, share ideas, and connect with the{" "}
-                {siteConfig?.shortName || "Community"} community
+                {siteConfig.shortName} community
               </p>
             </div>
             <Link

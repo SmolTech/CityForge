@@ -1,36 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ForumThread, ForumCategory } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function CategoryThreadsPage() {
   const params = useParams();
+  const router = useRouter();
   const categorySlug = params.categorySlug as string;
+  const config = useConfig();
+  const siteTitle = config.site.title;
 
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [siteTitle, setSiteTitle] = useState("Community Website");
 
   useEffect(() => {
-    loadData();
-    loadSiteConfig();
-  }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteTitle(config.site?.title || "Community Website");
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
+    // Check if user is authenticated
+    if (!apiClient.isAuthenticated()) {
+      router.push(`/login?redirect=/forums/${categorySlug}`);
+      return;
     }
-  };
+    loadData();
+  }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
@@ -43,6 +38,10 @@ export default function CategoryThreadsPage() {
       setThreads(threadsResponse.threads);
     } catch (error) {
       console.error("Failed to load category data:", error);
+      // If unauthorized, redirect to login
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push(`/login?redirect=/forums/${categorySlug}`);
+      }
     } finally {
       setLoading(false);
     }
