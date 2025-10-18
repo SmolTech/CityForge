@@ -60,10 +60,7 @@ class IndexingJob(db.Model):
     @classmethod
     def get_failed_jobs(cls, max_retries=3):
         """Get jobs that failed and can still be retried"""
-        return cls.query.filter(
-            cls.status == "failed",
-            cls.retry_count < max_retries
-        ).all()
+        return cls.query.filter(cls.status == "failed", cls.retry_count < max_retries).all()
 
     @classmethod
     def reset_all_jobs(cls):
