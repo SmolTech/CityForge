@@ -160,6 +160,11 @@ def init_database(skip_admin_prompt=False):
             ),
             ("footer_contact_email", "contact@example.com", "Resources page footer contact email"),
             ("footer_button_text", "Suggest a Resource", "Resources page footer button text"),
+            (
+                "pagination_default_limit",
+                "20",
+                "Default number of items to display per page in directory listings",
+            ),
         ]
 
         configs_created = 0

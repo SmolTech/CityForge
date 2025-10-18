@@ -103,6 +103,7 @@ export default function SiteConfigPage() {
       copyright_year: "Copyright Year",
       copyright_holder: "Copyright Holder",
       copyright_url: "Copyright URL",
+      pagination_default_limit: "Items Per Page",
     };
     return (
       labels[key] ||
@@ -129,6 +130,8 @@ export default function SiteConfigPage() {
       copyright_year: "Year to display in copyright notices",
       copyright_holder: "Name of the copyright holder",
       copyright_url: "URL link for the copyright holder",
+      pagination_default_limit:
+        "Default number of items to display per page in directory listings (recommended: 10-50)",
     };
     return descriptions[key] || null;
   };
@@ -138,6 +141,7 @@ export default function SiteConfigPage() {
       "Site Information": [],
       "Resources Page": [],
       "Directory Page": [],
+      "Pagination & Display": [],
       "Copyright & Legal": [],
       Other: [],
     };
@@ -149,6 +153,8 @@ export default function SiteConfigPage() {
         groups["Resources Page"].push(config);
       } else if (config.key.startsWith("directory_")) {
         groups["Directory Page"].push(config);
+      } else if (config.key.startsWith("pagination_")) {
+        groups["Pagination & Display"].push(config);
       } else if (config.key.startsWith("copyright_")) {
         groups["Copyright & Legal"].push(config);
       } else {
@@ -242,6 +248,18 @@ export default function SiteConfigPage() {
                           handleInputChange(config.key, e.target.value)
                         }
                         rows={4}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-white transition-all"
+                      />
+                    ) : config.key === "pagination_default_limit" ? (
+                      <input
+                        id={`config-${config.id}`}
+                        type="number"
+                        min="5"
+                        max="100"
+                        value={formData[config.key] || ""}
+                        onChange={(e) =>
+                          handleInputChange(config.key, e.target.value)
+                        }
                         className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-white transition-all"
                       />
                     ) : (
