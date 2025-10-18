@@ -1,7 +1,14 @@
 from datetime import UTC, datetime
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
+from flask import Blueprint, jsonify, make_response, request
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+    set_access_cookies,
+    unset_jwt_cookies,
+)
 from marshmallow import ValidationError
 
 from app import db, limiter
@@ -56,7 +63,10 @@ def register():
 
     access_token = create_access_token(identity=user.id)
 
-    return jsonify({"access_token": access_token, "user": user.to_dict()}), 201
+    response = make_response(jsonify({"user": user.to_dict()}), 201)
+    set_access_cookies(response, access_token)
+
+    return response
 
 
 @bp.route("/login", methods=["POST"])
@@ -82,7 +92,10 @@ def login():
 
         access_token = create_access_token(identity=user.id)
 
-        return jsonify({"access_token": access_token, "user": user.to_dict()})
+        response = make_response(jsonify({"user": user.to_dict()}))
+        set_access_cookies(response, access_token)
+
+        return response
 
     return jsonify({"message": "Invalid credentials"}), 401
 
@@ -104,7 +117,10 @@ def logout():
         jti=jti, token_type=token_type, user_id=int(user_id), expires_at=expires_at
     )
 
-    return jsonify({"message": "Successfully logged out"})
+    response = make_response(jsonify({"message": "Successfully logged out"}))
+    unset_jwt_cookies(response)
+
+    return response
 
 
 @bp.route("/me", methods=["GET"])

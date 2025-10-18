@@ -274,6 +274,70 @@ logging.basicConfig()
 logging.getLogger('sqlalchemy.pool').setLevel(logging.DEBUG)
 ```
 
+### Authentication Security
+
+The application uses **httpOnly cookies** for JWT token storage to protect against XSS attacks:
+
+**Security Features:**
+
+- **httpOnly cookies**: JavaScript cannot access authentication tokens, preventing XSS token theft
+- **SameSite protection**: Cookies use `SameSite=Lax` to protect against CSRF attacks
+- **HTTPS enforcement**: Cookies are marked as `Secure` in production (HTTPS only)
+- **CORS credentials**: Backend configured to accept cookies from authorized origins only
+- **Database-backed blacklist**: Logout immediately invalidates tokens via database blacklist
+
+**Backend Configuration** (`backend/app/__init__.py`):
+
+```python
+app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
+app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
+app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Can enable with CSRF tokens
+```
+
+**CORS Configuration** (`backend/app/__init__.py`):
+
+```python
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:3000",  # Development frontend
+        os.getenv("FRONTEND_URL", ""),  # Production frontend
+    ],
+)
+```
+
+**Frontend Configuration** (`src/lib/api/client.ts`):
+
+All API requests include `credentials: "include"` to send cookies:
+
+```typescript
+const fetchOptions: RequestInit = {
+  ...options,
+  headers,
+  credentials: "include", // Include cookies in requests
+};
+```
+
+**How It Works:**
+
+1. **Login/Register**: Backend sets httpOnly cookie via `set_access_cookies()`
+2. **API Requests**: Frontend automatically sends cookie with every request
+3. **Token Validation**: Backend validates JWT from cookie on protected routes
+4. **Logout**: Backend clears cookie via `unset_jwt_cookies()` and blacklists token
+
+**Migration from localStorage:**
+
+Previous versions stored tokens in localStorage. The new httpOnly cookie approach:
+
+- ✅ Protects against XSS attacks (JavaScript cannot read cookies)
+- ✅ Automatic token transmission (no manual header setting)
+- ✅ Better security posture for production deployments
+- ⚠️ Requires CORS configuration for cross-origin requests
+- ⚠️ May need adjustments for mobile app support
+
 ### JWT Token Management
 
 The application uses database-backed JWT token blacklisting for secure logout:

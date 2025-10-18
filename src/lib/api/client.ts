@@ -9,36 +9,26 @@ export class ApiClient {
     this.baseUrl = API_BASE_URL;
   }
 
-  protected getAuthToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("auth_token");
-  }
-
   protected async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = this.getAuthToken();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
     // Configure Next.js fetch caching based on endpoint
     const fetchOptions: RequestInit = {
       ...options,
       headers,
+      credentials: "include", // Include cookies in requests
     };
 
     // Add cache configuration for specific endpoints (only for GET requests)
     if (!options.method || options.method === "GET") {
-      // Don't cache if there's an auth token (user-specific data)
-      if (!token) {
-        // Apply caching based on endpoint
+      // Apply caching based on endpoint (skip caching for auth endpoints)
+      if (!endpoint.includes("/api/auth/")) {
         if (endpoint.includes("/api/tags")) {
           fetchOptions.next = { revalidate: 300 }; // 5 minutes
         } else if (
@@ -67,7 +57,6 @@ export class ApiClient {
         if (response.status === 401 && endpoint !== "/api/auth/login") {
           // Token expired or invalid (but not a login failure)
           if (typeof window !== "undefined") {
-            localStorage.removeItem("auth_token");
             window.location.href = "/login";
           }
         }

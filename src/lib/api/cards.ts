@@ -87,10 +87,9 @@ export class CardsApi extends ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
-    const token = this.getAuthToken();
     const response = await fetch(`${this.baseUrl}/api/upload`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include", // Include cookies for authentication
       body: formData,
     });
 

@@ -26,18 +26,42 @@ opensearch_client = None
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+
+    # CORS configuration to support credentials (cookies)
+    CORS(
+        app,
+        supports_credentials=True,
+        origins=[
+            "http://localhost:3000",  # Development frontend
+            "http://localhost:5000",  # Development backend
+            os.getenv("FRONTEND_URL", ""),  # Production frontend
+        ],
+    )
 
     # Configure logging
     from app.utils.logging_config import configure_logging
 
     configure_logging(app)
 
+    # Determine environment (default to development if not specified)
+    flask_env = os.getenv("FLASK_ENV", "development").lower()
+    is_production = flask_env == "production"
+
     # Configuration
     app.config["JWT_SECRET_KEY"] = os.getenv(
         "JWT_SECRET_KEY", "dev-secret-key-change-in-production"
     )
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
+
+    # JWT Cookie Configuration (httpOnly cookies for security)
+    app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
+    app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
+    app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Disabled for now (can enable later with CSRF tokens)
+    app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
+    app.config["JWT_COOKIE_DOMAIN"] = None  # Same domain only
+
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -59,10 +83,6 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # SQLAlchemy connection pool configuration
-    # Determine environment (default to development if not specified)
-    flask_env = os.getenv("FLASK_ENV", "development").lower()
-    is_production = flask_env == "production"
-
     # Configure connection pool based on environment
     pool_config = {
         # Test connections before using (detects broken connections)

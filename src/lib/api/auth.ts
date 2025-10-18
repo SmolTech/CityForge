@@ -8,29 +8,17 @@ export class AuthApi extends ApiClient {
     first_name: string;
     last_name: string;
   }): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/api/auth/register", {
+    return this.request<AuthResponse>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(userData),
     });
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", response.access_token);
-    }
-
-    return response;
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/api/auth/login", {
+    return this.request<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", response.access_token);
-    }
-
-    return response;
   }
 
   async logout(): Promise<void> {
@@ -39,10 +27,6 @@ export class AuthApi extends ApiClient {
     } catch {
       // Continue with logout even if request fails
     }
-
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
-    }
   }
 
   async getCurrentUser(): Promise<{ user: User }> {
@@ -50,7 +34,11 @@ export class AuthApi extends ApiClient {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAuthToken();
+    // With httpOnly cookies, we can't check auth state from localStorage
+    // Components should use getCurrentUser() to verify authentication
+    // This method is kept for backward compatibility but always returns true
+    // The actual auth check happens when making API requests
+    return true;
   }
 
   async updateEmail(
