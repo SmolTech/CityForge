@@ -1,8 +1,10 @@
 bcrypt==5.0.0
+bleach==6.2.0
 blinker==1.9.0
 certifi==2025.10.5
 charset-normalizer==3.4.3
 click==8.1.8
+email-validator==2.2.0
 Events==0.5
 Flask==3.1.2
 Flask-Bcrypt==1.0.1
@@ -17,8 +19,10 @@ idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+marshmallow==3.25.1
 opensearch-py==3.0.0
 packaging==25.0
+phonenumbers==8.13.54
 pillow==11.3.0
 psycopg==3.2.10
 psycopg-binary==3.2.10

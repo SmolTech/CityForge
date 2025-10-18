@@ -2,10 +2,18 @@ from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 
 from app import db, limiter
 from app.models.token_blacklist import TokenBlacklist
 from app.models.user import User
+from app.schemas import (
+    UserLoginSchema,
+    UserRegistrationSchema,
+    UserUpdateEmailSchema,
+    UserUpdatePasswordSchema,
+    UserUpdateProfileSchema,
+)
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -14,19 +22,32 @@ bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 @limiter.limit("3 per hour")
 def register():
     data = request.get_json()
-    if not data or not all(k in data for k in ["email", "password", "first_name", "last_name"]):
-        return jsonify({"message": "Missing required fields"}), 400
 
-    if User.query.filter_by(email=data["email"].lower()).first():
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = UserRegistrationSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Normalize email to lowercase
+    email = validated_data["email"].lower()
+
+    if User.query.filter_by(email=email).first():
         return jsonify({"message": "Email already registered"}), 400
 
     user = User(
-        email=data["email"].lower(), first_name=data["first_name"], last_name=data["last_name"]
+        email=email,
+        first_name=validated_data["first_name"],
+        last_name=validated_data["last_name"],
     )
 
     try:
         # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
-        user.set_password(data["password"])
+        user.set_password(validated_data["password"])
     except ValueError as e:
         return jsonify({"message": str(e)}), 400
 
@@ -42,12 +63,20 @@ def register():
 @limiter.limit("5 per minute")
 def login():
     data = request.get_json()
-    if not data or not all(k in data for k in ["email", "password"]):
-        return jsonify({"message": "Missing email or password"}), 400
 
-    user = User.query.filter_by(email=data["email"].lower()).first()
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    if user and user.check_password(data["password"]) and user.is_active:
+    # Validate input data
+    schema = UserLoginSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    user = User.query.filter_by(email=validated_data["email"].lower()).first()
+
+    if user and user.check_password(validated_data["password"]) and user.is_active:
         user.last_login = datetime.utcnow()
         db.session.commit()
 
@@ -98,18 +127,23 @@ def update_email():
         return jsonify({"message": "User not found"}), 404
 
     data = request.get_json()
-    if not data or "email" not in data:
-        return jsonify({"message": "Email is required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    new_email = data["email"].lower().strip()
+    # Validate input data
+    schema = UserUpdateEmailSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
-    if "@" not in new_email or "." not in new_email:
-        return jsonify({"message": "Invalid email format"}), 400
+    new_email = validated_data["new_email"].lower()
 
     existing_user = User.query.filter_by(email=new_email).first()
     if existing_user and existing_user.id != user.id:
         return jsonify({"message": "Email already in use"}), 400
 
+    # Require current password for email changes
     if "current_password" not in data:
         return jsonify({"message": "Current password is required"}), 400
 
@@ -133,15 +167,22 @@ def update_password():
         return jsonify({"message": "User not found"}), 404
 
     data = request.get_json()
-    if not data or not all(k in data for k in ["current_password", "new_password"]):
-        return jsonify({"message": "Current password and new password are required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    if not user.check_password(data["current_password"]):
+    # Validate input data
+    schema = UserUpdatePasswordSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    if not user.check_password(validated_data["current_password"]):
         return jsonify({"message": "Current password is incorrect"}), 401
 
     try:
         # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
-        user.set_password(data["new_password"])
+        user.set_password(validated_data["new_password"])
     except ValueError as e:
         return jsonify({"message": str(e)}), 400
     db.session.commit()
@@ -162,11 +203,18 @@ def update_profile():
     if not data:
         return jsonify({"message": "No data provided"}), 400
 
-    if "first_name" in data and data["first_name"].strip():
-        user.first_name = data["first_name"].strip()
+    # Validate input data
+    schema = UserUpdateProfileSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
-    if "last_name" in data and data["last_name"].strip():
-        user.last_name = data["last_name"].strip()
+    if "first_name" in validated_data and validated_data["first_name"]:
+        user.first_name = validated_data["first_name"]
+
+    if "last_name" in validated_data and validated_data["last_name"]:
+        user.last_name = validated_data["last_name"]
 
     db.session.commit()
 

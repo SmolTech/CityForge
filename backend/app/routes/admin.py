@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 from sqlalchemy import func, text
 
 from app import db
@@ -16,6 +17,11 @@ from app.models.help_wanted import HelpWantedPost, HelpWantedReport
 from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 from app.models.review import Review
 from app.models.user import User
+from app.schemas import (
+    CardSubmissionSchema,
+    TagSchema,
+    UserUpdateProfileSchema,
+)
 from app.utils.helpers import generate_slug, require_admin
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -75,18 +81,26 @@ def admin_create_card():
     user_id = int(get_jwt_identity())
     data = request.get_json()
 
-    if not data or not all(k in data for k in ["name"]):
-        return jsonify({"message": "Missing required fields"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = CardSubmissionSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     card = Card(
-        name=data["name"],
-        description=data.get("description", ""),
-        website_url=data.get("website_url"),
-        phone_number=data.get("phone_number"),
-        email=data.get("email"),
-        address=data.get("address"),
-        contact_name=data.get("contact_name"),
-        image_url=data.get("image_url"),
+        name=validated_data["name"],
+        description=validated_data.get("description", ""),
+        website_url=validated_data.get("website_url"),
+        phone_number=validated_data.get("phone_number"),
+        email=validated_data.get("email"),
+        address=validated_data.get("address"),
+        address_override_url=validated_data.get("address_override_url"),
+        contact_name=validated_data.get("contact_name"),
+        image_url=validated_data.get("image_url"),
         featured=data.get("featured", False),
         approved=True,
         created_by=user_id,
@@ -94,11 +108,20 @@ def admin_create_card():
         approved_date=datetime.utcnow(),
     )
 
-    if "tags" in data:
+    # Handle tags from either tags array or tags_text
+    if "tags" in data and isinstance(data["tags"], list):
         for tag_name in data["tags"]:
             tag = Tag.query.filter_by(name=tag_name.strip().lower()).first()
             if not tag:
                 tag = Tag(name=tag_name.strip().lower())
+                db.session.add(tag)
+            card.tags.append(tag)
+    elif validated_data.get("tags_text"):
+        tag_names = [tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()]
+        for tag_name in tag_names:
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name=tag_name)
                 db.session.add(tag)
             card.tags.append(tag)
 
@@ -121,6 +144,14 @@ def admin_update_card(card_id):
     if not data:
         return jsonify({"message": "No data provided"}), 400
 
+    # Validate input data (partial validation - only validate fields that are provided)
+    schema = CardSubmissionSchema(partial=True)
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Update validated fields
     for field in [
         "name",
         "description",
@@ -131,18 +162,32 @@ def admin_update_card(card_id):
         "address_override_url",
         "contact_name",
         "image_url",
-        "featured",
-        "approved",
     ]:
-        if field in data:
-            setattr(card, field, data[field])
+        if field in validated_data:
+            setattr(card, field, validated_data[field])
 
-    if "tags" in data:
+    # Update non-validated admin fields
+    if "featured" in data:
+        card.featured = data["featured"]
+    if "approved" in data:
+        card.approved = data["approved"]
+
+    # Handle tags from either tags array or tags_text
+    if "tags" in data and isinstance(data["tags"], list):
         card.tags.clear()
         for tag_name in data["tags"]:
             tag = Tag.query.filter_by(name=tag_name.strip().lower()).first()
             if not tag:
                 tag = Tag(name=tag_name.strip().lower())
+                db.session.add(tag)
+            card.tags.append(tag)
+    elif "tags_text" in validated_data:
+        card.tags.clear()
+        tag_names = [tag.strip().lower() for tag in validated_data["tags_text"].split(",") if tag.strip()]
+        for tag_name in tag_names:
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if not tag:
+                tag = Tag(name=tag_name)
                 db.session.add(tag)
             card.tags.append(tag)
 
@@ -439,10 +484,19 @@ def admin_update_user(user_id):
     if user_id == int(current_user_id) and "role" in data and data["role"] != "admin":
         return jsonify({"message": "Cannot demote yourself from admin"}), 400
 
-    if "first_name" in data:
-        user.first_name = data["first_name"]
-    if "last_name" in data:
-        user.last_name = data["last_name"]
+    # Validate profile fields if present
+    if "first_name" in data or "last_name" in data:
+        schema = UserUpdateProfileSchema(partial=True)
+        try:
+            validated_data = schema.load({"first_name": data.get("first_name"), "last_name": data.get("last_name")})
+            if "first_name" in validated_data:
+                user.first_name = validated_data["first_name"]
+            if "last_name" in validated_data:
+                user.last_name = validated_data["last_name"]
+        except ValidationError as err:
+            return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Update admin-specific fields (not validated)
     if "role" in data and data["role"] in ["admin", "user"]:
         user.role = data["role"]
     if "is_active" in data:
@@ -540,12 +594,17 @@ def admin_create_tag():
         return admin_check
 
     data = request.get_json()
-    if not data or "name" not in data:
-        return jsonify({"message": "Tag name is required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    tag_name = data["name"].strip().lower()
-    if not tag_name:
-        return jsonify({"message": "Tag name cannot be empty"}), 400
+    # Validate input data
+    schema = TagSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    tag_name = validated_data["name"].strip().lower()
 
     existing_tag = Tag.query.filter_by(name=tag_name).first()
     if existing_tag:
@@ -568,12 +627,17 @@ def admin_update_tag(tag_name):
     tag = Tag.query.filter_by(name=tag_name).first_or_404()
     data = request.get_json()
 
-    if not data or "name" not in data:
-        return jsonify({"message": "New tag name is required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    new_name = data["name"].strip().lower()
-    if not new_name:
-        return jsonify({"message": "Tag name cannot be empty"}), 400
+    # Validate input data
+    schema = TagSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    new_name = validated_data["name"].strip().lower()
 
     if new_name != tag.name:
         existing_tag = Tag.query.filter_by(name=new_name).first()
