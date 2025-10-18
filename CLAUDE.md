@@ -347,6 +347,18 @@ Uses Next.js 15 app router with the following pages:
 - `/dashboard` - User dashboard
 - `/settings` - User settings
 - `/admin` - Admin dashboard (admin users only)
+- `/forums/*` - Community forums (requires authentication)
+
+**Forum Pages (Authentication Required):**
+
+- `/forums` - Forum categories list
+- `/forums/[categorySlug]` - Category threads
+- `/forums/[categorySlug]/[threadId]` - Thread details and posts
+- `/forums/[categorySlug]/new` - Create new thread
+- `/forums/request-category` - Request new forum category
+
+**Authentication Enforcement:**
+All forum pages check authentication on mount and redirect unauthenticated users to `/login?redirect=[original-url]`. This allows users to return to their intended destination after logging in.
 
 ### Configuration Management
 

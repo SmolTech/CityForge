@@ -23,6 +23,7 @@ bp = Blueprint("forums", __name__)
 
 
 @bp.route("/api/forums/categories", methods=["GET"])
+@jwt_required()
 def get_categories():
     """Get all active forum categories."""
     include_stats = request.args.get("include_stats", "false").lower() == "true"
@@ -35,6 +36,7 @@ def get_categories():
 
 
 @bp.route("/api/forums/categories/<slug>", methods=["GET"])
+@jwt_required()
 def get_category_by_slug(slug):
     """Get a specific category by slug."""
     category = ForumCategory.query.filter_by(slug=slug, is_active=True).first_or_404()
@@ -108,6 +110,7 @@ def get_my_category_requests():
 
 
 @bp.route("/api/forums/categories/<slug>/threads", methods=["GET"])
+@jwt_required()
 def get_category_threads(slug):
     """Get all threads in a category."""
     category = ForumCategory.query.filter_by(slug=slug, is_active=True).first_or_404()
@@ -135,6 +138,7 @@ def get_category_threads(slug):
 
 
 @bp.route("/api/forums/threads/<int:thread_id>", methods=["GET"])
+@jwt_required()
 def get_thread(thread_id):
     """Get a specific thread with all posts."""
     thread = ForumThread.query.get_or_404(thread_id)

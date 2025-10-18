@@ -5,35 +5,29 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ForumCategory } from "@/lib/api";
 import Navigation from "@/components/Navigation";
+import { useConfig } from "@/contexts/ConfigContext";
 
 export default function NewThreadPage() {
   const params = useParams();
   const router = useRouter();
   const categorySlug = params.categorySlug as string;
+  const config = useConfig();
+  const siteTitle = config.site.title;
 
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [siteTitle, setSiteTitle] = useState("Community Website");
 
   useEffect(() => {
-    loadCategory();
-    loadSiteConfig();
-  }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadSiteConfig = async () => {
-    try {
-      const response = await fetch("/api/config");
-      if (response.ok) {
-        const config = await response.json();
-        setSiteTitle(config.site?.title || "Community Website");
-      }
-    } catch (error) {
-      console.error("Failed to load site config:", error);
+    // Check if user is authenticated
+    if (!apiClient.isAuthenticated()) {
+      router.push(`/login?redirect=/forums/${categorySlug}/new`);
+      return;
     }
-  };
+    loadCategory();
+  }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCategory = async () => {
     try {
@@ -41,6 +35,10 @@ export default function NewThreadPage() {
       setCategory(categoryData);
     } catch (error) {
       console.error("Failed to load category:", error);
+      // If unauthorized, redirect to login
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push(`/login?redirect=/forums/${categorySlug}/new`);
+      }
     } finally {
       setLoading(false);
     }
