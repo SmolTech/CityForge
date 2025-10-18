@@ -211,6 +211,69 @@ The Flask backend defines the following main models:
 - `QuickAccessItem`: Featured quick-access items
 - `ResourceConfig`: Site-wide configuration values
 
+### Database Connection Pooling
+
+The application uses SQLAlchemy's connection pooling with optimized settings for production reliability:
+
+**Configuration** (`backend/app/__init__.py`):
+
+The connection pool is configured automatically based on the `FLASK_ENV` environment variable:
+
+**Development Settings** (default):
+
+```python
+pool_size: 5          # Maximum connections in pool
+max_overflow: 10      # Additional connections beyond pool_size
+pool_recycle: 3600    # Recycle connections after 1 hour
+pool_pre_ping: True   # Test connections before using
+pool_timeout: 30      # Timeout waiting for connection (seconds)
+```
+
+**Production Settings** (`FLASK_ENV=production`):
+
+```python
+pool_size: 10         # Larger pool for higher traffic
+max_overflow: 20      # More overflow connections
+pool_recycle: 3600    # Recycle connections after 1 hour
+pool_pre_ping: True   # Test connections before using
+pool_timeout: 30      # Timeout waiting for connection (seconds)
+```
+
+**Key Features:**
+
+- **pool_pre_ping**: Detects and recovers from broken database connections automatically
+- **pool_recycle**: Prevents MySQL "has gone away" errors by recycling stale connections
+- **Environment-based sizing**: Smaller pools in development to conserve resources, larger in production for traffic
+- **Connection timeout**: Prevents indefinite waits when pool is exhausted
+
+**Setting Environment for Production:**
+
+```bash
+export FLASK_ENV=production
+# Then start the application
+gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
+```
+
+**Docker/Kubernetes:**
+
+Set the environment variable in your deployment configuration:
+
+```yaml
+env:
+  - name: FLASK_ENV
+    value: "production"
+```
+
+**Monitoring Pool Usage:**
+
+To enable detailed connection pool logging for debugging:
+
+```python
+import logging
+logging.basicConfig()
+logging.getLogger('sqlalchemy.pool').setLevel(logging.DEBUG)
+```
+
 ### JWT Token Management
 
 The application uses database-backed JWT token blacklisting for secure logout:
