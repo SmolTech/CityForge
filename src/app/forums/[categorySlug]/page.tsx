@@ -10,7 +10,7 @@ import { useConfig } from "@/contexts/ConfigContext";
 export default function CategoryThreadsPage() {
   const params = useParams();
   const router = useRouter();
-  const categorySlug = params.categorySlug as string;
+  const categorySlug = params["categorySlug"] as string;
   const config = useConfig();
   const siteTitle = config.site.title;
 

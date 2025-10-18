@@ -51,8 +51,8 @@ export default function NewHelpWantedPage() {
         title,
         description,
         category,
-        location: location || undefined,
-        budget: budget || undefined,
+        ...(location && { location }),
+        ...(budget && { budget }),
         contact_preference: contactPreference,
       });
 

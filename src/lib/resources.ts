@@ -290,6 +290,15 @@ export const iconComponents: Record<
     ),
 };
 
+// Default icon component to use as fallback
+const defaultIconComponent = iconComponents["building"];
+
+export function getIconComponent(
+  iconName: string
+): React.ComponentType<{ className?: string }> {
+  return iconComponents[iconName] ?? defaultIconComponent!;
+}
+
 export function getColorClasses(color: string): string {
   const colorMap: Record<string, string> = {
     blue: "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
@@ -303,5 +312,8 @@ export function getColorClasses(color: string): string {
     yellow:
       "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700",
   };
-  return colorMap[color] || colorMap.blue;
+  return (
+    colorMap[color] ??
+    "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+  );
 }

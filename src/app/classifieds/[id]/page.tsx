@@ -26,7 +26,7 @@ export default function HelpWantedDetailPage() {
   } | null>(null);
   const router = useRouter();
   const params = useParams();
-  const postId = parseInt(params.id as string);
+  const postId = parseInt(params["id"] as string);
 
   useEffect(() => {
     loadPost();

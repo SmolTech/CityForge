@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { iconComponents } from "@/lib/resources";
+import { getIconComponent } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
 import MarkdownContent from "./MarkdownContent";
 import ReviewDisplay from "./ReviewDisplay";
@@ -123,8 +123,8 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
   };
 
   // Get the first tag for icon (if any)
-  const primaryTag = business.tags[0] || "business";
-  const IconComponent = iconComponents[primaryTag] || iconComponents.business;
+  const primaryTag = business.tags[0] ?? "business";
+  const IconComponent = getIconComponent(primaryTag);
 
   // Check if current user is the owner of this business
   const isOwner =
@@ -463,7 +463,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
           <div className="mb-8">
             <ReviewForm
               cardId={business.id}
-              existingReview={editingReview || undefined}
+              {...(editingReview && { existingReview: editingReview })}
               onReviewSubmitted={() => {
                 setReviewRefreshKey((prev) => prev + 1);
                 setEditingReview(null);

@@ -46,7 +46,7 @@ export default function EditBusinessPage() {
 
       const [userResponse, businessData] = await Promise.all([
         apiClient.getCurrentUser(),
-        apiClient.getBusiness(Number(params.id), params.slug as string),
+        apiClient.getBusiness(Number(params["id"]), params["slug"] as string),
       ]);
 
       setUser(userResponse.user);
@@ -57,7 +57,7 @@ export default function EditBusinessPage() {
         businessData.creator &&
         userResponse.user.id !== businessData.creator.id
       ) {
-        router.push(`/business/${params.id}/${params.slug}`);
+        router.push(`/business/${params["id"]}/${params["slug"]}`);
         return;
       }
 
@@ -89,13 +89,13 @@ export default function EditBusinessPage() {
     setError("");
 
     try {
-      await apiClient.suggestCardEdit(Number(params.id), {
+      await apiClient.suggestCardEdit(Number(params["id"]), {
         ...formData,
         tags_text: tags.join(", "),
       });
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/business/${params.id}/${params.slug}`);
+        router.push(`/business/${params["id"]}/${params["slug"]}`);
       }, 2000);
     } catch {
       setError("Failed to submit edit suggestion. Please try again.");
@@ -178,7 +178,7 @@ export default function EditBusinessPage() {
               <li className="text-gray-500 dark:text-gray-400">/</li>
               <li>
                 <Link
-                  href={`/business/${params.id}/${params.slug}`}
+                  href={`/business/${params["id"]}/${params["slug"]}`}
                   className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
                 >
                   {business.name}
@@ -435,7 +435,7 @@ export default function EditBusinessPage() {
 
             <div className="flex justify-end space-x-4">
               <Link
-                href={`/business/${params.id}/${params.slug}`}
+                href={`/business/${params["id"]}/${params["slug"]}`}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel

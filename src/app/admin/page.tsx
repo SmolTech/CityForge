@@ -223,7 +223,7 @@ export default function AdminPage() {
       const response = await apiClient.adminGetUsers({
         page: currentPage,
         limit: 20,
-        search: searchQuery || undefined,
+        ...(searchQuery && { search: searchQuery }),
       });
       setUsers(response.users);
       setTotalUsers(response.total);
