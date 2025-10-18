@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 from sqlalchemy import func
 
 from app import db, limiter
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
 from app.models.user import User
+from app.schemas import CardModificationSchema, CardSubmissionSchema
 
 bp = Blueprint("cards", __name__)
 
@@ -118,20 +120,27 @@ def submit_card():
     user_id = int(get_jwt_identity())
     data = request.get_json()
 
-    if not data or not all(k in data for k in ["name"]):
-        return jsonify({"message": "Missing required fields"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = CardSubmissionSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     submission = CardSubmission(
-        name=data["name"],
-        description=data.get("description", ""),
-        website_url=data.get("website_url"),
-        phone_number=data.get("phone_number"),
-        email=data.get("email"),
-        address=data.get("address"),
-        address_override_url=data.get("address_override_url"),
-        contact_name=data.get("contact_name"),
-        image_url=data.get("image_url"),
-        tags_text=data.get("tags_text", ""),
+        name=validated_data["name"],
+        description=validated_data.get("description", ""),
+        website_url=validated_data.get("website_url"),
+        phone_number=validated_data.get("phone_number"),
+        email=validated_data.get("email"),
+        address=validated_data.get("address"),
+        address_override_url=validated_data.get("address_override_url"),
+        contact_name=validated_data.get("contact_name"),
+        image_url=validated_data.get("image_url"),
+        tags_text=validated_data.get("tags_text", ""),
         submitted_by=user_id,
     )
 
@@ -169,18 +178,25 @@ def suggest_card_edit(card_id):
     if not data:
         return jsonify({"message": "No data provided"}), 400
 
+    # Validate input data
+    schema = CardModificationSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
     modification = CardModification(
         card_id=card_id,
-        name=data.get("name", card.name),
-        description=data.get("description", card.description),
-        website_url=data.get("website_url", card.website_url),
-        phone_number=data.get("phone_number", card.phone_number),
-        email=data.get("email", card.email),
-        address=data.get("address", card.address),
-        address_override_url=data.get("address_override_url", card.address_override_url),
-        contact_name=data.get("contact_name", card.contact_name),
-        image_url=data.get("image_url", card.image_url),
-        tags_text=data.get("tags_text", ",".join([tag.name for tag in card.tags])),
+        name=validated_data.get("name", card.name),
+        description=validated_data.get("description", card.description),
+        website_url=validated_data.get("website_url", card.website_url),
+        phone_number=validated_data.get("phone_number", card.phone_number),
+        email=validated_data.get("email", card.email),
+        address=validated_data.get("address", card.address),
+        address_override_url=validated_data.get("address_override_url", card.address_override_url),
+        contact_name=validated_data.get("contact_name", card.contact_name),
+        image_url=validated_data.get("image_url", card.image_url),
+        tags_text=validated_data.get("tags_text", ",".join([tag.name for tag in card.tags])),
         submitted_by=user_id,
     )
 

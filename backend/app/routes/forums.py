@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 
 from app import db
 from app.models.forum import (
@@ -12,6 +13,7 @@ from app.models.forum import (
     ForumThread,
 )
 from app.models.user import User
+from app.schemas import ForumPostSchema, ForumThreadSchema
 from app.utils.helpers import generate_slug
 
 bp = Blueprint("forums", __name__)
@@ -159,11 +161,18 @@ def create_thread(slug):
 
     data = request.get_json()
 
-    if not data or not all(k in data for k in ["title", "content"]):
-        return jsonify({"message": "Missing required fields: title, content"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = ForumThreadSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     # Generate unique slug for thread
-    base_slug = generate_slug(data["title"])
+    base_slug = generate_slug(validated_data["title"])
     thread_slug = base_slug
     counter = 1
 
@@ -175,7 +184,7 @@ def create_thread(slug):
     # Create thread
     thread = ForumThread(
         category_id=category.id,
-        title=data["title"],
+        title=validated_data["title"],
         slug=thread_slug,
         created_by=user_id,
     )
@@ -186,7 +195,7 @@ def create_thread(slug):
     # Create the first post
     first_post = ForumPost(
         thread_id=thread.id,
-        content=data["content"],
+        content=validated_data["content"],
         is_first_post=True,
         created_by=user_id,
     )
@@ -271,10 +280,17 @@ def create_post(thread_id):
 
     data = request.get_json()
 
-    if not data or "content" not in data:
-        return jsonify({"message": "Missing required field: content"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    post = ForumPost(thread_id=thread_id, content=data["content"], created_by=user_id)
+    # Validate input data
+    schema = ForumPostSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    post = ForumPost(thread_id=thread_id, content=validated_data["content"], created_by=user_id)
 
     db.session.add(post)
 
@@ -301,10 +317,17 @@ def update_post(post_id):
 
     data = request.get_json()
 
-    if not data or "content" not in data:
-        return jsonify({"message": "Missing required field: content"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    post.content = data["content"]
+    # Validate input data
+    schema = ForumPostSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    post.content = validated_data["content"]
     post.edited_by = user_id
     post.edited_date = datetime.utcnow()
 

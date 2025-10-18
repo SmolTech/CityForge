@@ -2,12 +2,14 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 from sqlalchemy import func
 
 from app import db
 from app.models.card import Card
 from app.models.review import Review
 from app.models.user import User
+from app.schemas import ReviewSchema
 
 bp = Blueprint("reviews", __name__)
 
@@ -58,13 +60,15 @@ def create_review(card_id):
     Card.query.get_or_404(card_id)  # Verify card exists
     data = request.get_json()
 
-    # Validate required fields
-    if not data or "rating" not in data:
-        return jsonify({"message": "Rating is required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    rating = data.get("rating")
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return jsonify({"message": "Rating must be an integer between 1 and 5"}), 400
+    # Validate input data
+    schema = ReviewSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     # Check if user has already reviewed this card
     existing_review = Review.query.filter_by(card_id=card_id, user_id=user_id).first()
@@ -75,9 +79,8 @@ def create_review(card_id):
     review = Review(
         card_id=card_id,
         user_id=user_id,
-        rating=rating,
-        title=data.get("title", "").strip()[:200],  # Limit title length
-        comment=data.get("comment", "").strip(),
+        rating=validated_data["rating"],
+        comment=validated_data.get("comment", ""),
         hidden=False,  # Reviews are visible by default
     )
 
@@ -168,18 +171,19 @@ def update_review(review_id):
 
     data = request.get_json()
 
-    # Validate required fields
-    if not data or "rating" not in data:
-        return jsonify({"message": "Rating is required"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
 
-    rating = data.get("rating")
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return jsonify({"message": "Rating must be an integer between 1 and 5"}), 400
+    # Validate input data
+    schema = ReviewSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     # Update review fields
-    review.rating = rating
-    review.title = data.get("title", "").strip()[:200]
-    review.comment = data.get("comment", "").strip()
+    review.rating = validated_data["rating"]
+    review.comment = validated_data.get("comment", "")
     review.updated_date = datetime.utcnow()
 
     db.session.commit()

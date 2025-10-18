@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from marshmallow import ValidationError
 
 from app import db
 from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWantedReport
 from app.models.user import User
+from app.schemas import HelpWantedPostSchema
 
 bp = Blueprint("help_wanted", __name__)
 
@@ -58,8 +60,19 @@ def create_help_wanted_post():
 
     data = request.get_json()
 
-    if not data or not all(k in data for k in ["title", "description", "category"]):
-        return jsonify({"message": "Missing required fields: title, description, category"}), 400
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = HelpWantedPostSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Validate category (not in schema)
+    if "category" not in data:
+        return jsonify({"message": "Missing required field: category"}), 400
 
     valid_categories = ["hiring", "collaboration", "general"]
     if data["category"] not in valid_categories:
@@ -71,9 +84,11 @@ def create_help_wanted_post():
         )
 
     post = HelpWantedPost(
-        title=data["title"],
-        description=data["description"],
+        title=validated_data["title"],
+        description=validated_data["description"],
         category=data["category"],
+        contact_email=validated_data.get("contact_email"),
+        contact_phone=validated_data.get("contact_phone"),
         location=data.get("location"),
         budget=data.get("budget"),
         contact_preference=data.get("contact_preference", "message"),
@@ -98,10 +113,27 @@ def update_help_wanted_post(post_id):
 
     data = request.get_json()
 
-    if "title" in data:
-        post.title = data["title"]
-    if "description" in data:
-        post.description = data["description"]
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data (partial validation - only validate fields that are provided)
+    schema = HelpWantedPostSchema(partial=True)
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Update validated fields
+    if "title" in validated_data:
+        post.title = validated_data["title"]
+    if "description" in validated_data:
+        post.description = validated_data["description"]
+    if "contact_email" in validated_data:
+        post.contact_email = validated_data["contact_email"]
+    if "contact_phone" in validated_data:
+        post.contact_phone = validated_data["contact_phone"]
+
+    # Update non-validated fields
     if "category" in data:
         valid_categories = ["hiring", "collaboration", "general"]
         if data["category"] not in valid_categories:
