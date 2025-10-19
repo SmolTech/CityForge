@@ -131,36 +131,40 @@ export default function Navigation({
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {!loading &&
-              NAV_ITEMS.map((item) => {
-                if (!shouldShowNavItem(item)) return null;
+            {NAV_ITEMS.map((item) => {
+              // Skip rendering auth-dependent items while loading
+              if (loading && (item.requiresAuth || item.showLockedWhenGuest)) {
+                return null;
+              }
 
-                const isLocked = isNavItemLocked(item);
+              if (!shouldShowNavItem(item)) return null;
 
-                if (isLocked) {
-                  return (
-                    <div key={item.href} className="relative group">
-                      <span className="text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                        {item.label}
-                      </span>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                        {item.lockedTooltip}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
-                      </div>
-                    </div>
-                  );
-                }
+              const isLocked = isNavItemLocked(item);
 
+              if (isLocked) {
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={getDesktopNavClass(item.label)}
-                  >
-                    {item.label}
-                  </Link>
+                  <div key={item.href} className="relative group">
+                    <span className="text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                      {item.label}
+                    </span>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
+                      {item.lockedTooltip}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900 dark:border-b-gray-700"></div>
+                    </div>
+                  </div>
                 );
-              })}
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={getDesktopNavClass(item.label)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             {!loading && (
               <>
                 {isAuthenticated ? (
@@ -299,37 +303,44 @@ export default function Navigation({
                   Welcome back, {user.first_name}!
                 </div>
               )}
-              {!loading &&
-                NAV_ITEMS.map((item) => {
-                  if (!shouldShowNavItem(item)) return null;
+              {NAV_ITEMS.map((item) => {
+                // Skip rendering auth-dependent items while loading
+                if (
+                  loading &&
+                  (item.requiresAuth || item.showLockedWhenGuest)
+                ) {
+                  return null;
+                }
 
-                  const isLocked = isNavItemLocked(item);
+                if (!shouldShowNavItem(item)) return null;
 
-                  if (isLocked) {
-                    return (
-                      <div key={item.href} className="relative group">
-                        <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                          {item.label}
-                        </span>
-                        <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
-                          {item.lockedTooltip}
-                          <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
-                        </div>
-                      </div>
-                    );
-                  }
+                const isLocked = isNavItemLocked(item);
 
+                if (isLocked) {
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={getMobileNavClass(item.label)}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
+                    <div key={item.href} className="relative group">
+                      <span className="block px-3 py-2 rounded-md text-base font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                        {item.label}
+                      </span>
+                      <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 whitespace-nowrap z-50">
+                        {item.lockedTooltip}
+                        <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
+                      </div>
+                    </div>
                   );
-                })}
+                }
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={getMobileNavClass(item.label)}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               {!loading && (
                 <>
                   {isAuthenticated ? (
