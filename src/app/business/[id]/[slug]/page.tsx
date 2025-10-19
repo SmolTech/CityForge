@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import Navigation from "@/components/Navigation";
-import BusinessDetail from "@/components/BusinessDetail";
+import { Navigation } from "@/components/shared";
+import { BusinessDetail } from "@/components/cards";
 import { CLIENT_CONFIG } from "@/lib/client-config";
 
 interface BusinessPageProps {

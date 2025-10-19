@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, User } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function SettingsPage() {
   const [, setUser] = useState<User | null>(null);

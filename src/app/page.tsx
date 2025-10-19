@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { apiClient, Card, Tag, User } from "@/lib/api";
-import CardComponent from "@/components/Card";
-import SearchBar from "@/components/SearchBar";
-import TagCloud from "@/components/TagCloud";
-import FilterPanel from "@/components/FilterPanel";
-import Navigation from "@/components/Navigation";
-import Pagination from "@/components/Pagination";
+import { Card as CardComponent } from "@/components/cards";
+import { SearchBar } from "@/components/search";
+import { TagCloud } from "@/components/filters";
+import { FilterPanel } from "@/components/filters";
+import { Navigation } from "@/components/shared";
+import { Pagination } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
 
 export default function Home() {

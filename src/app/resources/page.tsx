@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 import { apiClient } from "@/lib/api";
 import { getIconComponent, getColorClasses } from "@/lib/resources";
 import { useConfig } from "@/contexts/ConfigContext";

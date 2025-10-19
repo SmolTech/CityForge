@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, HelpWantedPost } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function HelpWantedPage() {
   const [posts, setPosts] = useState<HelpWantedPost[]>([]);

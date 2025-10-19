@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, ResourceConfig } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function SiteConfigPage() {
   const router = useRouter();

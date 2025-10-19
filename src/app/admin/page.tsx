@@ -18,8 +18,8 @@ import {
   ResourceItem,
   ResourceItemInput,
 } from "@/lib/api";
-import CardEditForm from "@/components/CardEditForm";
-import Navigation from "@/components/Navigation";
+import { CardEditForm } from "@/components/cards";
+import { Navigation } from "@/components/shared";
 
 export default function AdminPage() {
   const [, setUser] = useState<User | null>(null);

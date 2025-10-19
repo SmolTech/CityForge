@@ -1,6 +1,6 @@
 import React from "react";
-import Navigation from "@/components/Navigation";
-import SearchInterface from "@/components/SearchInterface";
+import { Navigation } from "@/components/shared";
+import { SearchInterface } from "@/components/search";
 import { loadAppConfig } from "@/lib/server-config";
 
 export const dynamic = "force-dynamic";

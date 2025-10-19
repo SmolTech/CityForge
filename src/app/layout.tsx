@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { loadAppConfig } from "@/lib/server-config";
-import { ToastProvider } from "@/components/Toast";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/shared";
+import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 
 const geistSans = Geist({

@@ -1,7 +1,9 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Card as CardType, apiClient } from "@/lib/api";
-import CardEditForm from "./CardEditForm";
-import MarkdownContent from "./MarkdownContent";
+import { CardEditForm } from "@/components/cards";
+import { MarkdownContent } from "@/components/shared";
 
 interface Props {
   card: CardType;

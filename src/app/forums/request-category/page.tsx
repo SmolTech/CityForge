@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
 
 export default function RequestCategoryPage() {
