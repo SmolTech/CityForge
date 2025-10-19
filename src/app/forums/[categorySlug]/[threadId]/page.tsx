@@ -6,7 +6,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { apiClient, ForumThread, ForumPost, ForumCategory } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
 
 export default function ThreadPage() {

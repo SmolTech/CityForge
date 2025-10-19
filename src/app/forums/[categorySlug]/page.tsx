@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ForumThread, ForumCategory } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
 
 export default function CategoryThreadsPage() {

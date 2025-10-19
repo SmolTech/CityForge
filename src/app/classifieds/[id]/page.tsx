@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiClient, HelpWantedPost, HelpWantedComment, User } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function HelpWantedDetailPage() {
   const [post, setPost] = useState<HelpWantedPost | null>(null);

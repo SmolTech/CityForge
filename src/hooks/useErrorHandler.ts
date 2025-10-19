@@ -1,4 +1,4 @@
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/shared";
 
 /**
  * Hook for handling API errors with toast notifications.

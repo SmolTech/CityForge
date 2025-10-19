@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getIconComponent } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
-import MarkdownContent from "./MarkdownContent";
-import ReviewDisplay from "./ReviewDisplay";
-import ReviewForm from "./ReviewForm";
+import { MarkdownContent } from "@/components/shared";
+import { ReviewDisplay, ReviewForm } from "@/components/reviews";
 
 interface Business {
   id: number;

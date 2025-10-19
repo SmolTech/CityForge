@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { apiClient, User, Card } from "@/lib/api";
-import Navigation from "@/components/Navigation";
-import TagInput from "@/components/TagInput";
+import { Navigation } from "@/components/shared";
+import { TagInput } from "@/components/filters";
 
 export default function EditBusinessPage() {
   const params = useParams();

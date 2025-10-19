@@ -10,7 +10,7 @@ import {
   ForumCategoryRequest,
   ForumReport,
 } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function AdminForumsPage() {
   const [, setUser] = useState<User | null>(null);

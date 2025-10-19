@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/lib/api";
-import TagInput from "@/components/TagInput";
+import { TagInput } from "@/components/filters";
 
 interface CardEditFormProps {
   card: Card;

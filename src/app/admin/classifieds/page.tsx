@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, User, HelpWantedReport, HelpWantedPost } from "@/lib/api";
-import Navigation from "@/components/Navigation";
+import { Navigation } from "@/components/shared";
 
 export default function AdminHelpWantedPage() {
   const [user, setUser] = useState<User | null>(null);
