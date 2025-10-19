@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-migration
-  namespace: community
+  namespace: cityforge
   labels:
     app: db-migration
 spec:
@@ -25,21 +25,21 @@ spec:
           command: ["flask", "db", "upgrade"]
           env:
             - name: POSTGRES_HOST
-              value: "community-db"
+              value: "cityforge-db"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_DB
-              value: "community"
+              value: "cityforge"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: FLASK_APP
               value: "app:create_app"
           securityContext:

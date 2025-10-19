@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cityforge
-  namespace: community
+  namespace: cityforge
   labels:
     app: cityforge
 spec:
@@ -46,7 +46,7 @@ spec:
             - name: PORT
               value: "3000"
             - name: NEXT_PUBLIC_API_URL
-              value: "http://community-backend-service:5000"
+              value: "http://cityforge-backend-service:5000"
           resources:
             requests:
               memory: "128Mi"

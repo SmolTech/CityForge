@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: opensearch
-  namespace: community
+  namespace: cityforge
   labels:
     app: opensearch
 spec:
@@ -64,7 +64,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: opensearch-service
-  namespace: community
+  namespace: cityforge
   labels:
     app: opensearch
 spec:

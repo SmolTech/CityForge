@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: community-service
-  namespace: community
+  name: cityforge-service
+  namespace: cityforge
   labels:
     app: cityforge
 spec:

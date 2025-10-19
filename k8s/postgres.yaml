@@ -3,8 +3,8 @@ kind: "postgresql"
 apiVersion: "acid.zalan.do/v1"
 
 metadata:
-  name: community-db
-  namespace: community
+  name: cityforge-db
+  namespace: cityforge
   labels:
     team: acid
 
@@ -17,9 +17,9 @@ spec:
   volume:
     size: "10Gi"
   users:
-    community: []
+    cityforge: []
   databases:
-    community: community
+    cityforge: cityforge
   # allowedSourceRanges:
   # IP ranges to access your cluster go here
 
