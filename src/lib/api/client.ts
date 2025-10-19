@@ -4,6 +4,11 @@ const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] ||
   (typeof window !== "undefined" ? "" : "http://localhost:5000");
 
+// Extend RequestInit to add custom options
+interface CustomRequestInit extends RequestInit {
+  skipAuthRedirect?: boolean;
+}
+
 export class ApiClient {
   protected baseUrl: string;
 
@@ -13,16 +18,18 @@ export class ApiClient {
 
   protected async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: CustomRequestInit = {}
   ): Promise<T> {
+    // Extract custom options
+    const { skipAuthRedirect, ...fetchOptionsBase } = options;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...((options.headers as Record<string, string>) || {}),
+      ...((fetchOptionsBase.headers as Record<string, string>) || {}),
     };
 
     // Configure Next.js fetch caching based on endpoint
     const fetchOptions: RequestInit = {
-      ...options,
+      ...fetchOptionsBase,
       headers,
       credentials: "include", // Include cookies in requests
     };
@@ -56,8 +63,13 @@ export class ApiClient {
 
       if (!response.ok) {
         // Handle 401 Unauthorized
-        if (response.status === 401 && endpoint !== "/api/auth/login") {
+        if (
+          response.status === 401 &&
+          endpoint !== "/api/auth/login" &&
+          !skipAuthRedirect
+        ) {
           // Token expired or invalid (but not a login failure)
+          // Only redirect if skipAuthRedirect is not set (for protected pages)
           if (typeof window !== "undefined") {
             window.location.href = "/login";
           }
