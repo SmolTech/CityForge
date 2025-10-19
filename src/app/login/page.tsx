@@ -14,9 +14,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (apiClient.isAuthenticated()) {
-      router.push("/dashboard");
-    }
+    // Don't auto-redirect based on isAuthenticated() since it always returns true
+    // and can cause redirect loops when rate limited.
+    // Users can navigate to dashboard manually if already logged in.
   }, [router]);
 
   // Clear error when user starts typing
