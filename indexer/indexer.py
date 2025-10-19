@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from app import create_app, db
 from app.models.indexing_job import IndexingJob
+from config import IndexerConfig
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,7 +48,7 @@ class ResourceIndexer:
         self.robots_cache = {}
 
         # User agent for robots.txt compliance
-        self.user_agent = 'ResourceIndexer/1.0'
+        self.user_agent = IndexerConfig.USER_AGENT
 
         # Initialize Flask app for database tracking
         self.use_tracking = use_tracking
@@ -97,7 +98,9 @@ class ResourceIndexer:
     def load_business_cards(self):
         """Load business cards with websites from the API"""
         try:
-            response = requests.get(f"{self.backend_url}/api/cards", timeout=10)
+            response = requests.get(
+                f"{self.backend_url}/api/cards", timeout=IndexerConfig.REQUEST_TIMEOUT
+            )
             response.raise_for_status()
 
             data = response.json()
@@ -156,8 +159,11 @@ class ResourceIndexer:
             except Exception as e:
                 logger.error(f"Failed to create index: {e}")
 
-    def scrape_url(self, url, max_retries=3):
+    def scrape_url(self, url, max_retries=None):
         """Scrape content from a URL with retries"""
+        if max_retries is None:
+            max_retries = IndexerConfig.MAX_RETRIES
+
         # Check robots.txt compliance first
         if not self.is_url_allowed(url):
             logger.info(f"URL blocked by robots.txt: {url}")
@@ -166,10 +172,12 @@ class ResourceIndexer:
         for attempt in range(max_retries):
             try:
                 headers = {
-                    'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +https://smoltech.us/)'
+                    'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +{IndexerConfig.USER_AGENT_URL})'
                 }
 
-                response = requests.get(url, headers=headers, timeout=10)
+                response = requests.get(
+                    url, headers=headers, timeout=IndexerConfig.REQUEST_TIMEOUT
+                )
                 response.raise_for_status()
 
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -199,8 +207,8 @@ class ResourceIndexer:
                 text = ' '.join(chunk for chunk in chunks if chunk)
 
                 # Limit content length
-                if len(text) > 5000:
-                    text = text[:5000] + "..."
+                if len(text) > IndexerConfig.MAX_CONTENT_LENGTH:
+                    text = text[: IndexerConfig.MAX_CONTENT_LENGTH] + "..."
 
                 return {
                     'content': text,
@@ -211,7 +219,8 @@ class ResourceIndexer:
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {url}: {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)  # Exponential backoff
+                    # Exponential backoff
+                    time.sleep(IndexerConfig.RETRY_BASE_DELAY**attempt)
                 else:
                     logger.error(f"Failed to scrape {url} after {max_retries} attempts")
                     return {
@@ -245,9 +254,11 @@ class ResourceIndexer:
             sitemap_url = urljoin(base_domain, path)
             try:
                 headers = {
-                    'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +https://smoltech.us/)'
+                    'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +{IndexerConfig.USER_AGENT_URL})'
                 }
-                response = requests.head(sitemap_url, headers=headers, timeout=5)
+                response = requests.head(
+                    sitemap_url, headers=headers, timeout=IndexerConfig.SITEMAP_HEAD_TIMEOUT
+                )
                 if response.status_code == 200:
                     sitemap_urls.append(sitemap_url)
                     logger.info(f"Found sitemap: {sitemap_url}")
@@ -257,7 +268,9 @@ class ResourceIndexer:
         # Try to find sitemap in robots.txt
         try:
             robots_url = urljoin(base_domain, '/robots.txt')
-            response = requests.get(robots_url, headers=headers, timeout=5)
+            response = requests.get(
+                robots_url, headers=headers, timeout=IndexerConfig.ROBOTS_TXT_TIMEOUT
+            )
             if response.status_code == 200:
                 for line in response.text.splitlines():
                     if line.strip().lower().startswith('sitemap:'):
@@ -278,9 +291,11 @@ class ResourceIndexer:
 
         try:
             headers = {
-                'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +https://smoltech.us/)'
+                'User-Agent': f'Mozilla/5.0 (compatible; {self.user_agent}; +{IndexerConfig.USER_AGENT_URL})'
             }
-            response = requests.get(sitemap_url, headers=headers, timeout=10)
+            response = requests.get(
+                sitemap_url, headers=headers, timeout=IndexerConfig.REQUEST_TIMEOUT
+            )
             response.raise_for_status()
 
             # Handle text sitemaps
@@ -317,8 +332,11 @@ class ResourceIndexer:
 
         return urls
 
-    def get_all_site_urls(self, base_url, max_pages=50):
+    def get_all_site_urls(self, base_url, max_pages=None):
         """Get all URLs for a site, with fallback to homepage only"""
+        if max_pages is None:
+            max_pages = IndexerConfig.MAX_PAGES_PER_SITE
+
         all_urls = []
 
         # Discover sitemaps
@@ -420,7 +438,7 @@ class ResourceIndexer:
                         db.session.commit()
 
                 # Small delay between pages to be respectful
-                time.sleep(0.5)
+                time.sleep(IndexerConfig.DELAY_BETWEEN_PAGES)
 
             logger.info(f"Successfully indexed {success_count}/{len(all_urls)} pages for {resource['title']}")
             return success_count > 0
@@ -516,7 +534,7 @@ class ResourceIndexer:
                     db.session.commit()
 
             # Small delay between requests to be respectful
-            time.sleep(1)
+            time.sleep(IndexerConfig.DELAY_BETWEEN_SITES)
 
         logger.info(f"Indexing complete. Success: {success_count}, Failed: {failed_count}, Skipped: {skipped_count}, Total: {len(business_resources)}")
 
