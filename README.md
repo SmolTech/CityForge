@@ -40,6 +40,31 @@ python -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements-test.txt
 ```
 
+#### Environment Configuration
+
+The project provides `.env.example` files for each component to help you get started:
+
+```bash
+# Frontend: Copy .env.example to .env.local
+cp .env.example .env.local
+
+# Backend: Copy backend/.env.example to backend/.env
+cp backend/.env.example backend/.env
+
+# Indexer: Copy indexer/.env.example to indexer/.env
+cp indexer/.env.example indexer/.env
+```
+
+Edit these files with your specific configuration values. See the `.env.example` files for detailed documentation of all available environment variables and recommended values.
+
+**Required Configuration:**
+
+- Frontend: `NEXT_PUBLIC_API_URL` (Backend API URL)
+- Backend: Database credentials, JWT secret key
+- Indexer: OpenSearch connection, backend URL
+
+For detailed documentation, see `CLAUDE.md` and the respective `.env.example` files.
+
 #### Developing With Docker
 
 The Docker Compose setup includes an nginx reverse proxy that mirrors the Kubernetes ingress configuration.
