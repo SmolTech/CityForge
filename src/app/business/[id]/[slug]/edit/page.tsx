@@ -7,6 +7,7 @@ import Image from "next/image";
 import { apiClient, User, Card } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { TagInput } from "@/components/filters";
+import { logger } from "@/lib/logger";
 
 export default function EditBusinessPage() {
   const params = useParams();
@@ -76,7 +77,7 @@ export default function EditBusinessPage() {
       });
       setTags(businessData.tags || []);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      logger.error("Failed to load data:", error);
       setError("Failed to load business data. Please try again.");
     } finally {
       setLoading(false);

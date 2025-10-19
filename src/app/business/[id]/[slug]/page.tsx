@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Navigation } from "@/components/shared";
 import { BusinessDetail } from "@/components/cards";
 import { CLIENT_CONFIG } from "@/lib/client-config";
+import { logger } from "@/lib/logger";
 
 interface BusinessPageProps {
   params: Promise<{
@@ -20,11 +21,11 @@ async function getBusinessData(id: string, slug: string) {
       process.env["NEXT_PUBLIC_API_BASE"] ||
       "http://localhost:5000";
     const url = `${API_BASE}/api/business/${id}/${slug}`;
-    console.log("[Business Page] Fetching:", url);
+    logger.info("[Business Page] Fetching:", url);
     const response = await fetch(url, {
       cache: "no-store", // Ensure fresh data for each request
     });
-    console.log("[Business Page] Response status:", response.status);
+    logger.info("[Business Page] Response status:", response.status);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -39,7 +40,7 @@ async function getBusinessData(id: string, slug: string) {
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching business data:", error);
+    logger.error("Error fetching business data:", error);
     return null;
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300; // Revalidate every 5 minutes
@@ -12,19 +13,19 @@ export async function GET() {
       process.env["NEXT_PUBLIC_API_URL"] ||
       "http://localhost:5000";
 
-    console.log(`Fetching site config from: ${backendUrl}/api/site-config`);
+    logger.info(`Fetching site config from: ${backendUrl}/api/site-config`);
 
     const response = await fetch(`${backendUrl}/api/site-config`, {
       next: { revalidate: 300 }, // Cache backend response for 5 minutes
     });
 
     if (!response.ok) {
-      console.error(`Backend API returned ${response.status}`);
+      logger.error(`Backend API returned ${response.status}`);
       throw new Error(`Backend API returned ${response.status}`);
     }
 
     const config = await response.json();
-    console.log("Site config loaded successfully:", config.site?.title);
+    logger.info("Site config loaded successfully:", config.site?.title);
 
     // Return the site configuration with caching headers
     return NextResponse.json(
@@ -39,7 +40,7 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error("Failed to load site config:", error);
+    logger.error("Failed to load site config:", error);
 
     // Fallback configuration with shorter cache
     return NextResponse.json(

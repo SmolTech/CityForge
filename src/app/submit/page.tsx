@@ -7,6 +7,7 @@ import Image from "next/image";
 import { apiClient, User } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { TagInput } from "@/components/filters";
+import { logger } from "@/lib/logger";
 
 export default function SubmitPage() {
   const [, setUser] = useState<User | null>(null);
@@ -45,7 +46,7 @@ export default function SubmitPage() {
       const userResponse = await apiClient.getCurrentUser();
       setUser(userResponse.user);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      logger.error("Failed to load data:", error);
       router.push("/login");
     } finally {
       setLoading(false);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient, ForumThread, ForumCategory } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function CategoryThreadsPage() {
   const params = useParams();
@@ -37,7 +38,7 @@ export default function CategoryThreadsPage() {
       setCategory(categoryData);
       setThreads(threadsResponse.threads);
     } catch (error) {
-      console.error("Failed to load category data:", error);
+      logger.error("Failed to load category data:", error);
       // If unauthorized, redirect to login
       if ((error as Error & { status?: number }).status === 401) {
         router.push(`/login?redirect=/forums/${categorySlug}`);

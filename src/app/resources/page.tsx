@@ -5,6 +5,7 @@ import { Navigation } from "@/components/shared";
 import { apiClient } from "@/lib/api";
 import { getIconComponent, getColorClasses } from "@/lib/resources";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 interface ResourcesData {
   site: {
@@ -58,7 +59,7 @@ function ResourcesContent() {
         setResourcesData(data);
         setSiteTitle(data.site.title);
       } catch (err) {
-        console.error("Failed to fetch resources:", err);
+        logger.error("Failed to fetch resources:", err);
         setError("Failed to load resources. Please try again later.");
       } finally {
         setLoading(false);

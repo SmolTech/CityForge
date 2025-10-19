@@ -10,6 +10,7 @@ import {
   ResourceItemInput,
 } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function AdminResourcesPage() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function AdminResourcesPage() {
       setQuickAccessItems(data);
     } catch (error) {
       setError("Failed to load quick access items");
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export default function AdminResourcesPage() {
       setResourceItems(data);
     } catch (err) {
       setError("Failed to load resource items");
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,7 @@ export default function AdminResourcesPage() {
           ? error.message
           : "Failed to create quick access item"
       );
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -120,7 +121,7 @@ export default function AdminResourcesPage() {
           ? error.message
           : "Failed to update quick access item"
       );
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -131,7 +132,7 @@ export default function AdminResourcesPage() {
       loadQuickAccessItems();
     } catch (error) {
       setError("Failed to delete quick access item");
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -146,7 +147,7 @@ export default function AdminResourcesPage() {
           ? error.message
           : "Failed to create resource item"
       );
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -164,7 +165,7 @@ export default function AdminResourcesPage() {
           ? error.message
           : "Failed to update resource item"
       );
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -175,7 +176,7 @@ export default function AdminResourcesPage() {
       loadResourceItems();
     } catch (error) {
       setError("Failed to delete resource item");
-      console.error(error);
+      logger.error(error);
     }
   };
 

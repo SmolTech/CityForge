@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card as CardType, apiClient } from "@/lib/api";
 import { CardEditForm } from "@/components/cards";
 import { MarkdownContent } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 interface Props {
   card: CardType;
@@ -43,7 +44,7 @@ export default function Card({ card }: Props) {
       setShowEditForm(false);
       // Could add a toast notification here
     } catch (error) {
-      console.error("Failed to suggest edit:", error);
+      logger.error("Failed to suggest edit:", error);
       // Could add error handling here
     } finally {
       setLoading(false);
@@ -64,7 +65,7 @@ export default function Card({ card }: Props) {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
-      console.error("Failed to copy link:", error);
+      logger.error("Failed to copy link:", error);
     }
   };
 

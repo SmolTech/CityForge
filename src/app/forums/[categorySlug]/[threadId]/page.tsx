@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { apiClient, ForumThread, ForumPost, ForumCategory } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function ThreadPage() {
   const params = useParams();
@@ -62,7 +63,7 @@ export default function ThreadPage() {
       setThread(threadData);
       setPosts(threadData.posts || []);
     } catch (error) {
-      console.error("Failed to load thread data:", error);
+      logger.error("Failed to load thread data:", error);
       // If unauthorized, redirect to login
       if ((error as Error & { status?: number }).status === 401) {
         router.push(`/login?redirect=/forums/${categorySlug}/${threadId}`);
@@ -82,7 +83,7 @@ export default function ThreadPage() {
       setReplyContent("");
       await loadData();
     } catch (error) {
-      console.error("Failed to create post:", error);
+      logger.error("Failed to create post:", error);
       alert("Failed to create post. Please try again.");
     } finally {
       setSubmitting(false);
@@ -98,7 +99,7 @@ export default function ThreadPage() {
       setEditContent("");
       await loadData();
     } catch (error) {
-      console.error("Failed to update post:", error);
+      logger.error("Failed to update post:", error);
       alert("Failed to update post. Please try again.");
     }
   };
@@ -111,7 +112,7 @@ export default function ThreadPage() {
       setDeletingPostId(null);
       await loadData();
     } catch (error) {
-      console.error("Failed to delete post:", error);
+      logger.error("Failed to delete post:", error);
       alert("Failed to delete post. Please try again.");
     }
   };
@@ -135,7 +136,7 @@ export default function ThreadPage() {
       setReportDetails("");
       alert("Thread reported successfully. Moderators will review it.");
     } catch (error) {
-      console.error("Failed to report thread:", error);
+      logger.error("Failed to report thread:", error);
       alert("Failed to report thread. Please try again.");
     }
   };
@@ -159,7 +160,7 @@ export default function ThreadPage() {
       setReportDetails("");
       alert("Post reported successfully. Moderators will review it.");
     } catch (error) {
-      console.error("Failed to report post:", error);
+      logger.error("Failed to report post:", error);
       alert("Failed to report post. Please try again.");
     }
   };

@@ -4,6 +4,7 @@ import {
   ResourceItem,
   FooterConfig,
 } from "./resources";
+import { logger } from "@/lib/logger";
 
 export async function loadAppConfig(): Promise<AppConfig> {
   // Default fallback config
@@ -51,7 +52,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch config from API:", response.status);
+      logger.error("Failed to fetch config from API:", response.status);
       return defaultConfig;
     }
 
@@ -91,7 +92,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
       pagination: backendConfig.pagination || defaultConfig.pagination,
     };
   } catch (error) {
-    console.error("Error loading app config:", error);
+    logger.error("Error loading app config:", error);
     return defaultConfig;
   }
 }

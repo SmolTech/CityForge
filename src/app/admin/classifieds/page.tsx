@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, User, HelpWantedReport, HelpWantedPost } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function AdminHelpWantedPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -57,7 +58,7 @@ export default function AdminHelpWantedPage() {
       setUser(userResponse.user);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to authenticate:", error);
+      logger.error("Failed to authenticate:", error);
       router.push("/login");
     }
   };
@@ -68,7 +69,7 @@ export default function AdminHelpWantedPage() {
       setReports(response.reports);
       setTotalReports(response.total);
     } catch (error) {
-      console.error("Failed to load reports:", error);
+      logger.error("Failed to load reports:", error);
     }
   };
 
@@ -78,7 +79,7 @@ export default function AdminHelpWantedPage() {
       setPosts(response.posts);
       setTotalPosts(response.total);
     } catch (error) {
-      console.error("Failed to load posts:", error);
+      logger.error("Failed to load posts:", error);
     }
   };
 
@@ -97,7 +98,7 @@ export default function AdminHelpWantedPage() {
       setResolveAction("dismiss");
       loadReports();
     } catch (error) {
-      console.error("Failed to resolve report:", error);
+      logger.error("Failed to resolve report:", error);
       alert("Failed to resolve report. Please try again.");
     } finally {
       setProcessingReport(null);
@@ -110,7 +111,7 @@ export default function AdminHelpWantedPage() {
       setDeletingPostId(null);
       loadPosts();
     } catch (error) {
-      console.error("Failed to delete post:", error);
+      logger.error("Failed to delete post:", error);
       alert("Failed to delete post. Please try again.");
     }
   };

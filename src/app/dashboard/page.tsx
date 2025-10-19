@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient, User, CardSubmission, HelpWantedPost } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function DashboardPage() {
   const config = useConfig();
@@ -40,14 +41,14 @@ export default function DashboardPage() {
       setSubmissions(submissionsData);
       setHelpWantedPosts(helpWantedData);
     } catch (error) {
-      console.error("Failed to load dashboard data:", error);
+      logger.error("Failed to load dashboard data:", error);
 
       // Check if error is due to rate limiting
       if (error && typeof error === "object" && "status" in error) {
         const status = (error as { status?: number }).status;
         if (status === 429) {
           // Rate limited - show error but don't redirect
-          console.warn("Rate limited. Please wait before refreshing.");
+          logger.warn("Rate limited. Please wait before refreshing.");
           setError(
             "Too many requests. Please wait a moment before refreshing the page."
           );

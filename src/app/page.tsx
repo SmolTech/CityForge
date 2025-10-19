@@ -9,6 +9,7 @@ import { FilterPanel } from "@/components/filters";
 import { Navigation } from "@/components/shared";
 import { Pagination } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function Home() {
   const config = useConfig();
@@ -42,7 +43,7 @@ export default function Home() {
         const userResponse = await apiClient.getCurrentUser();
         setUser(userResponse.user);
       } catch (error) {
-        console.error("Failed to get user:", error);
+        logger.error("Failed to get user:", error);
       }
     }
   };
@@ -69,7 +70,7 @@ export default function Home() {
       setTotalItems(cardsResponse.total);
       setTags(tagsResponse);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      logger.error("Failed to fetch data:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       setError(

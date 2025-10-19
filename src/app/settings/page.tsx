@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, User } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function SettingsPage() {
   const [, setUser] = useState<User | null>(null);
@@ -61,7 +62,7 @@ export default function SettingsPage() {
         email: response.user.email,
       }));
     } catch (error) {
-      console.error("Failed to load user data:", error);
+      logger.error("Failed to load user data:", error);
       router.push("/login");
     } finally {
       setLoading(false);
@@ -81,7 +82,7 @@ export default function SettingsPage() {
       setUser(response.user);
       setProfileMessage("Profile updated successfully!");
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      logger.error("Failed to update profile:", error);
       setProfileMessage("Failed to update profile. Please try again.");
     } finally {
       setProfileLoading(false);
@@ -108,7 +109,7 @@ export default function SettingsPage() {
       setEmailMessage("Email updated successfully!");
       setEmailData((prev) => ({ ...prev, current_password: "" }));
     } catch (error: unknown) {
-      console.error("Failed to update email:", error);
+      logger.error("Failed to update email:", error);
       setEmailMessage(
         error instanceof Error
           ? error.message
@@ -148,7 +149,7 @@ export default function SettingsPage() {
         confirm_password: "",
       });
     } catch (error: unknown) {
-      console.error("Failed to update password:", error);
+      logger.error("Failed to update password:", error);
       setPasswordMessage(
         error instanceof Error
           ? error.message

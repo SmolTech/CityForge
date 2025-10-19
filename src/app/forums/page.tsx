@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient, ForumCategory } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function ForumsPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function ForumsPage() {
       const categoriesData = await apiClient.getForumCategories(true);
       setCategories(categoriesData);
     } catch (error) {
-      console.error("Failed to load forums data:", error);
+      logger.error("Failed to load forums data:", error);
       // If unauthorized, redirect to login
       if ((error as Error & { status?: number }).status === 401) {
         router.push("/login?redirect=/forums");

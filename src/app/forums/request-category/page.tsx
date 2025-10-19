@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function RequestCategoryPage() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function RequestCategoryPage() {
       );
       router.push("/forums");
     } catch (error) {
-      console.error("Failed to submit category request:", error);
+      logger.error("Failed to submit category request:", error);
       // If unauthorized, redirect to login
       if ((error as Error & { status?: number }).status === 401) {
         router.push("/login?redirect=/forums/request-category");

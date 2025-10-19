@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import StarRating from "./StarRating";
 import { apiClient } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export interface Review {
   id: number;
@@ -53,7 +54,7 @@ export default function ReviewDisplay({
       const data = await response.json();
       setReviews(data.reviews || []);
     } catch (err) {
-      console.error("Error loading reviews:", err);
+      logger.error("Error loading reviews:", err);
       setError("Failed to load reviews");
     } finally {
       setLoading(false);
@@ -67,7 +68,7 @@ export default function ReviewDisplay({
       const data = await response.json();
       setSummary(data);
     } catch (err) {
-      console.error("Error loading review summary:", err);
+      logger.error("Error loading review summary:", err);
     }
   }, [cardId]);
 
@@ -82,7 +83,7 @@ export default function ReviewDisplay({
           const response = await apiClient.getCurrentUser();
           setCurrentUserId(response.user.id);
         } catch (err) {
-          console.error("Failed to load current user:", err);
+          logger.error("Failed to load current user:", err);
         }
       }
     };

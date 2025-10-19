@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function NewHelpWantedPage() {
   const [title, setTitle] = useState("");
@@ -36,7 +37,7 @@ export default function NewHelpWantedPage() {
         setSiteConfig({ title: config.site?.title || "Community Website" });
       }
     } catch (error) {
-      console.error("Failed to load site config:", error);
+      logger.error("Failed to load site config:", error);
       setSiteConfig({ title: "Community Website" });
     }
   };
@@ -58,7 +59,7 @@ export default function NewHelpWantedPage() {
 
       router.push(`/classifieds/${post.id}`);
     } catch (err) {
-      console.error("Failed to create post:", err);
+      logger.error("Failed to create post:", err);
       setError("Failed to create post. Please try again.");
     } finally {
       setLoading(false);
