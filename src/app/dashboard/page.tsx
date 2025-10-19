@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [submissions, setSubmissions] = useState<CardSubmission[]>([]);
   const [helpWantedPosts, setHelpWantedPosts] = useState<HelpWantedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +41,22 @@ export default function DashboardPage() {
       setHelpWantedPosts(helpWantedData);
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
+
+      // Check if error is due to rate limiting
+      if (error && typeof error === "object" && "status" in error) {
+        const status = (error as { status?: number }).status;
+        if (status === 429) {
+          // Rate limited - show error but don't redirect
+          console.warn("Rate limited. Please wait before refreshing.");
+          setError(
+            "Too many requests. Please wait a moment before refreshing the page."
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Only redirect to login for actual auth errors (401, 403)
       router.push("/login");
     } finally {
       setLoading(false);
@@ -70,6 +87,44 @@ export default function DashboardPage() {
       <Navigation currentPage="Dashboard" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-yellow-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700 dark:text-yellow-200">
+                  {error}
+                </p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    loadData();
+                  }}
+                  className="text-sm font-medium text-yellow-700 dark:text-yellow-200 hover:text-yellow-600 dark:hover:text-yellow-100"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Your Dashboard
