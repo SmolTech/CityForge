@@ -27,8 +27,13 @@ export default function Navigation({
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    // Skip auth check on pages that already do their own auth check
+    // This prevents redundant API calls and rate limiting
+    const pagesWithAuthCheck = ["Dashboard", "Settings", "Admin"];
+    if (!pagesWithAuthCheck.includes(currentPage)) {
+      checkAuth();
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
