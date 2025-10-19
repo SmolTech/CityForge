@@ -34,6 +34,9 @@ export default function Navigation({
     const pagesWithAuthCheck = ["Dashboard", "Settings", "Admin"];
     if (!pagesWithAuthCheck.includes(currentPage)) {
       checkAuth();
+    } else {
+      // Still need to mark as not loading even if we skip the check
+      setLoading(false);
     }
   }, [currentPage]);
 
