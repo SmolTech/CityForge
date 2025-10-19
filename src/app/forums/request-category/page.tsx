@@ -22,7 +22,7 @@ export default function RequestCategoryPage() {
       router.push("/login?redirect=/forums/request-category");
       return;
     }
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
