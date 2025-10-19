@@ -11,6 +11,8 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from opensearchpy import OpenSearch
 
+from app.config import Config
+
 # Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
@@ -51,7 +53,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv(
         "JWT_SECRET_KEY", "dev-secret-key-change-in-production"
     )
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=Config.ACCESS_TOKEN_EXPIRES_DAYS)
 
     # JWT Cookie Configuration (httpOnly cookies for security)
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
@@ -65,7 +67,7 @@ def create_app():
     app.config["JWT_COOKIE_DOMAIN"] = None  # Same domain only
 
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+    app.config["MAX_CONTENT_LENGTH"] = Config.MAX_FILE_SIZE
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
@@ -90,25 +92,25 @@ def create_app():
         # Test connections before using (detects broken connections)
         "pool_pre_ping": True,
         # Recycle connections after 1 hour to prevent stale connections
-        "pool_recycle": 3600,
+        "pool_recycle": Config.POOL_RECYCLE_SECONDS,
         # Timeout waiting for connection from pool (seconds)
-        "pool_timeout": 30,
+        "pool_timeout": Config.POOL_TIMEOUT_SECONDS,
     }
 
     if is_production:
         # Production: larger pool for higher traffic
         pool_config.update(
             {
-                "pool_size": 10,  # Maximum connections in pool
-                "max_overflow": 20,  # Additional connections beyond pool_size
+                "pool_size": Config.POOL_SIZE_PRODUCTION,
+                "max_overflow": Config.MAX_OVERFLOW_PRODUCTION,
             }
         )
     else:
         # Development: smaller pool to conserve resources
         pool_config.update(
             {
-                "pool_size": 5,  # Maximum connections in pool
-                "max_overflow": 10,  # Additional connections beyond pool_size
+                "pool_size": Config.POOL_SIZE_DEVELOPMENT,
+                "max_overflow": Config.MAX_OVERFLOW_DEVELOPMENT,
             }
         )
 
