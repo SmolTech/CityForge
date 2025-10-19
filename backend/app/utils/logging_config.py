@@ -117,9 +117,7 @@ def configure_logging(app):
     app.logger.setLevel(log_level)
 
     # Log configuration
-    app.logger.info(
-        f"Logging configured: level={logging.getLevelName(log_level)}, env={flask_env}"
-    )
+    app.logger.info(f"Logging configured: level={logging.getLevelName(log_level)}, env={flask_env}")
 
     # Silence noisy loggers
     logging.getLogger("werkzeug").setLevel(logging.WARNING)

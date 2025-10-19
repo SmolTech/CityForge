@@ -30,7 +30,9 @@ export class AuthApi extends ApiClient {
   }
 
   async getCurrentUser(): Promise<{ user: User }> {
-    return this.request<{ user: User }>("/api/auth/me");
+    return this.request<{ user: User }>("/api/auth/me", {
+      skipAuthRedirect: true, // Don't redirect on 401 - let caller handle it
+    });
   }
 
   isAuthenticated(): boolean {
