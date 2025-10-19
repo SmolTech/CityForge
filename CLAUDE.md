@@ -769,3 +769,115 @@ See the respective `.env.example` files for detailed documentation of all availa
 - `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (required)
 - `NAMESPACE` - Namespace for index isolation (required, default: default)
 - `BACKEND_URL` - Backend API URL for loading cards (required)
+
+### Logging Strategy
+
+The application implements structured logging with environment-based configuration:
+
+#### Backend Logging (Python/Flask)
+
+**Configuration** (`backend/app/utils/logging_config.py`):
+
+The backend uses structured JSON logging with rotating file handlers:
+
+**Features:**
+
+- **JSON formatting** for production/staging (structured, parseable logs)
+- **Human-readable formatting** for development (easier to read in terminal)
+- **Rotating file handler**: 10MB log files, keep 10 backups
+- **Environment-based log levels**:
+  - Development: DEBUG
+  - Staging: INFO
+  - Production: WARNING
+
+**Log Files:**
+
+- Location: `backend/logs/cityforge.log`
+- Format: JSON (always, for easy parsing)
+- Rotation: 10MB files, 10 backups = ~100MB total
+
+**Environment Variables:**
+
+- `FLASK_ENV`: Sets environment (development/staging/production)
+- `LOG_LEVEL`: Override default log level (DEBUG/INFO/WARNING/ERROR)
+- `LOG_DIR`: Override log directory (default: logs)
+
+**Example Log Entry (JSON):**
+
+```json
+{
+  "timestamp": "2025-10-19T01:23:45.123456+00:00",
+  "level": "ERROR",
+  "message": "Failed to load dashboard data",
+  "module": "dashboard",
+  "function": "loadData",
+  "line": 42,
+  "exception": "...stack trace..."
+}
+```
+
+**Usage in Backend Code:**
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Logging examples
+logger.debug("Detailed debugging information")
+logger.info("General informational message")
+logger.warning("Warning message")
+logger.error("Error occurred", exc_info=True)  # Includes stack trace
+```
+
+#### Frontend Logging (TypeScript/Next.js)
+
+**Configuration** (`src/lib/logger.ts`):
+
+The frontend logger prevents console output in production while maintaining error visibility:
+
+**Features:**
+
+- **Development**: All logs (info, warn, debug) output to console
+- **Production**: Only errors are logged (prevents information disclosure)
+- **Centralized**: Single logger utility for consistency
+
+**Usage in Frontend Code:**
+
+```typescript
+import { logger } from "@/lib/logger";
+
+// Informational logs (development only)
+logger.info("User logged in successfully");
+logger.debug("API response:", data);
+
+// Warnings (development only)
+logger.warn("Deprecated API endpoint used");
+
+// Errors (all environments)
+logger.error("Failed to fetch data:", error);
+```
+
+**Why Different Approaches:**
+
+- **Backend**: Server logs are centralized and parseable (JSON for log aggregation tools)
+- **Frontend**: Browser console logs are visible to users (suppressed in production for security)
+
+#### Log Levels by Environment
+
+| Environment | Backend Level | Frontend Behavior |
+| ----------- | ------------- | ----------------- |
+| Development | DEBUG         | All logs shown    |
+| Staging     | INFO          | All logs shown    |
+| Production  | WARNING       | Errors only       |
+
+#### Centralized Logging (Future Enhancement)
+
+For production deployments at scale, consider:
+
+- **ELK Stack** (Elasticsearch, Logstash, Kibana)
+- **Grafana Loki** (lightweight alternative to ELK)
+- **CloudWatch Logs** (if deployed on AWS)
+- **Google Cloud Logging** (if deployed on GCP)
+
+JSON-formatted backend logs are already compatible with these tools.

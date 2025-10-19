@@ -7,6 +7,7 @@ import { getIconComponent } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
 import { MarkdownContent } from "@/components/shared";
 import { ReviewDisplay, ReviewForm } from "@/components/reviews";
+import { logger } from "@/lib/logger";
 
 interface Business {
   id: number;
@@ -58,7 +59,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
           setCurrentUser(response.user);
         }
       } catch (error) {
-        console.error("Failed to load current user:", error);
+        logger.error("Failed to load current user:", error);
       }
     };
 
@@ -71,7 +72,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
-      console.error("Failed to copy link:", error);
+      logger.error("Failed to copy link:", error);
     }
   };
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, HelpWantedPost } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function HelpWantedPage() {
   const [posts, setPosts] = useState<HelpWantedPost[]>([]);
@@ -39,7 +40,7 @@ export default function HelpWantedPage() {
         });
       }
     } catch (error) {
-      console.error("Failed to load site config:", error);
+      logger.error("Failed to load site config:", error);
       setSiteConfig({
         shortName: "Community",
         title: "Community Website",
@@ -60,7 +61,7 @@ export default function HelpWantedPage() {
       );
       setPosts(response.posts);
     } catch (error) {
-      console.error("Failed to load help wanted posts:", error);
+      logger.error("Failed to load help wanted posts:", error);
       router.push("/login?redirect=/classifieds");
     } finally {
       setLoading(false);

@@ -11,6 +11,7 @@ import {
   ForumReport,
 } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function AdminForumsPage() {
   const [, setUser] = useState<User | null>(null);
@@ -74,7 +75,7 @@ export default function AdminForumsPage() {
         loadReports(),
       ]);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      logger.error("Failed to load data:", error);
       router.push("/login");
     } finally {
       setLoading(false);
@@ -86,7 +87,7 @@ export default function AdminForumsPage() {
       const data = await apiClient.adminGetForumCategories();
       setCategories(data);
     } catch (error) {
-      console.error("Failed to load categories:", error);
+      logger.error("Failed to load categories:", error);
     }
   };
 
@@ -95,7 +96,7 @@ export default function AdminForumsPage() {
       const { requests } = await apiClient.adminGetForumCategoryRequests();
       setCategoryRequests(requests);
     } catch (error) {
-      console.error("Failed to load category requests:", error);
+      logger.error("Failed to load category requests:", error);
     }
   };
 
@@ -105,7 +106,7 @@ export default function AdminForumsPage() {
         await apiClient.adminGetForumReports(reportsFilter);
       setReports(reportsData);
     } catch (error) {
-      console.error("Failed to load reports:", error);
+      logger.error("Failed to load reports:", error);
     }
   };
 
@@ -122,7 +123,7 @@ export default function AdminForumsPage() {
       });
       await loadCategories();
     } catch (error) {
-      console.error("Failed to create category:", error);
+      logger.error("Failed to create category:", error);
       alert("Failed to create category. Please try again.");
     }
   };
@@ -145,7 +146,7 @@ export default function AdminForumsPage() {
       });
       await loadCategories();
     } catch (error) {
-      console.error("Failed to update category:", error);
+      logger.error("Failed to update category:", error);
       alert("Failed to update category. Please try again.");
     }
   };
@@ -158,7 +159,7 @@ export default function AdminForumsPage() {
       setDeletingCategoryId(null);
       await loadCategories();
     } catch (error) {
-      console.error("Failed to delete category:", error);
+      logger.error("Failed to delete category:", error);
       alert("Failed to delete category. Please try again.");
     }
   };
@@ -168,7 +169,7 @@ export default function AdminForumsPage() {
       await apiClient.adminApproveForumCategoryRequest(requestId);
       await Promise.all([loadCategoryRequests(), loadCategories()]);
     } catch (error) {
-      console.error("Failed to approve request:", error);
+      logger.error("Failed to approve request:", error);
       alert("Failed to approve request. Please try again.");
     }
   };
@@ -185,7 +186,7 @@ export default function AdminForumsPage() {
       setRejectReason("");
       await loadCategoryRequests();
     } catch (error) {
-      console.error("Failed to reject request:", error);
+      logger.error("Failed to reject request:", error);
       alert("Failed to reject request. Please try again.");
     }
   };
@@ -195,7 +196,7 @@ export default function AdminForumsPage() {
       await apiClient.adminPinForumThread(threadId);
       alert("Thread pinned successfully");
     } catch (error) {
-      console.error("Failed to pin thread:", error);
+      logger.error("Failed to pin thread:", error);
       alert("Failed to pin thread. Please try again.");
     }
   };
@@ -205,7 +206,7 @@ export default function AdminForumsPage() {
       await apiClient.adminLockForumThread(threadId);
       alert("Thread locked successfully");
     } catch (error) {
-      console.error("Failed to lock thread:", error);
+      logger.error("Failed to lock thread:", error);
       alert("Failed to lock thread. Please try again.");
     }
   };
@@ -215,7 +216,7 @@ export default function AdminForumsPage() {
       await apiClient.adminResolveForumReport(reportId, "dismiss");
       await loadReports();
     } catch (error) {
-      console.error("Failed to resolve report:", error);
+      logger.error("Failed to resolve report:", error);
       alert("Failed to resolve report. Please try again.");
     }
   };

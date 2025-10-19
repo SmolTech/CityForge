@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import { CardEditForm } from "@/components/cards";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function AdminPage() {
   const [, setUser] = useState<User | null>(null);
@@ -112,7 +113,7 @@ export default function AdminPage() {
         setSiteTitle(config.site?.title || "");
       }
     } catch (error) {
-      console.error("Failed to load site config:", error);
+      logger.error("Failed to load site config:", error);
     }
   };
 
@@ -167,7 +168,7 @@ export default function AdminPage() {
       setUser(userResponse.user);
       await loadSubmissions(); // Load pending submissions by default
     } catch (error) {
-      console.error("Failed to load admin data:", error);
+      logger.error("Failed to load admin data:", error);
       router.push("/login");
     } finally {
       setLoading(false);
@@ -183,7 +184,7 @@ export default function AdminPage() {
       setCards(response.cards);
       setTotalCards(response.total);
     } catch (error) {
-      console.error("Failed to load cards:", error);
+      logger.error("Failed to load cards:", error);
     }
   };
 
@@ -199,7 +200,7 @@ export default function AdminPage() {
       setSubmissions(response.submissions);
       setTotalSubmissions(response.total);
     } catch (error) {
-      console.error("Failed to load submissions:", error);
+      logger.error("Failed to load submissions:", error);
     }
   };
 
@@ -214,7 +215,7 @@ export default function AdminPage() {
       setModifications(response.modifications);
       setTotalModifications(response.total);
     } catch (error) {
-      console.error("Failed to load modifications:", error);
+      logger.error("Failed to load modifications:", error);
     }
   };
 
@@ -228,7 +229,7 @@ export default function AdminPage() {
       setUsers(response.users);
       setTotalUsers(response.total);
     } catch (error) {
-      console.error("Failed to load users:", error);
+      logger.error("Failed to load users:", error);
     }
   };
 
@@ -239,7 +240,7 @@ export default function AdminPage() {
       setEditingUser(null);
       await loadUsers();
     } catch (error) {
-      console.error("Failed to update user:", error);
+      logger.error("Failed to update user:", error);
       alert("Failed to update user. Please try again.");
     }
   };
@@ -251,7 +252,7 @@ export default function AdminPage() {
       await loadUsers();
       alert(result.message);
     } catch (error) {
-      console.error("Failed to delete user:", error);
+      logger.error("Failed to delete user:", error);
       alert("Failed to delete user. Please try again.");
     }
   };
@@ -265,7 +266,7 @@ export default function AdminPage() {
       setShowPasswordReset(null);
       alert(result.message);
     } catch (error) {
-      console.error("Failed to reset password:", error);
+      logger.error("Failed to reset password:", error);
       alert("Failed to reset password. Please try again.");
     }
   };
@@ -275,7 +276,7 @@ export default function AdminPage() {
       const tags = await apiClient.adminGetTags();
       setTags(tags);
     } catch (error) {
-      console.error("Failed to load tags:", error);
+      logger.error("Failed to load tags:", error);
     }
   };
 
@@ -289,7 +290,7 @@ export default function AdminPage() {
       setReviews(response.reviews);
       setTotalReviews(response.total);
     } catch (error) {
-      console.error("Failed to load reviews:", error);
+      logger.error("Failed to load reviews:", error);
     }
   };
 
@@ -299,7 +300,7 @@ export default function AdminPage() {
       setHidingReviewId(null);
       await loadReviews();
     } catch (error) {
-      console.error("Failed to hide review:", error);
+      logger.error("Failed to hide review:", error);
       alert("Failed to hide review");
     }
   };
@@ -310,7 +311,7 @@ export default function AdminPage() {
       setDeletingReviewId(null);
       await loadReviews();
     } catch (error) {
-      console.error("Failed to delete review:", error);
+      logger.error("Failed to delete review:", error);
       alert("Failed to delete review");
     }
   };
@@ -321,7 +322,7 @@ export default function AdminPage() {
       setShowAddTag(false);
       await loadTags();
     } catch (error) {
-      console.error("Failed to create tag:", error);
+      logger.error("Failed to create tag:", error);
       alert("Failed to create tag. Please try again.");
     }
   };
@@ -333,7 +334,7 @@ export default function AdminPage() {
       setEditingTag(null);
       await loadTags();
     } catch (error) {
-      console.error("Failed to update tag:", error);
+      logger.error("Failed to update tag:", error);
       alert("Failed to update tag. Please try again.");
     }
   };
@@ -345,7 +346,7 @@ export default function AdminPage() {
       await loadTags();
       alert(result.message);
     } catch (error) {
-      console.error("Failed to delete tag:", error);
+      logger.error("Failed to delete tag:", error);
       alert("Failed to delete tag. Please try again.");
     }
   };
@@ -364,7 +365,7 @@ export default function AdminPage() {
       const data = await apiClient.adminGetQuickAccessItems();
       setQuickAccessItems(data);
     } catch (error) {
-      console.error("Failed to load quick access items:", error);
+      logger.error("Failed to load quick access items:", error);
     }
   };
 
@@ -373,7 +374,7 @@ export default function AdminPage() {
       const data = await apiClient.adminGetResourceItems();
       setResourceItems(data);
     } catch (error) {
-      console.error("Failed to load resource items:", error);
+      logger.error("Failed to load resource items:", error);
     }
   };
 
@@ -383,7 +384,7 @@ export default function AdminPage() {
       setShowAddQuickAccess(false);
       await loadQuickAccessItems();
     } catch (error) {
-      console.error("Failed to create quick access item:", error);
+      logger.error("Failed to create quick access item:", error);
     }
   };
 
@@ -396,7 +397,7 @@ export default function AdminPage() {
       setEditingQuickAccess(null);
       await loadQuickAccessItems();
     } catch (error) {
-      console.error("Failed to update quick access item:", error);
+      logger.error("Failed to update quick access item:", error);
     }
   };
 
@@ -406,7 +407,7 @@ export default function AdminPage() {
       setDeletingQuickAccessId(null);
       await loadQuickAccessItems();
     } catch (error) {
-      console.error("Failed to delete quick access item:", error);
+      logger.error("Failed to delete quick access item:", error);
     }
   };
 
@@ -416,7 +417,7 @@ export default function AdminPage() {
       setShowAddResourceItem(false);
       await loadResourceItems();
     } catch (error) {
-      console.error("Failed to create resource item:", error);
+      logger.error("Failed to create resource item:", error);
     }
   };
 
@@ -429,7 +430,7 @@ export default function AdminPage() {
       setEditingResourceItem(null);
       await loadResourceItems();
     } catch (error) {
-      console.error("Failed to update resource item:", error);
+      logger.error("Failed to update resource item:", error);
     }
   };
 
@@ -439,7 +440,7 @@ export default function AdminPage() {
       setDeletingResourceItemId(null);
       await loadResourceItems();
     } catch (error) {
-      console.error("Failed to delete resource item:", error);
+      logger.error("Failed to delete resource item:", error);
     }
   };
 
@@ -452,7 +453,7 @@ export default function AdminPage() {
       await apiClient.adminApproveSubmission(submissionId, { featured });
       await loadSubmissions();
     } catch (error) {
-      console.error("Failed to approve submission:", error);
+      logger.error("Failed to approve submission:", error);
     } finally {
       setProcessingSubmission(null);
     }
@@ -464,7 +465,7 @@ export default function AdminPage() {
       await apiClient.adminRejectSubmission(submissionId, notes);
       await loadSubmissions();
     } catch (error) {
-      console.error("Failed to reject submission:", error);
+      logger.error("Failed to reject submission:", error);
     } finally {
       setProcessingSubmission(null);
     }
@@ -475,7 +476,7 @@ export default function AdminPage() {
       await apiClient.adminUpdateCard(cardId, { featured });
       await loadCards();
     } catch (error) {
-      console.error("Failed to update card:", error);
+      logger.error("Failed to update card:", error);
     }
   };
 
@@ -485,7 +486,7 @@ export default function AdminPage() {
       setDeletingCard(null);
       await loadCards();
     } catch (error) {
-      console.error("Failed to delete card:", error);
+      logger.error("Failed to delete card:", error);
       alert(
         `Failed to delete card: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -499,7 +500,7 @@ export default function AdminPage() {
       await loadModifications();
       await loadCards(); // Reload cards to show updated data
     } catch (error) {
-      console.error("Failed to approve modification:", error);
+      logger.error("Failed to approve modification:", error);
     } finally {
       setProcessingModification(null);
     }
@@ -514,7 +515,7 @@ export default function AdminPage() {
       await apiClient.adminRejectModification(modificationId, notes);
       await loadModifications();
     } catch (error) {
-      console.error("Failed to reject modification:", error);
+      logger.error("Failed to reject modification:", error);
     } finally {
       setProcessingModification(null);
     }
@@ -530,7 +531,7 @@ export default function AdminPage() {
       setEditingCard(null);
       await loadCards();
     } catch (error) {
-      console.error("Failed to update card:", error);
+      logger.error("Failed to update card:", error);
     }
   };
 

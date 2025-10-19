@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient, ForumCategory } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 export default function NewThreadPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function NewThreadPage() {
       const categoryData = await apiClient.getForumCategory(categorySlug);
       setCategory(categoryData);
     } catch (error) {
-      console.error("Failed to load category:", error);
+      logger.error("Failed to load category:", error);
       // If unauthorized, redirect to login
       if ((error as Error & { status?: number }).status === 401) {
         router.push(`/login?redirect=/forums/${categorySlug}/new`);
@@ -56,7 +57,7 @@ export default function NewThreadPage() {
       });
       router.push(`/forums/${categorySlug}/${thread.id}`);
     } catch (error) {
-      console.error("Failed to create thread:", error);
+      logger.error("Failed to create thread:", error);
       alert("Failed to create thread. Please try again.");
       setSubmitting(false);
     }

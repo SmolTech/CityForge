@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/lib/api";
 import { TagInput } from "@/components/filters";
+import { logger } from "@/lib/logger";
 
 interface CardEditFormProps {
   card: Card;
@@ -68,7 +69,7 @@ export default function CardEditForm({
 
       await onSave(submitData);
     } catch (error) {
-      console.error("Failed to save card:", error);
+      logger.error("Failed to save card:", error);
       setError("Failed to save changes. Please try again.");
     }
   };

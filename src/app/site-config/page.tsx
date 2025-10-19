@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, ResourceConfig } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function SiteConfigPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function SiteConfigPage() {
       setFormData(initialData);
     } catch (error) {
       setError("Failed to load site configuration");
-      console.error(error);
+      logger.error(error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +76,7 @@ export default function SiteConfigPage() {
       await loadConfigs(); // Reload to confirm
     } catch (error) {
       setError("Failed to save configuration");
-      console.error(error);
+      logger.error(error);
     } finally {
       setSaving(false);
     }

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AppConfig } from "@/lib/resources";
+import { logger } from "@/lib/logger";
 
 const ConfigContext = createContext<AppConfig | null>(null);
 
@@ -19,7 +20,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         setConfig(data);
       } catch (err) {
-        console.error("Error loading app config:", err);
+        logger.error("Error loading app config:", err);
         // Set fallback config if fetch fails
         setConfig({
           site: {

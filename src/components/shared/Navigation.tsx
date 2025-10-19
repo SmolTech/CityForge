@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, User } from "@/lib/api";
 import { useConfig } from "@/contexts/ConfigContext";
+import { logger } from "@/lib/logger";
 
 interface NavigationProps {
   currentPage?: string;
@@ -56,7 +57,7 @@ export default function Navigation({
         setUser(userResponse.user);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error("Failed to get user:", error);
+        logger.error("Failed to get user:", error);
         setIsAuthenticated(false);
       }
     } else {

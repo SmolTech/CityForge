@@ -1,4 +1,5 @@
 import { useToast } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook for handling API errors with toast notifications.
@@ -27,7 +28,7 @@ export function useErrorHandler() {
     }
 
     // Log to console for debugging
-    console.error("Error caught by error handler:", error);
+    logger.error("Error caught by error handler:", error);
 
     // Show toast notification
     showToast(message, "error");

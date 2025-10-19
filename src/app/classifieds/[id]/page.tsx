@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiClient, HelpWantedPost, HelpWantedComment, User } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 
 export default function HelpWantedDetailPage() {
   const [post, setPost] = useState<HelpWantedPost | null>(null);
@@ -41,7 +42,7 @@ export default function HelpWantedDetailPage() {
         setSiteConfig({ title: config.site?.title || "Community Website" });
       }
     } catch (error) {
-      console.error("Failed to load site config:", error);
+      logger.error("Failed to load site config:", error);
       setSiteConfig({ title: "Community Website" });
     }
   };
@@ -61,7 +62,7 @@ export default function HelpWantedDetailPage() {
       setPost(postData);
       setCurrentUser(userData.user);
     } catch (error) {
-      console.error("Failed to load post:", error);
+      logger.error("Failed to load post:", error);
       router.push("/classifieds");
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ export default function HelpWantedDetailPage() {
       setReplyTo(null);
       loadPost(); // Reload to get new comments
     } catch (error) {
-      console.error("Failed to post comment:", error);
+      logger.error("Failed to post comment:", error);
     }
   };
 
@@ -96,7 +97,7 @@ export default function HelpWantedDetailPage() {
       setReportReason("spam");
       setShowReportSuccess(true);
     } catch (error) {
-      console.error("Failed to report post:", error);
+      logger.error("Failed to report post:", error);
       setReportError(
         "Failed to submit report. You may have already reported this post."
       );
@@ -111,7 +112,7 @@ export default function HelpWantedDetailPage() {
       await apiClient.updateHelpWantedPost(postId, { status: newStatus });
       loadPost();
     } catch (error) {
-      console.error("Failed to update status:", error);
+      logger.error("Failed to update status:", error);
     }
   };
 
@@ -121,7 +122,7 @@ export default function HelpWantedDetailPage() {
       setDeletingCommentId(null);
       loadPost();
     } catch (error) {
-      console.error("Failed to delete comment:", error);
+      logger.error("Failed to delete comment:", error);
     }
   };
 
