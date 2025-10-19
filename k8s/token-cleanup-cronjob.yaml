@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: token-cleanup
-  namespace: community
+  namespace: cityforge
   labels:
     app: token-cleanup
 spec:
@@ -44,27 +44,27 @@ spec:
                 - cleanup_expired_tokens.py
               env:
                 - name: POSTGRES_HOST
-                  value: "community-db"
+                  value: "cityforge-db"
                 - name: POSTGRES_PORT
                   value: "5432"
                 - name: POSTGRES_DB
-                  value: "community"
+                  value: "cityforge"
                 - name: POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
                       key: username
-                      name: community.community-db.credentials.postgresql.acid.zalan.do
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       key: password
-                      name: community.community-db.credentials.postgresql.acid.zalan.do
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
                 # JWT secret is required for Flask app initialization
                 - name: JWT_SECRET_KEY
                   valueFrom:
                     secretKeyRef:
                       key: jwt_secret_key
-                      name: community-backend-secrets
+                      name: cityforge-backend-secrets
                       optional: true
               resources:
                 requests:

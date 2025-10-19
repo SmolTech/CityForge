@@ -46,27 +46,27 @@ To manually trigger a cronjob:
 
 ```bash
 # Create a job from the cronjob
-kubectl create job --from=cronjob/token-cleanup token-cleanup-manual -n community
+kubectl create job --from=cronjob/token-cleanup token-cleanup-manual -n cityforge
 
 # Check job status
-kubectl get jobs -n community
+kubectl get jobs -n cityforge
 
 # View job logs
-kubectl logs job/token-cleanup-manual -n community
+kubectl logs job/token-cleanup-manual -n cityforge
 ```
 
 ## Monitoring CronJobs
 
 ```bash
 # List all cronjobs
-kubectl get cronjobs -n community
+kubectl get cronjobs -n cityforge
 
 # View cronjob details
-kubectl describe cronjob token-cleanup -n community
+kubectl describe cronjob token-cleanup -n cityforge
 
 # View recent job runs
-kubectl get jobs -n community --sort-by=.metadata.creationTimestamp
+kubectl get jobs -n cityforge --sort-by=.metadata.creationTimestamp
 
 # View job logs
-kubectl logs -l app=token-cleanup -n community
+kubectl logs -l app=token-cleanup -n cityforge
 ```

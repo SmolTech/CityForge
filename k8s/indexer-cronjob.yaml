@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: resource-indexer
-  namespace: community
+  namespace: cityforge
   labels:
     app: resource-indexer
 spec:
@@ -35,7 +35,7 @@ spec:
                 - name: OPENSEARCH_PORT
                   value: "9200"
                 - name: NAMESPACE
-                  value: "community"
+                  value: "cityforge"
               resources:
                 requests:
                   memory: "128Mi"

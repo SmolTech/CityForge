@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: community-ingress
-  namespace: community
+  name: cityforge-ingress
+  namespace: cityforge
   annotations:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
@@ -11,55 +11,55 @@ spec:
   ingressClassName: public
   tls:
     - hosts:
-        - community.community
-        - www.community.community
-      secretName: community-tls
+        - cityforge.cityforge
+        - www.cityforge.cityforge
+      secretName: cityforge-tls
   rules:
-    - host: "community.community"
+    - host: "cityforge.cityforge"
       http:
         paths:
           - path: /api/config
             pathType: Prefix
             backend:
               service:
-                name: community-service
+                name: cityforge-service
                 port:
                   number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: community-backend-service
+                name: cityforge-backend-service
                 port:
                   number: 5000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: community-service
+                name: cityforge-service
                 port:
                   number: 80
-    - host: "www.community.community"
+    - host: "www.cityforge.cityforge"
       http:
         paths:
           - path: /api/config
             pathType: Prefix
             backend:
               service:
-                name: community-service
+                name: cityforge-service
                 port:
                   number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: community-backend-service
+                name: cityforge-backend-service
                 port:
                   number: 5000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: community-service
+                name: cityforge-service
                 port:
                   number: 80

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: community
-  name: community-backend
+  namespace: cityforge
+  name: cityforge-backend
   labels:
-    app: community-backend
+    app: cityforge-backend
 spec:
   replicas: 2
   strategy:
@@ -14,11 +14,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: community-backend
+      app: cityforge-backend
   template:
     metadata:
       labels:
-        app: community-backend
+        app: cityforge-backend
     spec:
       securityContext:
         runAsNonRoot: true
@@ -32,21 +32,21 @@ spec:
           command: ["flask", "db", "upgrade"]
           env:
             - name: POSTGRES_HOST
-              value: "community-db"
+              value: "cityforge-db"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_DB
-              value: "community"
+              value: "cityforge"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: FLASK_APP
               value: "app:create_app"
           securityContext:
@@ -75,21 +75,21 @@ spec:
             - containerPort: 5000
           env:
             - name: POSTGRES_HOST
-              value: "community-db"
+              value: "cityforge-db"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_DB
-              value: "community"
+              value: "cityforge"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: community.community-db.credentials.postgresql.acid.zalan.do
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: FLASK_DEBUG
               value: "false"
             - name: OPENSEARCH_HOST
@@ -97,7 +97,7 @@ spec:
             - name: OPENSEARCH_PORT
               value: "9200"
             - name: NAMESPACE
-              value: "community"
+              value: "cityforge"
           livenessProbe:
             httpGet:
               path: /health
@@ -121,13 +121,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: community-backend-service
-  namespace: community
+  name: cityforge-backend-service
+  namespace: cityforge
   labels:
-    app: community-backend
+    app: cityforge-backend
 spec:
   selector:
-    app: community-backend
+    app: cityforge-backend
   ports:
     - port: 5000
       targetPort: 5000
