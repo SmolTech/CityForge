@@ -740,18 +740,32 @@ retry_count: int          # Number of retry attempts (max 3)
 
 ### Environment Variables
 
-**Frontend:**
+The project provides `.env.example` files for each component to document required configuration:
 
-- `NEXT_PUBLIC_API_URL` - Backend API URL
+- **Frontend**: `.env.example` - Copy to `.env.local` for development
+- **Backend**: `backend/.env.example` - Copy to `backend/.env` for development
+- **Indexer**: `indexer/.env.example` - Copy to `indexer/.env` for development
 
-**Backend:**
+See the respective `.env.example` files for detailed documentation of all available environment variables and recommended values.
 
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection
-- `UPLOAD_FOLDER` - Directory for uploaded files
-- `SECRET_KEY` - Flask session secret
+**Frontend Environment Variables:**
 
-**Indexer:**
+- `NEXT_PUBLIC_API_URL` - Backend API URL (required)
+- `NEXT_PUBLIC_SITE_URL` - Site URL for server-side fetches (optional)
+- `NEXT_PUBLIC_ITEMS_PER_PAGE` - Items per page for pagination (optional, default: 20)
 
-- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection
-- `NAMESPACE` - Namespace for index isolation
-- `BACKEND_URL` - Backend API URL for loading cards
+**Backend Environment Variables:**
+
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection (required)
+- `DATABASE_URL` - Alternative to individual database params (optional)
+- `JWT_SECRET_KEY` - Secret key for JWT token generation (required)
+- `SECRET_KEY` - Flask session secret (required)
+- `UPLOAD_FOLDER` - Directory for uploaded files (optional, default: uploads)
+- `FLASK_ENV` - Environment mode: development or production (optional, default: development)
+- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (optional, for search)
+
+**Indexer Environment Variables:**
+
+- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (required)
+- `NAMESPACE` - Namespace for index isolation (required, default: default)
+- `BACKEND_URL` - Backend API URL for loading cards (required)
