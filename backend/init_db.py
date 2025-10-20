@@ -11,7 +11,6 @@ def init_database(skip_admin_prompt=False):
     with app.app_context():
         # Import all models to ensure they're registered with SQLAlchemy
         from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
-        from app.models.token_blacklist import TokenBlacklist  # noqa: F401
         from app.models.user import User
 
         # Create all tables
