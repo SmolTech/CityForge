@@ -30,7 +30,7 @@ class ResourceIndexer:
         self.opensearch_host = os.getenv('OPENSEARCH_HOST', 'opensearch-service')
         self.opensearch_port = int(os.getenv('OPENSEARCH_PORT', '9200'))
         self.namespace = os.getenv('NAMESPACE', 'default')
-        self.backend_url = os.getenv('BACKEND_URL', f'http://{self.namespace}-community-backend-service:5000')
+        self.backend_url = os.getenv('BACKEND_URL', f'http://cityforge-backend-service:5000')
 
         # Initialize OpenSearch client
         self.client = OpenSearch(
