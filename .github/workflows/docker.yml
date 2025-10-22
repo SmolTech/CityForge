@@ -124,7 +124,7 @@ jobs:
       - name: Build and push indexer Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./indexer
+          context: .
           file: ./indexer/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true

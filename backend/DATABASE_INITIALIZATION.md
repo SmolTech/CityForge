@@ -83,6 +83,7 @@ python initialize_db.py --non-interactive
 ```bash
 python init_fresh_db.py
 # OR
+
 python init_fresh_db.py --non-interactive
 ```
 
@@ -151,6 +152,7 @@ flask db current
 
 # If no version shown:
 flask db stamp head
+
 
 # Run any pending migrations
 flask db upgrade
