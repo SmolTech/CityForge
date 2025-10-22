@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-fresh-db
+  namespace: cityforge
+  labels:
+    app: init-fresh-db
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: init-fresh-db
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: init-db
+          image: ghcr.io/smoltech/cityforge/cityforge-backend:latest
+          imagePullPolicy: Always
+          # Use the new initialize_db.py script that handles both fresh and existing databases
+          command: ["python", "initialize_db.py", "--non-interactive"]
+          env:
+            - name: POSTGRES_HOST
+              value: "cityforge-db"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "cityforge"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            - name: FLASK_APP
+              value: "app:create_app"
+            # Optional: Set these to create an admin user automatically
+            # - name: ADMIN_EMAIL
+            #   value: "admin@example.com"
+            # - name: ADMIN_PASSWORD
+            #   valueFrom:
+            #     secretKeyRef:
+            #       key: admin-password
+            #       name: cityforge-admin-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

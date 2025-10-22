@@ -47,12 +47,21 @@ npm run typecheck     # TypeScript validation
 
 ### Backend Development
 
+For any locally run python, use python from the venv located in .venv/bin of the root of the project
+
 ```bash
 # From backend/ directory
 pip install -r requirements.txt
 
-# Initialize database (prompts for admin email and password)
-python init_db.py
+# Initialize fresh database (interactive - prompts for admin email and password)
+python initialize_db.py
+
+# OR for existing databases (run pending migrations only)
+export FLASK_APP=app:create_app
+flask db upgrade
+
+# OR seed default data only (if database already initialized)
+python seed_data.py
 
 # Development server
 python app/__init__.py  # Runs on port 5000
@@ -153,17 +162,32 @@ flask db upgrade && gunicorn ...
 
 **Kubernetes:**
 
-Migrations run automatically via init container before backend pods start:
+Database initialization runs automatically via init container before backend pods start:
 
-- Init container runs `flask db upgrade`
-- Main container starts only after successful migration
+- Init container runs `python initialize_db.py --non-interactive`
+- Handles both fresh databases and migrations for existing databases
+- Main container starts only after successful initialization
 - See: `k8s/backend-deployment.yaml`
 
-**Manual Migration Job (Kubernetes):**
+**Manual Database Initialization (Kubernetes):**
+
+For fresh deployments:
 
 ```bash
+# Initialize fresh database with admin user
+kubectl apply -f k8s/init-fresh-db-job.yaml
+kubectl logs job/init-fresh-db -n cityforge
+
+# Check job status
+kubectl get job init-fresh-db -n cityforge
+```
+
+For running migrations on existing databases:
+
+```bash
+# Legacy migration job (use init-fresh-db-job.yaml for new deployments)
 kubectl apply -f k8s/migration-job.yaml
-kubectl logs job/db-migration -n community
+kubectl logs job/db-migration -n cityforge
 ```
 
 #### Migration Best Practices
@@ -174,22 +198,64 @@ kubectl logs job/db-migration -n community
 4. **Never edit** applied migrations - create new ones instead
 5. **Commit migrations** to version control with your model changes
 
-#### Database Initialization (Legacy)
+#### Database Initialization
 
-For **new deployments only**, the `init_db.py` script can create initial tables:
+The project provides multiple initialization scripts for different use cases:
+
+**For Fresh Databases (Recommended):**
 
 ```bash
 cd backend
-python init_db.py
-# Prompts for admin email and password
+export FLASK_APP=app:create_app
 
+# Initialize fresh database with tables, migrations, and default data
+python initialize_db.py
+
+# This script will:
+# 1. Detect if database is empty
+# 2. Create all tables if empty
+# 3. Stamp database with current migration version
+# 4. Seed default configuration data
+# 5. Prompt for admin user creation
 ```
 
-**Important**:
+**For Existing Databases:**
 
-- Use `flask db upgrade` for existing databases
-- `init_db.py` drops all tables - **never run in production**
-- The script is kept for reference and testing only
+```bash
+cd backend
+export FLASK_APP=app:create_app
+
+# Run pending migrations only
+flask db upgrade
+
+# Optionally seed default data (safe to run multiple times)
+python seed_data.py
+```
+
+**For Non-Interactive Environments (Kubernetes, Docker):**
+
+```bash
+# Set environment variables for admin user
+export ADMIN_EMAIL=admin@example.com
+export ADMIN_PASSWORD=SecurePassword123!
+
+# Run initialization in non-interactive mode
+python initialize_db.py --non-interactive
+```
+
+**Scripts Overview:**
+
+- `initialize_db.py` - Master initialization script (handles both fresh and existing databases)
+- `init_fresh_db.py` - Legacy fresh database initialization (use `initialize_db.py` instead)
+- `seed_data.py` - Seed default data only (idempotent, safe to run multiple times)
+- `init_db.py` - **DEPRECATED** - Old initialization script (do not use)
+
+**Important:**
+
+- `initialize_db.py` is idempotent and safe to run multiple times
+- It detects database state and chooses the correct initialization path
+- For existing databases with tables but no migrations, see troubleshooting in script output
+- All scripts respect Flask-Migrate migration tracking
 
 ### Database Schema
 
