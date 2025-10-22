@@ -15,7 +15,7 @@ import os
 import sys
 
 from flask_migrate import stamp
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 
 from app import create_app, db
 
