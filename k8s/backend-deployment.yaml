@@ -29,7 +29,8 @@ spec:
         - name: db-migration
           image: ghcr.io/smoltech/cityforge-backend
           imagePullPolicy: Always
-          command: ["flask", "db", "upgrade"]
+          # Use initialize_db.py which handles both fresh and existing databases
+          command: ["python", "initialize_db.py", "--non-interactive"]
           env:
             - name: POSTGRES_HOST
               value: "cityforge-db"
