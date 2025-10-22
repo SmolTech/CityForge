@@ -110,14 +110,19 @@ services:
 
   indexer:
     build:
-      context: ./indexer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: indexer/Dockerfile
     container_name: cityforge-indexer
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
       BACKEND_URL: http://backend:5000
       NAMESPACE: default
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: community_db
     depends_on:
       backend:
         condition: service_healthy

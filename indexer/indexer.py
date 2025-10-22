@@ -15,7 +15,12 @@ import logging
 import xml.etree.ElementTree as ET
 
 # Add backend to path for database models
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+# In Docker: /app/backend, Locally: ../backend
+backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+if not os.path.exists(backend_path):
+    # Running in Docker container where backend is in /app/backend
+    backend_path = '/app/backend'
+sys.path.insert(0, backend_path)
 
 from app import create_app, db
 from app.models.indexing_job import IndexingJob
