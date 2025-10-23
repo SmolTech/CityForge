@@ -22,6 +22,6 @@ def require_admin():
     from app.models.user import User
 
     user = User.query.get(get_jwt_identity())
-    if not user or user.role != "admin":
+    if not user or user.role != "admin" or not user.is_active:
         return jsonify({"message": "Admin access required"}), 403
     return None
