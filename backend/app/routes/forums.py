@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 
-from app import db
+from app import db, limiter
 from app.models.forum import (
     ForumCategory,
     ForumCategoryRequest,
@@ -149,6 +149,7 @@ def get_thread(thread_id):
 
 @bp.route("/api/forums/categories/<slug>/threads", methods=["POST"])
 @jwt_required()
+@limiter.limit("10 per hour")
 def create_thread(slug):
     """Create a new thread in a category."""
     user_id = int(get_jwt_identity())
@@ -208,6 +209,7 @@ def create_thread(slug):
 
 @bp.route("/api/forums/threads/<int:thread_id>", methods=["PUT"])
 @jwt_required()
+@limiter.limit("20 per hour")
 def update_thread(thread_id):
     """Update a thread (only by creator)."""
     user_id = int(get_jwt_identity())
@@ -265,6 +267,7 @@ def delete_thread(thread_id):
 
 @bp.route("/api/forums/threads/<int:thread_id>/posts", methods=["POST"])
 @jwt_required()
+@limiter.limit("30 per hour")
 def create_post(thread_id):
     """Create a new post in a thread."""
     user_id = int(get_jwt_identity())
@@ -304,6 +307,7 @@ def create_post(thread_id):
 
 @bp.route("/api/forums/posts/<int:post_id>", methods=["PUT"])
 @jwt_required()
+@limiter.limit("20 per hour")
 def update_post(post_id):
     """Update a post (only by creator)."""
     user_id = int(get_jwt_identity())

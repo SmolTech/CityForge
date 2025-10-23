@@ -5,7 +5,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import func
 
-from app import db
+from app import db, limiter
 from app.models.card import Card
 from app.models.review import Review
 from app.models.user import User
@@ -49,6 +49,7 @@ def get_card_reviews(card_id):
 
 @bp.route("/api/cards/<int:card_id>/reviews", methods=["POST"])
 @jwt_required()
+@limiter.limit("5 per hour")
 def create_review(card_id):
     """Create a new review for a card."""
     user_id = int(get_jwt_identity())
@@ -155,6 +156,7 @@ def get_review_summary(card_id):
 
 @bp.route("/api/reviews/<int:review_id>", methods=["PUT"])
 @jwt_required()
+@limiter.limit("20 per hour")
 def update_review(review_id):
     """Update a review (only by the review owner)."""
     user_id = int(get_jwt_identity())
