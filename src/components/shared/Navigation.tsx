@@ -35,8 +35,27 @@ export default function Navigation({
     if (!pagesWithAuthCheck.includes(currentPage)) {
       checkAuth();
     } else {
-      // Still need to mark as not loading even if we skip the check
-      setLoading(false);
+      // Still need to check if authenticated and get user details for navigation
+      const authenticated = apiClient.isAuthenticated();
+      if (authenticated) {
+        // Fetch user details for navigation display (name, role)
+        apiClient
+          .getCurrentUser()
+          .then((userResponse) => {
+            setUser(userResponse.user);
+            setIsAuthenticated(true);
+          })
+          .catch((error) => {
+            logger.error("Failed to get user:", error);
+            setIsAuthenticated(false);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      } else {
+        setIsAuthenticated(false);
+        setLoading(false);
+      }
     }
   }, [currentPage]);
 
