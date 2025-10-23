@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import func, text
+from sqlalchemy.orm import joinedload
 
 from app import db
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
@@ -59,7 +60,13 @@ def admin_get_cards():
         query = query.filter_by(approved=False)
 
     total_count = query.count()
-    cards = query.order_by(Card.created_date.desc()).offset(offset).limit(limit).all()
+    cards = (
+        query.options(joinedload(Card.tags))
+        .order_by(Card.created_date.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     return jsonify(
         {
