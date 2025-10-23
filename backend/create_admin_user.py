@@ -82,7 +82,9 @@ Examples:
     )
     parser.add_argument("--email", help="Admin user email address")
     parser.add_argument("--password", help="Admin user password")
-    parser.add_argument("--first-name", default="Admin", help="Admin user first name (default: Admin)")
+    parser.add_argument(
+        "--first-name", default="Admin", help="Admin user first name (default: Admin)"
+    )
     parser.add_argument("--last-name", default="User", help="Admin user last name (default: User)")
     parser.add_argument(
         "--non-interactive",
@@ -103,7 +105,9 @@ Examples:
 
         if not email:
             print("Error: Email address is required", file=sys.stderr)
-            print("Provide via --email, ADMIN_EMAIL env var, or interactive prompt", file=sys.stderr)
+            print(
+                "Provide via --email, ADMIN_EMAIL env var, or interactive prompt", file=sys.stderr
+            )
             sys.exit(1)
 
         # Get password
@@ -120,7 +124,8 @@ Examples:
         if not password:
             print("Error: Password is required", file=sys.stderr)
             print(
-                "Provide via --password, ADMIN_PASSWORD env var, or interactive prompt", file=sys.stderr
+                "Provide via --password, ADMIN_PASSWORD env var, or interactive prompt",
+                file=sys.stderr,
             )
             sys.exit(1)
 
@@ -133,7 +138,7 @@ Examples:
             print(f"✓ {message}")
             print("\nYou can now log in with:")
             print(f"  Email: {email}")
-            print(f"  Role: admin")
+            print("  Role: admin")
             sys.exit(0)
         else:
             print(f"✗ Error: {message}", file=sys.stderr)
