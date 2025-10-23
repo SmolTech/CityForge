@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import DOMPurify from "dompurify";
 
 interface SearchResult {
   id: number;
@@ -75,10 +76,16 @@ const HighlightedText = ({
   // Use the first highlight if available, otherwise fall back to original text
   const highlightedText = highlights[0] || text;
 
+  // Sanitize HTML to prevent XSS attacks
+  const sanitizedHTML = DOMPurify.sanitize(highlightedText, {
+    ALLOWED_TAGS: ["em", "strong", "mark"],
+    ALLOWED_ATTR: [],
+  });
+
   return (
     <span
       dangerouslySetInnerHTML={{
-        __html: highlightedText,
+        __html: sanitizedHTML,
       }}
     />
   );
@@ -155,7 +162,10 @@ export default function SearchResults({ results }: SearchResultsProps) {
                           key={index}
                           className="text-sm text-gray-700 dark:text-gray-300 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-2 border-yellow-400"
                           dangerouslySetInnerHTML={{
-                            __html: `...${highlight}...`,
+                            __html: DOMPurify.sanitize(`...${highlight}...`, {
+                              ALLOWED_TAGS: ["em", "strong", "mark"],
+                              ALLOWED_ATTR: [],
+                            }),
                           }}
                         />
                       ))}
