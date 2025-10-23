@@ -156,7 +156,11 @@ def create_app():
         from app.models.user import User
 
         identity = jwt_data["sub"]
-        return User.query.filter_by(id=int(identity)).one_or_none()
+        user = User.query.filter_by(id=int(identity)).one_or_none()
+        # Return None if user is inactive to prevent authentication
+        if user and not user.is_active:
+            return None
+        return user
 
     # Register blueprints
     from app.routes import (
