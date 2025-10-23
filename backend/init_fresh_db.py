@@ -12,7 +12,6 @@ This avoids conflicts between db.create_all() and flask db upgrade.
 Note: Admin user creation has been moved to create_admin_user.py
 Run that script separately after database initialization.
 """
-import os
 import sys
 
 from flask_migrate import stamp

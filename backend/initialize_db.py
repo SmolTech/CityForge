@@ -13,7 +13,6 @@ Perfect for Kubernetes init containers and local development.
 Note: Admin user creation has been moved to create_admin_user.py
 Run that script separately after database initialization.
 """
-import os
 import sys
 
 from flask_migrate import stamp, upgrade
