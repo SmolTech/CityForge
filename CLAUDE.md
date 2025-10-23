@@ -53,8 +53,11 @@ For any locally run python, use python from the venv located in .venv/bin of the
 # From backend/ directory
 pip install -r requirements.txt
 
-# Initialize fresh database (interactive - prompts for admin email and password)
+# Initialize fresh database
 python initialize_db.py
+
+# Create admin user (separate step after initialization)
+python create_admin_user.py
 
 # OR for existing databases (run pending migrations only)
 export FLASK_APP=app:create_app
@@ -211,12 +214,15 @@ export FLASK_APP=app:create_app
 # Initialize fresh database with tables, migrations, and default data
 python initialize_db.py
 
-# This script will:
+# Create admin user (separate step)
+python create_admin_user.py
+
+# The initialize_db.py script will:
 # 1. Detect if database is empty
 # 2. Create all tables if empty
 # 3. Stamp database with current migration version
 # 4. Seed default configuration data
-# 5. Prompt for admin user creation
+# 5. Check for existing admin user and provide guidance
 ```
 
 **For Existing Databases:**
@@ -235,17 +241,19 @@ python seed_data.py
 **For Non-Interactive Environments (Kubernetes, Docker):**
 
 ```bash
-# Set environment variables for admin user
+# Initialize database
+python initialize_db.py
+
+# Create admin user (separate command)
 export ADMIN_EMAIL=admin@example.com
 export ADMIN_PASSWORD=SecurePassword123!
-
-# Run initialization in non-interactive mode
-python initialize_db.py --non-interactive
+python create_admin_user.py --non-interactive
 ```
 
 **Scripts Overview:**
 
 - `initialize_db.py` - Master initialization script (handles both fresh and existing databases)
+- `create_admin_user.py` - Create admin user (separate from database initialization)
 - `init_fresh_db.py` - Legacy fresh database initialization (use `initialize_db.py` instead)
 - `seed_data.py` - Seed default data only (idempotent, safe to run multiple times)
 - `init_db.py` - **DEPRECATED** - Old initialization script (do not use)
@@ -254,6 +262,7 @@ python initialize_db.py --non-interactive
 
 - `initialize_db.py` is idempotent and safe to run multiple times
 - It detects database state and chooses the correct initialization path
+- Admin user creation is now separate - run `create_admin_user.py` after database initialization
 - For existing databases with tables but no migrations, see troubleshooting in script output
 - All scripts respect Flask-Migrate migration tracking
 

@@ -6,11 +6,12 @@ This script properly initializes a new database by:
 1. Creating all tables using db.create_all()
 2. Stamping the database with the current migration version
 3. Seeding default configuration data
-4. Creating an admin user
 
 This avoids conflicts between db.create_all() and flask db upgrade.
+
+Note: Admin user creation has been moved to create_admin_user.py
+Run that script separately after database initialization.
 """
-import getpass
 import os
 import sys
 
@@ -221,67 +222,33 @@ def seed_default_data():
         print("✓ Resource items already exist")
 
 
-def create_admin_user(skip_prompt=False):
-    """Create an admin user."""
+def check_admin_user():
+    """Check if an admin user exists and provide guidance."""
     from app.models.user import User
 
-    print("\n=== Creating Admin User ===")
+    print("\n=== Checking for Admin User ===")
 
-    # Check for environment variables (for init containers)
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
-
-    if skip_prompt:
-        if not admin_email or not admin_password:
-            print("ℹ Skipping admin user creation (set ADMIN_EMAIL and ADMIN_PASSWORD to create)")
-            return
-    else:
-        # Interactive mode
-        if not admin_email:
-            admin_email = input("Enter admin email address: ").strip()
-
-        if not admin_email:
-            print("Error: Email address is required")
-            sys.exit(1)
-
-    # Check if user already exists
-    admin_user = User.query.filter_by(email=admin_email).first()
+    # Check if any admin user exists
+    admin_user = User.query.filter_by(role="admin").first()
     if admin_user:
-        print(f"ℹ Admin user with email {admin_email} already exists")
+        print(f"✓ Admin user exists: {admin_user.email}")
         return
 
-    if not skip_prompt and not admin_password:
-        admin_password = getpass.getpass("Enter admin password: ")
-        admin_password_confirm = getpass.getpass("Confirm admin password: ")
-
-        if not admin_password:
-            print("Error: Password is required")
-            sys.exit(1)
-
-        if admin_password != admin_password_confirm:
-            print("Error: Passwords do not match")
-            sys.exit(1)
-
-    # Validate password
-    is_valid, message = User.validate_password(admin_password)
-    if not is_valid:
-        print(f"Error: {message}")
-        if not skip_prompt:
-            sys.exit(1)
-        return
-
-    # Create admin user
-    admin_user = User(email=admin_email, first_name="Admin", last_name="User", role="admin")
-    # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
-    admin_user.set_password(admin_password)
-
-    db.session.add(admin_user)
-    db.session.commit()
-    print(f"✓ Admin user created: {admin_email}")
+    print("ℹ No admin user found")
+    print("\nTo create an admin user, run:")
+    print("  python create_admin_user.py")
+    print("\nOr with environment variables:")
+    print("  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123! \\")
+    print("    python create_admin_user.py --non-interactive")
 
 
-def init_fresh_database(skip_admin_prompt=False):
-    """Initialize a fresh database from scratch."""
+def init_fresh_database():
+    """
+    Initialize a fresh database from scratch.
+
+    Note: Admin user creation has been moved to a separate script.
+    Run create_admin_user.py after initialization to create an admin user.
+    """
     app = create_app()
 
     with app.app_context():
@@ -302,16 +269,17 @@ def init_fresh_database(skip_admin_prompt=False):
         # Seed default data
         seed_default_data()
 
-        # Create admin user
-        create_admin_user(skip_prompt=skip_admin_prompt)
+        # Check for admin user
+        check_admin_user()
 
         print("\n" + "=" * 60)
         print("✓ Database initialization completed successfully!")
         print("=" * 60)
         print("\nNext steps:")
-        print("1. Configure your site settings in the admin panel")
-        print("2. Add business cards and resources")
-        print("3. Customize Quick Access items")
+        print("1. Create admin user: python create_admin_user.py")
+        print("2. Configure your site settings in the admin panel")
+        print("3. Add business cards and resources")
+        print("4. Customize Quick Access items")
         print("\nFor future schema changes, use Flask-Migrate:")
         print("  flask db migrate -m 'Description'")
         print("  flask db upgrade")
@@ -321,13 +289,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Initialize a fresh CityForge database from scratch"
-    )
-    parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        help="Run in non-interactive mode (for init containers). Reads ADMIN_EMAIL and ADMIN_PASSWORD from environment.",
+        description="Initialize a fresh CityForge database from scratch",
+        epilog="To create an admin user after initialization, run: python create_admin_user.py",
     )
     args = parser.parse_args()
 
-    init_fresh_database(skip_admin_prompt=args.non_interactive)
+    init_fresh_database()

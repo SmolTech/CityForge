@@ -9,16 +9,22 @@ This guide explains how to initialize the CityForge database from scratch.
 ```bash
 cd backend
 export FLASK_APP=app:create_app
+
+# Initialize database
 python initialize_db.py
+
+# Create admin user (separate step)
+python create_admin_user.py
 ```
 
-The script will:
+The initialization script will:
 
 1. Detect that the database is empty
 2. Create all tables using SQLAlchemy models
 3. Stamp the database with the current migration version
 4. Seed default configuration data
-5. Prompt you to create an admin user
+
+Then create an admin user using the separate `create_admin_user.py` script.
 
 ### For Existing Databases
 
@@ -32,20 +38,29 @@ This runs any pending migrations without affecting existing data.
 
 ### For Kubernetes/Docker Deployments
 
-The database is automatically initialized when backend pods start via an init container:
+The database is automatically initialized when backend pods start via an init container.
+Admin user creation is handled separately after initialization.
+
+**Database Initialization (Automatic):**
 
 ```yaml
 initContainers:
   - name: db-migration
-    command: ["python", "initialize_db.py", "--non-interactive"]
-    env:
-      - name: ADMIN_EMAIL
-        value: "admin@example.com"
-      - name: ADMIN_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: admin-secret
-            key: password
+    command: ["python", "initialize_db.py"]
+```
+
+**Admin User Creation (Separate Job):**
+
+```bash
+# Create admin user using a Kubernetes job
+kubectl create secret generic admin-credentials \
+  --from-literal=email=admin@example.com \
+  --from-literal=password=SecurePassword123!
+
+kubectl run create-admin --image=cityforge-backend --restart=Never --rm -it \
+  --env="ADMIN_EMAIL=admin@example.com" \
+  --env="ADMIN_PASSWORD=SecurePassword123!" \
+  -- python create_admin_user.py --non-interactive
 ```
 
 ## Scripts Overview
@@ -57,13 +72,7 @@ initContainers:
 **Usage**:
 
 ```bash
-# Interactive mode (prompts for admin user)
 python initialize_db.py
-
-# Non-interactive mode (uses environment variables)
-export ADMIN_EMAIL=admin@example.com
-export ADMIN_PASSWORD=SecurePassword123!
-python initialize_db.py --non-interactive
 ```
 
 **What it does**:
@@ -71,8 +80,41 @@ python initialize_db.py --non-interactive
 - Detects if database is empty or has existing tables
 - For empty databases: Creates tables, stamps migrations, seeds data
 - For existing databases: Runs pending migrations
+- Checks if admin user exists and provides guidance
 - Handles edge cases (e.g., tables exist but no migration tracking)
 - Idempotent - safe to run multiple times
+
+**Note**: Admin user creation has been moved to `create_admin_user.py`
+
+### `create_admin_user.py`
+
+**Purpose**: Create an admin user for the CityForge application.
+
+**Usage**:
+
+```bash
+# Interactive mode (prompts for email and password)
+python create_admin_user.py
+
+# Non-interactive mode (uses environment variables)
+export ADMIN_EMAIL=admin@example.com
+export ADMIN_PASSWORD=SecurePassword123!
+python create_admin_user.py --non-interactive
+
+# With command line arguments
+python create_admin_user.py --email admin@example.com --password SecurePass123!
+
+# Customize admin user details
+python create_admin_user.py --email admin@example.com --first-name John --last-name Doe
+```
+
+**What it does**:
+
+- Creates a new admin user with the specified email and password
+- Validates password complexity requirements
+- Checks for existing users with the same email
+- Can be run interactively or with environment variables/arguments
+- Idempotent - won't create duplicate users
 
 ### `init_fresh_db.py`
 
@@ -82,15 +124,14 @@ python initialize_db.py --non-interactive
 
 ```bash
 python init_fresh_db.py
-# OR
-
-python init_fresh_db.py --non-interactive
 ```
 
 **Use when**:
 
 - You're absolutely certain the database is empty
 - You want a script that enforces fresh initialization
+
+**Note**: Admin user creation has been moved to `create_admin_user.py`
 
 ### `seed_data.py`
 
