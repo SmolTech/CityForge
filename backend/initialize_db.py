@@ -9,8 +9,10 @@ This script intelligently handles both fresh and existing databases:
 
 Safe to run multiple times - it's idempotent.
 Perfect for Kubernetes init containers and local development.
+
+Note: Admin user creation has been moved to create_admin_user.py
+Run that script separately after database initialization.
 """
-import getpass
 import os
 import sys
 
@@ -245,74 +247,35 @@ def seed_default_data():
         print("  ✓ Resource items already exist (skipped)")
 
 
-def create_admin_user(skip_prompt=False):
-    """Create an admin user (idempotent)."""
+def check_admin_user():
+    """Check if an admin user exists and provide guidance."""
     from app.models.user import User
 
-    print("\n[3/3] Creating admin user...")
+    print("\n[3/3] Checking for admin user...")
 
-    # Check for environment variables (for init containers)
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
-
-    if skip_prompt:
-        if not admin_email or not admin_password:
-            print("  ℹ Skipping (set ADMIN_EMAIL and ADMIN_PASSWORD environment variables)")
-            return
-    else:
-        # Interactive mode
-        if not admin_email:
-            print()
-            admin_email = input("Enter admin email address (or press Enter to skip): ").strip()
-
-        if not admin_email:
-            print("  ℹ Skipping admin user creation")
-            return
-
-    # Check if user already exists
-    admin_user = User.query.filter_by(email=admin_email).first()
+    # Check if any admin user exists
+    admin_user = User.query.filter_by(role="admin").first()
     if admin_user:
-        print(f"  ✓ Admin user already exists: {admin_email} (skipped)")
+        print(f"  ✓ Admin user exists: {admin_user.email}")
         return
 
-    if not skip_prompt and not admin_password:
-        admin_password = getpass.getpass("Enter admin password: ")
-        admin_password_confirm = getpass.getpass("Confirm admin password: ")
-
-        if not admin_password:
-            print("  ℹ Skipping admin user creation (no password provided)")
-            return
-
-        if admin_password != admin_password_confirm:
-            print("  ✗ Error: Passwords do not match")
-            if not skip_prompt:
-                sys.exit(1)
-            return
-
-    # Validate password
-    is_valid, message = User.validate_password(admin_password)
-    if not is_valid:
-        print(f"  ✗ Error: {message}")
-        if not skip_prompt:
-            sys.exit(1)
-        return
-
-    # Create admin user
-    admin_user = User(email=admin_email, first_name="Admin", last_name="User", role="admin")
-    # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
-    admin_user.set_password(admin_password)
-
-    db.session.add(admin_user)
-    db.session.commit()
-    print(f"  ✓ Admin user created: {admin_email}")
+    print("  ℹ No admin user found")
+    print("\n  To create an admin user, run:")
+    print("    python create_admin_user.py")
+    print("\n  Or with environment variables:")
+    print("    ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=SecurePass123! \\")
+    print("      python create_admin_user.py --non-interactive")
 
 
-def initialize_database(skip_admin_prompt=False):
+def initialize_database():
     """
     Initialize the database intelligently.
 
     Detects whether this is a fresh database or an existing one,
     and handles it appropriately.
+
+    Note: Admin user creation has been moved to a separate script.
+    Run create_admin_user.py after initialization to create an admin user.
     """
     app = create_app()
 
@@ -356,14 +319,15 @@ def initialize_database(skip_admin_prompt=False):
         # Seed default data (safe for both fresh and existing databases)
         seed_default_data()
 
-        # Create admin user if needed
-        create_admin_user(skip_prompt=skip_admin_prompt)
+        # Check for admin user
+        check_admin_user()
 
         # Success message
         print("\n" + "=" * 70)
         print("✓ DATABASE INITIALIZATION COMPLETE")
         print("=" * 70)
         print("\nNext steps:")
+        print("  • Create admin user (if needed): python create_admin_user.py")
         print("  • Access admin panel: http://your-domain/admin")
         print("  • Configure site settings")
         print("  • Add business cards and resources")
@@ -378,17 +342,13 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Initialize CityForge database (fresh or existing)"
-    )
-    parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        help="Run in non-interactive mode (for init containers). Uses ADMIN_EMAIL and ADMIN_PASSWORD from environment.",
+        description="Initialize CityForge database (fresh or existing)",
+        epilog="To create an admin user after initialization, run: python create_admin_user.py",
     )
     args = parser.parse_args()
 
     try:
-        initialize_database(skip_admin_prompt=args.non_interactive)
+        initialize_database()
     except Exception as e:
         print(f"\n✗ Initialization failed: {e}", file=sys.stderr)
         sys.exit(1)
