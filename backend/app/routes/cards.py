@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from app import db, limiter
 from app.models.card import Card, CardModification, CardSubmission, Tag, card_tags
@@ -50,7 +51,13 @@ def get_cards():
         query = query.filter_by(featured=True)
 
     total_count = query.count()
-    cards = query.order_by(Card.featured.desc(), Card.name.asc()).offset(offset).limit(limit).all()
+    cards = (
+        query.options(joinedload(Card.tags))
+        .order_by(Card.featured.desc(), Card.name.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     response = jsonify(
         {
@@ -70,7 +77,7 @@ def get_cards():
 
 @bp.route("/api/cards/<int:card_id>", methods=["GET"])
 def get_card(card_id):
-    card = Card.query.get_or_404(card_id)
+    card = Card.query.options(joinedload(Card.tags)).get_or_404(card_id)
     include_share_url = request.args.get("share_url", "false").lower() == "true"
     include_ratings = request.args.get("ratings", "false").lower() == "true"
     response = jsonify(
@@ -85,7 +92,11 @@ def get_card(card_id):
 @bp.route("/api/business/<int:business_id>/<slug>", methods=["GET"])
 def get_business(business_id, slug=None):
     """Get business details by ID and optional slug for shareable URLs."""
-    card = Card.query.filter_by(id=business_id, approved=True).first_or_404()
+    card = (
+        Card.query.options(joinedload(Card.tags), joinedload(Card.reviews))
+        .filter_by(id=business_id, approved=True)
+        .first_or_404()
+    )
 
     if slug and slug != card.slug:
         return jsonify({"redirect": f"/business/{business_id}/{card.slug}"}), 301
