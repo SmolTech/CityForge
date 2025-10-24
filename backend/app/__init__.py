@@ -167,6 +167,7 @@ def create_app():
         admin,
         auth,
         cards,
+        data_management,
         forums,
         help_wanted,
         resources,
@@ -184,6 +185,7 @@ def create_app():
     app.register_blueprint(help_wanted.bp)
     app.register_blueprint(reviews.bp)
     app.register_blueprint(forums.bp)
+    app.register_blueprint(data_management.bp)
 
     # Register error handlers
     from app.utils.errors import register_error_handlers

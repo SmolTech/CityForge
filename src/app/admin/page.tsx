@@ -814,6 +814,57 @@ export default function AdminPage() {
           </Link>
         </div>
 
+        {/* Quick Access - Data Management */}
+        <div className="mb-6">
+          <Link
+            href="/admin/data"
+            className="block bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-10 w-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-xl font-bold text-white">
+                    Data Management
+                  </h3>
+                  <p className="text-white text-opacity-90 text-sm">
+                    Export and import database data for backups and migrations
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-6 w-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* Tabs */}
         <div className="mb-6">
           <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
