@@ -76,8 +76,52 @@ export default function SubmitPage() {
         tags_text: "",
       });
       setTags([]);
-    } catch {
-      setError("Failed to submit content. Please try again.");
+    } catch (err: unknown) {
+      // Extract specific error message from API response
+      let errorMessage = "Failed to submit content. Please try again.";
+
+      if (err && typeof err === "object" && "message" in err) {
+        const apiError = err as {
+          message?: string;
+          errors?: Record<string, string[]>;
+        };
+
+        // Handle validation errors with specific field messages
+        if (apiError.errors && typeof apiError.errors === "object") {
+          const fieldErrors = Object.entries(apiError.errors)
+            .map(([field, messages]) => {
+              const fieldName = field
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+              return `${fieldName}: ${Array.isArray(messages) ? messages.join(", ") : messages}`;
+            })
+            .join("; ");
+
+          errorMessage = `Validation failed: ${fieldErrors}`;
+        }
+        // Handle rate limiting
+        else if (
+          apiError.message?.includes("rate limit") ||
+          apiError.message?.includes("Rate limit")
+        ) {
+          errorMessage =
+            "You've submitted too many items recently. Please wait an hour and try again.";
+        }
+        // Handle authentication errors
+        else if (
+          apiError.message?.includes("expired") ||
+          apiError.message?.includes("Unauthorized")
+        ) {
+          errorMessage = "Your session has expired. Please log in again.";
+        }
+        // Use generic API error message if available
+        else if (apiError.message) {
+          errorMessage = apiError.message;
+        }
+      }
+
+      logger.error("Submission failed:", err);
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -98,15 +142,67 @@ export default function SubmitPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setError("Image is too large. Maximum file size is 10MB.");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/gif",
+      "image/webp",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        "Invalid file type. Please upload a PNG, JPEG, GIF, or WebP image."
+      );
+      return;
+    }
+
     setImageUploading(true);
+    setError(""); // Clear any previous errors
+
     try {
       const response = await apiClient.uploadFile(file);
       setFormData({
         ...formData,
         image_url: response.url,
       });
-    } catch {
-      setError("Failed to upload image. Please try again.");
+    } catch (err: unknown) {
+      let errorMessage = "Failed to upload image. Please try again.";
+
+      if (err && typeof err === "object" && "message" in err) {
+        const apiError = err as { message?: string };
+
+        if (
+          apiError.message?.includes("rate limit") ||
+          apiError.message?.includes("Rate limit")
+        ) {
+          errorMessage =
+            "You've uploaded too many images recently. Please wait and try again.";
+        } else if (
+          apiError.message?.includes("file type") ||
+          apiError.message?.includes("File type")
+        ) {
+          errorMessage =
+            "Invalid file type. Please upload a PNG, JPEG, GIF, or WebP image.";
+        } else if (
+          apiError.message?.includes("too large") ||
+          apiError.message?.includes("size")
+        ) {
+          errorMessage = "Image is too large. Maximum file size is 10MB.";
+        } else if (apiError.message) {
+          errorMessage = apiError.message;
+        }
+      }
+
+      logger.error("Image upload failed:", err);
+      setError(errorMessage);
     } finally {
       setImageUploading(false);
     }
