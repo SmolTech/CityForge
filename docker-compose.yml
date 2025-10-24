@@ -65,7 +65,7 @@ services:
       opensearch:
         condition: service_healthy
     command: >
-      sh -c "python initialize_db.py --non-interactive &&
+      sh -c "python initialize_db.py &&
              gunicorn --bind 0.0.0.0:5000 --workers 4 wsgi:app"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
