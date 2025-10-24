@@ -4,11 +4,14 @@ opensearch-py==3.0.0
 lxml==5.3.0
 
 # Backend dependencies (required for database access and IndexingJob model)
+# The indexer imports from backend app, which requires these Flask extensions
 Flask==3.1.2
 Flask-Bcrypt==1.0.1
 flask-cors==6.0.1
-Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended==4.7.1
+Flask-Limiter==4.0.0
 Flask-Migrate==4.1.0
+Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.43
 psycopg-binary==3.2.10
 python-dotenv==1.1.1
