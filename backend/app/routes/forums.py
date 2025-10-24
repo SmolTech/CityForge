@@ -13,7 +13,12 @@ from app.models.forum import (
     ForumThread,
 )
 from app.models.user import User
-from app.schemas import ForumPostSchema, ForumThreadSchema
+from app.schemas import (
+    ForumCategoryRequestSchema,
+    ForumPostSchema,
+    ForumThreadSchema,
+    ForumThreadUpdateSchema,
+)
 from app.utils.helpers import generate_slug
 
 bp = Blueprint("forums", __name__)
@@ -62,28 +67,32 @@ def request_category():
 
     data = request.get_json()
 
-    if not data or not all(k in data for k in ["name", "description", "justification"]):
-        return (
-            jsonify({"message": "Missing required fields: name, description, justification"}),
-            400,
-        )
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = ForumCategoryRequestSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     # Check if a similar category already exists
-    existing_category = ForumCategory.query.filter_by(name=data["name"]).first()
+    existing_category = ForumCategory.query.filter_by(name=validated_data["name"]).first()
     if existing_category:
         return jsonify({"message": "A category with this name already exists"}), 400
 
     # Check if user already has a pending request for this category
     existing_request = ForumCategoryRequest.query.filter_by(
-        name=data["name"], requested_by=user_id, status="pending"
+        name=validated_data["name"], requested_by=user_id, status="pending"
     ).first()
     if existing_request:
         return jsonify({"message": "You already have a pending request for this category"}), 400
 
     category_request = ForumCategoryRequest(
-        name=data["name"],
-        description=data["description"],
-        justification=data["justification"],
+        name=validated_data["name"],
+        description=validated_data["description"],
+        justification=validated_data["justification"],
         requested_by=user_id,
     )
 
@@ -223,21 +232,28 @@ def update_thread(thread_id):
 
     data = request.get_json()
 
-    if "title" in data:
-        thread.title = data["title"]
-        # Regenerate slug if title changed
-        base_slug = generate_slug(data["title"])
-        thread_slug = base_slug
-        counter = 1
-        # Ensure slug is unique (excluding current thread)
-        while (
-            ForumThread.query.filter_by(slug=thread_slug)
-            .filter(ForumThread.id != thread_id)
-            .first()
-        ):
-            thread_slug = f"{base_slug}-{counter}"
-            counter += 1
-        thread.slug = thread_slug
+    if not data:
+        return jsonify({"message": "No data provided"}), 400
+
+    # Validate input data
+    schema = ForumThreadUpdateSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({"message": "Validation failed", "errors": err.messages}), 400
+
+    # Update title and regenerate slug
+    thread.title = validated_data["title"]
+    base_slug = generate_slug(validated_data["title"])
+    thread_slug = base_slug
+    counter = 1
+    # Ensure slug is unique (excluding current thread)
+    while (
+        ForumThread.query.filter_by(slug=thread_slug).filter(ForumThread.id != thread_id).first()
+    ):
+        thread_slug = f"{base_slug}-{counter}"
+        counter += 1
+    thread.slug = thread_slug
 
     db.session.commit()
 
