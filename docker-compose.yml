@@ -52,6 +52,9 @@ services:
       UPLOAD_FOLDER: /app/uploads
       FLASK_ENV: production
       FLASK_APP: app:create_app
+      # Optional: Set these to create an admin user automatically on first run
+      # ADMIN_EMAIL: admin@example.com
+      # ADMIN_PASSWORD: ChangeThisPassword123!
     volumes:
       - backend_uploads:/app/uploads
     expose:
@@ -62,7 +65,7 @@ services:
       opensearch:
         condition: service_healthy
     command: >
-      sh -c "flask db upgrade &&
+      sh -c "python initialize_db.py --non-interactive &&
              gunicorn --bind 0.0.0.0:5000 --workers 4 wsgi:app"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
