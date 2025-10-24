@@ -6,8 +6,6 @@ Create Date: 2025-10-23 00:00:00.000000
 
 """
 
-import sqlalchemy as sa
-
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -34,12 +32,18 @@ def upgrade():
     # Add indexes to card_submissions table
     with op.batch_alter_table("card_submissions", schema=None) as batch_op:
         batch_op.create_index(batch_op.f("ix_card_submissions_status"), ["status"], unique=False)
-        batch_op.create_index(batch_op.f("ix_card_submissions_submitted_by"), ["submitted_by"], unique=False)
+        batch_op.create_index(
+            batch_op.f("ix_card_submissions_submitted_by"), ["submitted_by"], unique=False
+        )
 
     # Add indexes to forum_threads table
     with op.batch_alter_table("forum_threads", schema=None) as batch_op:
-        batch_op.create_index(batch_op.f("ix_forum_threads_category_id"), ["category_id"], unique=False)
-        batch_op.create_index(batch_op.f("ix_forum_threads_created_by"), ["created_by"], unique=False)
+        batch_op.create_index(
+            batch_op.f("ix_forum_threads_category_id"), ["category_id"], unique=False
+        )
+        batch_op.create_index(
+            batch_op.f("ix_forum_threads_created_by"), ["created_by"], unique=False
+        )
 
     # Add indexes to forum_posts table
     with op.batch_alter_table("forum_posts", schema=None) as batch_op:
@@ -54,7 +58,9 @@ def upgrade():
 
     # Add indexes to card_modifications table
     with op.batch_alter_table("card_modifications", schema=None) as batch_op:
-        batch_op.create_index(batch_op.f("ix_card_modifications_card_id"), ["card_id"], unique=False)
+        batch_op.create_index(
+            batch_op.f("ix_card_modifications_card_id"), ["card_id"], unique=False
+        )
         batch_op.create_index(batch_op.f("ix_card_modifications_status"), ["status"], unique=False)
 
     # ### end Alembic commands ###
