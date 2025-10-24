@@ -4,7 +4,11 @@ opensearch-py==3.0.0
 lxml==5.3.0
 
 # Backend dependencies (required for database access and IndexingJob model)
-# The indexer imports from backend app, which requires these Flask extensions
+# The indexer imports from backend app, so it needs ALL backend dependencies
+bcrypt==5.0.0
+bleach==6.2.0
+blinker==1.9.0
+email-validator==2.2.0
 Flask==3.1.2
 Flask-Bcrypt==1.0.1
 flask-cors==6.0.1
@@ -12,9 +16,20 @@ Flask-JWT-Extended==4.7.1
 Flask-Limiter==4.0.0
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
+greenlet==3.2.4
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
 marshmallow==3.25.1
-SQLAlchemy==2.0.43
+packaging==25.0
+phonenumbers==8.13.54
+pillow==11.3.0
 psycopg==3.2.10
 psycopg-binary==3.2.10
+PyJWT==2.10.1
+python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
+six==1.17.0
+SQLAlchemy==2.0.43
+typing_extensions==4.15.0
 Werkzeug==3.1.3
