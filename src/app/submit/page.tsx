@@ -59,10 +59,27 @@ export default function SubmitPage() {
     setError("");
 
     try {
-      await apiClient.submitCard({
-        ...formData,
-        tags_text: tags.join(", "),
-      });
+      // Filter out empty string values to send only populated fields
+      const submissionData: Partial<typeof formData> & { name: string } = {
+        name: formData.name,
+      };
+
+      // Only include optional fields if they have values
+      if (formData.description)
+        submissionData.description = formData.description;
+      if (formData.website_url)
+        submissionData.website_url = formData.website_url;
+      if (formData.phone_number)
+        submissionData.phone_number = formData.phone_number;
+      if (formData.email) submissionData.email = formData.email;
+      if (formData.address) submissionData.address = formData.address;
+      if (formData.address_override_url) {
+        submissionData.address_override_url = formData.address_override_url;
+      }
+      if (formData.image_url) submissionData.image_url = formData.image_url;
+      if (tags.length > 0) submissionData.tags_text = tags.join(", ");
+
+      await apiClient.submitCard(submissionData as typeof formData);
       setSuccess(true);
       setFormData({
         name: "",
