@@ -32,13 +32,18 @@ def validate_phone_number(value):
     if not value:
         return
     try:
-        # Parse with region hint (None for international format)
-        parsed = phonenumbers.parse(value, None)
+        # Try parsing with US region first (for local format like (508) 555-0123)
+        try:
+            parsed = phonenumbers.parse(value, "US")
+        except phonenumbers.phonenumberutil.NumberParseException:
+            # Fall back to international format (e.g., +1234567890)
+            parsed = phonenumbers.parse(value, None)
+
         if not phonenumbers.is_valid_number(parsed):
             raise ValidationError("Invalid phone number format")
     except phonenumbers.phonenumberutil.NumberParseException:
         raise ValidationError(
-            "Invalid phone number. Use international format (e.g., +1234567890)"
+            "Invalid phone number format. Examples: (508) 555-0123 or +15085550123"
         ) from None
 
 
