@@ -181,3 +181,17 @@ class HelpWantedPostSchema(Schema):
     description = SanitizedString(required=True, validate=validate.Length(min=1, max=5000))
     contact_email = fields.Email(allow_none=True)
     contact_phone = fields.String(validate=validate_phone_number, allow_none=True)
+
+
+class ForumThreadUpdateSchema(Schema):
+    """Validation schema for updating forum threads."""
+
+    title = SanitizedString(required=True, validate=validate.Length(min=1, max=255))
+
+
+class ForumCategoryRequestSchema(Schema):
+    """Validation schema for requesting new forum categories."""
+
+    name = SanitizedString(required=True, validate=validate.Length(min=3, max=100))
+    description = SanitizedString(required=True, validate=validate.Length(min=10, max=1000))
+    justification = SanitizedString(required=True, validate=validate.Length(min=10, max=1000))
