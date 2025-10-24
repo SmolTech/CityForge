@@ -248,9 +248,7 @@ def update_thread(thread_id):
     thread_slug = base_slug
     counter = 1
     # Ensure slug is unique (excluding current thread)
-    while (
-        ForumThread.query.filter_by(slug=thread_slug).filter(ForumThread.id != thread_id).first()
-    ):
+    while ForumThread.query.filter_by(slug=thread_slug).filter(ForumThread.id != thread_id).first():
         thread_slug = f"{base_slug}-{counter}"
         counter += 1
     thread.slug = thread_slug
