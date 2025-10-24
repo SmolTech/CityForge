@@ -57,12 +57,10 @@ export default function DataManagementPage() {
       setUser(userResponse.user);
 
       // Load available models
-      const response = await fetch(
-        `${apiClient.getBaseUrl()}/api/admin/data/models`,
-        {
-          credentials: "include",
-        }
-      );
+      const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
+      const response = await fetch(`${apiBaseUrl}/api/admin/data/models`, {
+        credentials: "include",
+      });
 
       if (!response.ok) {
         throw new Error("Failed to load models");
@@ -85,18 +83,16 @@ export default function DataManagementPage() {
 
     try {
       const requestBody = selectAll ? {} : { include: selectedModels };
+      const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
 
-      const response = await fetch(
-        `${apiClient.getBaseUrl()}/api/admin/data/export`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await fetch(`${apiBaseUrl}/api/admin/data/export`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       if (!response.ok) {
         throw new Error("Export failed");
@@ -151,14 +147,12 @@ export default function DataManagementPage() {
         formData.append("confirm", confirmClean);
       }
 
-      const response = await fetch(
-        `${apiClient.getBaseUrl()}/api/admin/data/import`,
-        {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }
-      );
+      const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
+      const response = await fetch(`${apiBaseUrl}/api/admin/data/import`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
 
       const data = await response.json();
 
