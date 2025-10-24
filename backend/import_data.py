@@ -58,9 +58,7 @@ from app.models import (
 )
 from app.models.token_blacklist import TokenBlacklist
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Define models in import order (respects foreign key dependencies)
@@ -207,9 +205,7 @@ def import_many_to_many_relationships(relationships_data, mode):
 
         # Check if relationship exists
         existing = db.session.execute(
-            db.text(
-                "SELECT 1 FROM card_tags WHERE card_id = :card_id AND tag_id = :tag_id"
-            ),
+            db.text("SELECT 1 FROM card_tags WHERE card_id = :card_id AND tag_id = :tag_id"),
             {"card_id": card_id, "tag_id": tag_id},
         ).fetchone()
 
@@ -296,14 +292,10 @@ def import_data(input_file, mode="skip", include_models=None):
 
             try:
                 if mode == "skip":
-                    added, skipped = import_model_skip_mode(
-                        model_class, model_name, records
-                    )
+                    added, skipped = import_model_skip_mode(model_class, model_name, records)
                     stats[model_name] = {"added": added, "skipped": skipped}
                 elif mode in ("replace", "merge"):
-                    added, updated = import_model_merge_mode(
-                        model_class, model_name, records
-                    )
+                    added, updated = import_model_merge_mode(model_class, model_name, records)
                     stats[model_name] = {"added": added, "updated": updated}
                 elif mode == "clean":
                     # In clean mode, all records are new
@@ -317,9 +309,7 @@ def import_data(input_file, mode="skip", include_models=None):
         # Import relationships
         if "relationships" in import_data_dict:
             try:
-                import_many_to_many_relationships(
-                    import_data_dict["relationships"], mode
-                )
+                import_many_to_many_relationships(import_data_dict["relationships"], mode)
             except Exception as e:
                 logger.error(f"Error importing relationships: {e}")
                 db.session.rollback()

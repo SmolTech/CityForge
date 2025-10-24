@@ -180,9 +180,7 @@ def import_many_to_many_relationships(relationships_data, mode):
 
         # Check if relationship exists
         existing = db.session.execute(
-            db.text(
-                "SELECT 1 FROM card_tags WHERE card_id = :card_id AND tag_id = :tag_id"
-            ),
+            db.text("SELECT 1 FROM card_tags WHERE card_id = :card_id AND tag_id = :tag_id"),
             {"card_id": card_id, "tag_id": tag_id},
         ).fetchone()
 
@@ -265,7 +263,9 @@ def export_data():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"cityforge_export_{timestamp}.json"
 
-        logger.info(f"Export complete: {len(json_data)} bytes, {len(export_data_dict['data'])} models")
+        logger.info(
+            f"Export complete: {len(json_data)} bytes, {len(export_data_dict['data'])} models"
+        )
 
         return send_file(
             buffer,
@@ -313,16 +313,23 @@ def import_data():
 
         # Get include list
         include_str = request.form.get("include", "")
-        include_models = [m.strip() for m in include_str.split(",") if m.strip()] if include_str else None
+        include_models = (
+            [m.strip() for m in include_str.split(",") if m.strip()] if include_str else None
+        )
 
         # Validate clean mode (requires explicit confirmation)
         if mode == "clean":
             confirm = request.form.get("confirm", "")
             if confirm != "DELETE ALL DATA":
-                return jsonify({
-                    "error": "Clean mode requires confirmation",
-                    "details": "Set 'confirm' field to 'DELETE ALL DATA' to proceed"
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "error": "Clean mode requires confirmation",
+                            "details": "Set 'confirm' field to 'DELETE ALL DATA' to proceed",
+                        }
+                    ),
+                    400,
+                )
 
         logger.info(f"Admin import requested: mode={mode}, include={include_models}")
 
@@ -387,12 +394,14 @@ def import_data():
 
         logger.info(f"Import complete: {stats}")
 
-        return jsonify({
-            "success": True,
-            "message": "Import completed successfully",
-            "stats": stats,
-            "metadata": metadata,
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": "Import completed successfully",
+                "stats": stats,
+                "metadata": metadata,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Import failed: {e}", exc_info=True)
@@ -417,10 +426,12 @@ def get_available_models():
         models = []
         for model_name, model_class in EXPORT_ORDER:
             count = model_class.query.count()
-            models.append({
-                "name": model_name,
-                "count": count,
-            })
+            models.append(
+                {
+                    "name": model_name,
+                    "count": count,
+                }
+            )
 
         return jsonify({"models": models})
 

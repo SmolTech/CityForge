@@ -53,9 +53,7 @@ from app.models import (
 )
 from app.models.token_blacklist import TokenBlacklist
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Define models and their export order (to handle foreign key dependencies)
@@ -165,9 +163,7 @@ def export_data(output_file, exclude_models=None, include_models=None):
         # Export each model
         for model_name, model_class in models_to_export:
             try:
-                export_data_dict["data"][model_name] = export_model(
-                    model_class, model_name
-                )
+                export_data_dict["data"][model_name] = export_model(model_class, model_name)
             except Exception as e:
                 logger.error(f"Error exporting {model_name}: {e}")
                 raise
