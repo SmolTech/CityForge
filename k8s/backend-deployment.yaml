@@ -50,6 +50,8 @@ spec:
                   name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
             - name: FLASK_APP
               value: "app:create_app"
+            - name: LOG_LEVEL
+              value: "DEBUG" # Debug logging for database initialization
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -99,6 +101,10 @@ spec:
               value: "9200"
             - name: NAMESPACE
               value: "cityforge"
+            - name: LOG_LEVEL
+              value: "DEBUG" # Set to DEBUG, INFO, WARNING, or ERROR
+            - name: FLASK_ENV
+              value: "production" # Keep production for security, but with debug logs
           livenessProbe:
             httpGet:
               path: /health
