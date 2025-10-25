@@ -36,6 +36,22 @@ spec:
                   value: "9200"
                 - name: NAMESPACE
                   value: "cityforge"
+                - name: POSTGRES_HOST
+                  value: "cityforge-db"
+                - name: POSTGRES_PORT
+                  value: "5432"
+                - name: POSTGRES_DB
+                  value: "cityforge"
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: username
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: password
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
               resources:
                 requests:
                   memory: "128Mi"
