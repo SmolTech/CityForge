@@ -38,6 +38,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             fullName: "Community Website",
             themeColor: "#1f2937",
             backgroundColor: "#ffffff",
+            googleAnalyticsId: "",
           },
           resources: {
             title: "Local Resources",
@@ -88,6 +89,7 @@ export function useConfig(): AppConfig {
       fullName: "Community Website",
       themeColor: "#1f2937",
       backgroundColor: "#ffffff",
+      googleAnalyticsId: "",
     },
     resources: {
       title: "Local Resources",

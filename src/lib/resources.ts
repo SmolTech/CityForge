@@ -13,6 +13,7 @@ export interface SiteConfig {
   fullName: string;
   themeColor: string;
   backgroundColor: string;
+  googleAnalyticsId: string;
 }
 
 export interface ResourcesConfig {
