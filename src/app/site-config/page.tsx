@@ -107,6 +107,7 @@ export default function SiteConfigPage() {
       copyright_holder: "Copyright Holder",
       copyright_url: "Copyright URL",
       pagination_default_limit: "Items Per Page",
+      google_analytics_id: "Google Analytics ID",
     };
     return (
       labels[key] ||
@@ -135,6 +136,8 @@ export default function SiteConfigPage() {
       copyright_url: "URL link for the copyright holder",
       pagination_default_limit:
         "Default number of items to display per page in directory listings (recommended: 10-50)",
+      google_analytics_id:
+        "Google Analytics 4 measurement ID (e.g., G-XXXXXXXXXX). Leave empty to disable tracking. Find this in your Google Analytics account under Admin > Data Streams.",
     };
     return descriptions[key] || null;
   };
@@ -146,6 +149,7 @@ export default function SiteConfigPage() {
       "Directory Page": [],
       "Pagination & Display": [],
       "Copyright & Legal": [],
+      "Analytics & Tracking": [],
       Other: [],
     };
 
@@ -160,6 +164,8 @@ export default function SiteConfigPage() {
         groups["Pagination & Display"]?.push(config);
       } else if (config.key.startsWith("copyright_")) {
         groups["Copyright & Legal"]?.push(config);
+      } else if (config.key.startsWith("google_")) {
+        groups["Analytics & Tracking"]?.push(config);
       } else {
         groups["Other"]?.push(config);
       }
