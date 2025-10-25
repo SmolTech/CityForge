@@ -5,6 +5,7 @@ import { loadAppConfig } from "@/lib/server-config";
 import { ToastProvider } from "@/components/shared";
 import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
+import { GoogleAnalytics } from "@/components/analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ConfigProvider>
+            <GoogleAnalytics />
             <ToastProvider>{children}</ToastProvider>
           </ConfigProvider>
         </ErrorBoundary>
