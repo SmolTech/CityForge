@@ -73,6 +73,17 @@ def seed_default_data():
 
     print("\n[2/3] Seeding default configuration data...")
 
+    # Check if this is an imported database (has substantial data already)
+    resource_count = ResourceItem.query.count()
+    quick_access_count = QuickAccessItem.query.count()
+
+    if resource_count > 0 or quick_access_count > 0:
+        print("  ℹ Data already exists in database (likely imported)")
+        print(f"    - ResourceItems: {resource_count}")
+        print(f"    - QuickAccessItems: {quick_access_count}")
+        print("  ✓ Skipping default data seeding to avoid conflicts")
+        return
+
     # Site configuration
     config_defaults = [
         ("site_title", "Community Website", "Main site title"),
