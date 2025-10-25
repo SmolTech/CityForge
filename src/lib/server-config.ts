@@ -23,6 +23,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
       fullName: "Community Website",
       themeColor: "#1f2937",
       backgroundColor: "#ffffff",
+      googleAnalyticsId: "",
     },
     resources: {
       title: "Local Resources",
@@ -84,6 +85,9 @@ export async function loadAppConfig(): Promise<AppConfig> {
         backgroundColor:
           backendConfig.site?.backgroundColor ||
           defaultConfig.site.backgroundColor,
+        googleAnalyticsId:
+          backendConfig.site?.googleAnalyticsId ||
+          defaultConfig.site.googleAnalyticsId,
       },
       resources: defaultConfig.resources,
       quickAccess: defaultConfig.quickAccess,
