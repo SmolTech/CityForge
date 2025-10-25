@@ -63,6 +63,11 @@ def seed_data():
                 "20",
                 "Default number of items to display per page in directory listings",
             ),
+            (
+                "google_analytics_id",
+                "",
+                "Google Analytics measurement ID (e.g., G-XXXXXXXXXX) - leave empty to disable",
+            ),
         ]
 
         configs_created = 0
