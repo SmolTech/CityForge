@@ -703,9 +703,28 @@ def admin_get_resource_configs():
         return admin_check
 
     try:
+        # Ensure essential configs exist (auto-create if missing)
+        essential_configs = [
+            (
+                "google_analytics_id",
+                "",
+                "Google Analytics measurement ID (e.g., G-XXXXXXXXXX) - leave empty to disable",
+            ),
+        ]
+
+        for key, default_value, description in essential_configs:
+            existing = ResourceConfig.query.filter_by(key=key).first()
+            if not existing:
+                config = ResourceConfig(key=key, value=default_value, description=description)
+                db.session.add(config)
+                current_app.logger.info(f"Auto-created missing config: {key}")
+
+        db.session.commit()
+
         configs = ResourceConfig.query.all()
         return jsonify([config.to_dict() for config in configs])
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Error getting resource configs: {str(e)}")
         return jsonify({"error": "Failed to load resource configurations"}), 500
 
