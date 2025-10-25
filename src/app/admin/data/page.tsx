@@ -14,9 +14,7 @@ interface ModelInfo {
 
 interface ImportStats {
   [key: string]: {
-    added?: number;
-    updated?: number;
-    skipped?: number;
+    added: number;
   };
 }
 
@@ -29,9 +27,6 @@ export default function DataManagementPage() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importMode, setImportMode] = useState<"skip" | "merge" | "clean">(
-    "skip"
-  );
   const [confirmClean, setConfirmClean] = useState("");
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [error, setError] = useState("");
@@ -126,8 +121,8 @@ export default function DataManagementPage() {
       return;
     }
 
-    if (importMode === "clean" && confirmClean !== "DELETE ALL DATA") {
-      setError('Please type "DELETE ALL DATA" to confirm clean mode');
+    if (confirmClean !== "DELETE ALL DATA") {
+      setError('Please type "DELETE ALL DATA" to confirm');
       return;
     }
 
@@ -139,12 +134,9 @@ export default function DataManagementPage() {
     try {
       const formData = new FormData();
       formData.append("file", importFile);
-      formData.append("mode", importMode);
+      formData.append("confirm", confirmClean);
       if (!selectAll && selectedModels.length > 0) {
         formData.append("include", selectedModels.join(","));
-      }
-      if (importMode === "clean") {
-        formData.append("confirm", confirmClean);
       }
 
       const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
@@ -305,9 +297,15 @@ export default function DataManagementPage() {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Import Data
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Import database data from a JSON export file
-            </p>
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                ⚠️ WARNING: This will DELETE ALL EXISTING DATA and replace it
+                with the imported data.
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                Only use this for restoring backups to the same database.
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -323,48 +321,17 @@ export default function DataManagementPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Import Mode
+                <label className="block text-sm font-medium text-red-700 dark:text-red-400 mb-2">
+                  Type &quot;DELETE ALL DATA&quot; to confirm
                 </label>
-                <select
-                  value={importMode}
-                  onChange={(e) =>
-                    setImportMode(e.target.value as typeof importMode)
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="skip">Skip - Skip existing records</option>
-                  <option value="merge">
-                    Merge - Update existing, add new
-                  </option>
-                  <option value="clean">
-                    Clean - Delete all data first (DANGER!)
-                  </option>
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {importMode === "skip" &&
-                    "Safest option: Only adds new records, skips existing"}
-                  {importMode === "merge" &&
-                    "Updates existing records and adds new ones"}
-                  {importMode === "clean" &&
-                    "⚠️ DESTRUCTIVE: Deletes ALL data before import!"}
-                </p>
+                <input
+                  type="text"
+                  value={confirmClean}
+                  onChange={(e) => setConfirmClean(e.target.value)}
+                  className="block w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="DELETE ALL DATA"
+                />
               </div>
-
-              {importMode === "clean" && (
-                <div>
-                  <label className="block text-sm font-medium text-red-700 dark:text-red-400 mb-2">
-                    Type &quot;DELETE ALL DATA&quot; to confirm
-                  </label>
-                  <input
-                    type="text"
-                    value={confirmClean}
-                    onChange={(e) => setConfirmClean(e.target.value)}
-                    className="block w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="DELETE ALL DATA"
-                  />
-                </div>
-              )}
 
               <div>
                 <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -409,10 +376,14 @@ export default function DataManagementPage() {
 
               <button
                 onClick={handleImport}
-                disabled={importing || !importFile}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  importing || !importFile || confirmClean !== "DELETE ALL DATA"
+                }
+                className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                {importing ? "Importing..." : "Import Data"}
+                {importing
+                  ? "Deleting & Importing..."
+                  : "Delete All Data & Import"}
               </button>
             </div>
           </div>
@@ -433,16 +404,8 @@ export default function DataManagementPage() {
                   <h3 className="font-medium text-gray-900 dark:text-white mb-2">
                     {model}
                   </h3>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    {stats.added !== undefined && (
-                      <div>Added: {stats.added}</div>
-                    )}
-                    {stats.updated !== undefined && (
-                      <div>Updated: {stats.updated}</div>
-                    )}
-                    {stats.skipped !== undefined && (
-                      <div>Skipped: {stats.skipped}</div>
-                    )}
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Imported: {stats.added} records
                   </div>
                 </div>
               ))}
