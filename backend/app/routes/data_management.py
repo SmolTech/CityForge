@@ -112,91 +112,38 @@ def deserialize_model(model_class, data):
     return model_class(**deserialized)
 
 
-def import_model_skip_mode(model_class, records):
-    """Import records, skipping those that already exist."""
+def import_model_clean_mode(model_class, records):
+    """Import records after all data has been deleted (clean mode only)."""
     added = 0
-    skipped = 0
 
     for record_data in records:
-        # Check if record exists by primary key
-        pk_column = model_class.__table__.primary_key.columns.values()[0]
-        pk_value = record_data.get(pk_column.name)
-
-        if pk_value and model_class.query.get(pk_value):
-            skipped += 1
-            continue
-
-        # Add new record
+        # Add all records (database was already cleaned)
         instance = deserialize_model(model_class, record_data)
         db.session.add(instance)
         added += 1
 
     db.session.commit()
-    return added, skipped
+    return added
 
 
-def import_model_merge_mode(model_class, records):
-    """Import records, updating existing and adding new."""
-    added = 0
-    updated = 0
-
-    for record_data in records:
-        # Check if record exists by primary key
-        pk_column = model_class.__table__.primary_key.columns.values()[0]
-        pk_value = record_data.get(pk_column.name)
-
-        existing = model_class.query.get(pk_value) if pk_value else None
-
-        if existing:
-            # Update existing record
-            for key, value in record_data.items():
-                if hasattr(existing, key):
-                    setattr(existing, key, value)
-            updated += 1
-        else:
-            # Add new record
-            instance = deserialize_model(model_class, record_data)
-            db.session.add(instance)
-            added += 1
-
-    db.session.commit()
-    return added, updated
-
-
-def import_many_to_many_relationships(relationships_data, mode):
-    """Import many-to-many relationship tables."""
+def import_many_to_many_relationships(relationships_data):
+    """Import many-to-many relationship tables (clean mode only)."""
     card_tags = relationships_data.get("card_tags", [])
 
-    if mode == "clean":
-        db.session.execute(db.text("DELETE FROM card_tags"))
-        db.session.commit()
-
+    # Clean mode: data was already deleted, just insert all relationships
     added = 0
-    skipped = 0
-
     for relationship in card_tags:
         card_id = relationship["card_id"]
         tag_id = relationship["tag_id"]
 
-        # Check if relationship exists
-        existing = db.session.execute(
-            db.text("SELECT 1 FROM card_tags WHERE card_id = :card_id AND tag_id = :tag_id"),
+        db.session.execute(
+            db.text("INSERT INTO card_tags (card_id, tag_id) VALUES (:card_id, :tag_id)"),
             {"card_id": card_id, "tag_id": tag_id},
-        ).fetchone()
-
-        if existing and mode == "skip":
-            skipped += 1
-            continue
-
-        if not existing:
-            db.session.execute(
-                db.text("INSERT INTO card_tags (card_id, tag_id) VALUES (:card_id, :tag_id)"),
-                {"card_id": card_id, "tag_id": tag_id},
-            )
-            added += 1
+        )
+        added += 1
 
     db.session.commit()
-    return added, skipped
+    return added
 
 
 @bp.route("/api/admin/data/export", methods=["POST"])
@@ -285,9 +232,12 @@ def import_data():
     """
     Import database data from JSON file.
 
+    IMPORTANT: This will DELETE ALL EXISTING DATA and replace it with the imported data.
+    Only use this for restoring backups to the same database.
+
     Request:
         - multipart/form-data with 'file' field containing JSON export
-        - Optional 'mode' field: skip (default), merge, or clean
+        - Required 'confirm' field: must be 'DELETE ALL DATA'
         - Optional 'include' field: comma-separated list of models to import
 
     Returns:
@@ -306,10 +256,18 @@ def import_data():
         if file.filename == "":
             return jsonify({"error": "No file selected"}), 400
 
-        # Get import mode
-        mode = request.form.get("mode", "skip")
-        if mode not in ["skip", "merge", "clean"]:
-            return jsonify({"error": "Invalid mode. Must be skip, merge, or clean"}), 400
+        # Require explicit confirmation
+        confirm = request.form.get("confirm", "")
+        if confirm != "DELETE ALL DATA":
+            return (
+                jsonify(
+                    {
+                        "error": "Import requires confirmation",
+                        "details": "Set 'confirm' field to 'DELETE ALL DATA' to proceed",
+                    }
+                ),
+                400,
+            )
 
         # Get include list
         include_str = request.form.get("include", "")
@@ -317,21 +275,7 @@ def import_data():
             [m.strip() for m in include_str.split(",") if m.strip()] if include_str else None
         )
 
-        # Validate clean mode (requires explicit confirmation)
-        if mode == "clean":
-            confirm = request.form.get("confirm", "")
-            if confirm != "DELETE ALL DATA":
-                return (
-                    jsonify(
-                        {
-                            "error": "Clean mode requires confirmation",
-                            "details": "Set 'confirm' field to 'DELETE ALL DATA' to proceed",
-                        }
-                    ),
-                    400,
-                )
-
-        logger.info(f"Admin import requested: mode={mode}, include={include_models}")
+        logger.warning(f"Admin import requested (WILL DELETE ALL DATA): include={include_models}")
 
         # Parse JSON file
         import_data_dict = json.load(file.stream)
@@ -345,20 +289,21 @@ def import_data():
 
         data = import_data_dict["data"]
 
-        # Clean mode: delete all data first
-        if mode == "clean":
-            logger.warning("CLEAN MODE: Deleting all existing data!")
-            for model_name, model_class in reversed(EXPORT_ORDER):
-                if include_models and model_name not in include_models:
-                    continue
-                if model_name in data:
-                    logger.info(f"Deleting all {model_name} records...")
-                    model_class.query.delete()
-                    db.session.commit()
+        # Delete all existing data first
+        logger.warning("CLEAN MODE: Deleting all existing data!")
 
-            # Clean many-to-many relationships
-            db.session.execute(db.text("DELETE FROM card_tags"))
-            db.session.commit()
+        # Delete many-to-many relationships first (foreign key constraints)
+        db.session.execute(db.text("DELETE FROM card_tags"))
+        db.session.commit()
+
+        # Delete all model data in reverse order (to handle foreign key dependencies)
+        for model_name, model_class in reversed(EXPORT_ORDER):
+            if include_models and model_name not in include_models:
+                continue
+            if model_name in data:
+                logger.info(f"Deleting all {model_name} records...")
+                model_class.query.delete()
+                db.session.commit()
 
         # Import each model
         stats = {}
@@ -373,12 +318,8 @@ def import_data():
             records = data[model_name]
 
             try:
-                if mode == "skip" or mode == "clean":
-                    added, skipped = import_model_skip_mode(model_class, records)
-                    stats[model_name] = {"added": added, "skipped": skipped}
-                elif mode == "merge":
-                    added, updated = import_model_merge_mode(model_class, records)
-                    stats[model_name] = {"added": added, "updated": updated}
+                added = import_model_clean_mode(model_class, records)
+                stats[model_name] = {"added": added}
             except Exception as e:
                 logger.error(f"Error importing {model_name}: {e}")
                 db.session.rollback()
@@ -387,10 +328,8 @@ def import_data():
         # Import relationships
         if "relationships" in import_data_dict:
             logger.info("Importing many-to-many relationships...")
-            rel_added, rel_skipped = import_many_to_many_relationships(
-                import_data_dict["relationships"], mode
-            )
-            stats["relationships"] = {"added": rel_added, "skipped": rel_skipped}
+            rel_added = import_many_to_many_relationships(import_data_dict["relationships"])
+            stats["relationships"] = {"added": rel_added}
 
         logger.info(f"Import complete: {stats}")
 
