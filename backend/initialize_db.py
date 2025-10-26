@@ -33,6 +33,54 @@ def has_alembic_version_table():
     return "alembic_version" in inspector.get_table_names()
 
 
+def fix_sequences():
+    """Fix PostgreSQL sequences to match current max IDs."""
+    from sqlalchemy import text
+
+    # Get all tables with id sequences
+    tables_with_sequences = [
+        "users",
+        "cards",
+        "tags",
+        "card_submissions",
+        "card_modifications",
+        "resource_categories",
+        "resource_items",
+        "quick_access_items",
+        "resource_config",
+        "help_wanted_posts",
+        "help_wanted_comments",
+        "help_wanted_reports",
+        "forum_categories",
+        "forum_category_requests",
+        "forum_threads",
+        "forum_posts",
+        "forum_reports",
+        "reviews",
+        "indexing_jobs",
+        "support_tickets",
+        "support_ticket_messages",
+        "token_blacklist",
+    ]
+
+    for table in tables_with_sequences:
+        try:
+            # Reset sequence to max(id) + 1
+            # Note: table names are hardcoded above, not user input
+            sequence_name = f"{table}_id_seq"
+            # nosemgrep: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text
+            max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
+            max_id = db.session.execute(max_id_query).scalar() or 0
+
+            setval_query = text("SELECT setval(:sequence, :max_val, true)")
+            db.session.execute(setval_query, {"sequence": sequence_name, "max_val": max(max_id, 1)})
+        except Exception:
+            # Skip if table or sequence doesn't exist
+            pass
+
+    db.session.commit()
+
+
 def initialize_fresh_database():
     """Initialize a completely fresh database."""
     print("=" * 70)
@@ -46,6 +94,10 @@ def initialize_fresh_database():
     print("\n[2/3] Stamping database with current migration version...")
     stamp(revision="head")
     print("✓ Database stamped (migration tracking enabled)")
+
+    print("\n[3/3] Fixing database sequences...")
+    fix_sequences()
+    print("✓ Sequences fixed")
 
 
 def upgrade_existing_database():
@@ -71,7 +123,7 @@ def seed_default_data():
     """Seed default configuration data (idempotent)."""
     from app.models.resource import QuickAccessItem, ResourceConfig, ResourceItem
 
-    print("\n[2/3] Seeding default configuration data...")
+    print("\n[3/4] Seeding default configuration data...")
 
     # Check if this is an imported database (has substantial data already)
     resource_count = ResourceItem.query.count()
@@ -266,7 +318,7 @@ def check_admin_user():
     """Check if an admin user exists and provide guidance."""
     from app.models.user import User
 
-    print("\n[3/3] Checking for admin user...")
+    print("\n[4/4] Checking for admin user...")
 
     # Check if any admin user exists
     admin_user = User.query.filter_by(role="admin").first()

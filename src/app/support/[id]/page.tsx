@@ -145,18 +145,20 @@ export default function SupportTicketDetailPage() {
           </div>
 
           {/* Ticket Details */}
-          <div className="bg-white rounded-lg border border-gray-200 p-8 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 mb-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">{ticket.title}</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {ticket.title}
+                  </h1>
                   <span
                     className={`px-3 py-1 rounded text-sm ${getStatusColor(ticket.status)}`}
                   >
                     {ticket.status.replace("_", " ")}
                   </span>
                 </div>
-                <div className="flex gap-4 text-sm text-gray-600 mb-4">
+                <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   <span className="capitalize">{ticket.category}</span>
                   <span>Priority: {ticket.priority}</span>
                   <span>Created by {ticket.creator.username}</span>
@@ -165,12 +167,12 @@ export default function SupportTicketDetailPage() {
               </div>
             </div>
 
-            <p className="text-gray-700 whitespace-pre-wrap mb-4">
+            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap mb-4">
               {ticket.description}
             </p>
 
             {canUpdateStatus && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <label className="block text-sm font-medium mb-2">
                   Update Status:
                 </label>
@@ -183,7 +185,7 @@ export default function SupportTicketDetailPage() {
                         disabled={ticket.status === status}
                         className={`px-4 py-2 rounded transition-colors ${
                           ticket.status === status
-                            ? "bg-gray-300 cursor-not-allowed"
+                            ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
                             : "bg-blue-600 text-white hover:bg-blue-700"
                         }`}
                       >
@@ -197,8 +199,10 @@ export default function SupportTicketDetailPage() {
           </div>
 
           {/* Messages */}
-          <div className="bg-white rounded-lg border border-gray-200 p-8 mb-6">
-            <h2 className="text-xl font-bold mb-4">Messages</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Messages
+            </h2>
 
             {ticket.messages && ticket.messages.length > 0 ? (
               <div className="space-y-4 mb-6">
@@ -211,7 +215,7 @@ export default function SupportTicketDetailPage() {
                       className="border-l-4 border-blue-500 pl-4 py-2"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <div className="font-semibold">
+                        <div className="font-semibold text-gray-900 dark:text-white">
                           {message.creator.username}
                           {message.is_internal_note && (
                             <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
@@ -219,11 +223,11 @@ export default function SupportTicketDetailPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {new Date(message.created_date).toLocaleString()}
                         </div>
                       </div>
-                      <p className="text-gray-700 whitespace-pre-wrap">
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                         {message.content}
                       </p>
                     </div>
@@ -231,7 +235,9 @@ export default function SupportTicketDetailPage() {
                 })}
               </div>
             ) : (
-              <p className="text-gray-600 mb-6">No messages yet</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                No messages yet
+              </p>
             )}
 
             {/* Add Message Form */}
@@ -245,7 +251,7 @@ export default function SupportTicketDetailPage() {
               <textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] mb-4"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] mb-4"
                 placeholder="Add a message..."
                 required
               />

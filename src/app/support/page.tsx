@@ -104,7 +104,7 @@ export default function SupportTicketsPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Mutual Support</h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Request and offer support within our community
             </p>
           </div>
@@ -112,29 +112,37 @@ export default function SupportTicketsPage() {
           {/* Stats */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <div className="text-2xl font-bold text-blue-600">
                   {stats.open}
                 </div>
-                <div className="text-sm text-gray-600">Open</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Open
+                </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <div className="text-2xl font-bold text-yellow-600">
                   {stats.in_progress}
                 </div>
-                <div className="text-sm text-gray-600">In Progress</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  In Progress
+                </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <div className="text-2xl font-bold text-green-600">
                   {stats.resolved}
                 </div>
-                <div className="text-sm text-gray-600">Resolved</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Resolved
+                </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="text-2xl font-bold text-gray-600">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                   {stats.total}
                 </div>
-                <div className="text-sm text-gray-600">Total</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Total
+                </div>
               </div>
             </div>
           )}
@@ -153,7 +161,7 @@ export default function SupportTicketsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Status</option>
                 <option value="open">Open</option>
@@ -165,7 +173,7 @@ export default function SupportTicketsPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Categories</option>
                 <option value="housing">Housing</option>
@@ -180,8 +188,8 @@ export default function SupportTicketsPage() {
 
           {/* Tickets List */}
           {tickets.length === 0 ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-              <p className="text-gray-600">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400">
                 No support requests found. Create your first request to get
                 started.
               </p>
@@ -192,12 +200,12 @@ export default function SupportTicketsPage() {
                 <Link
                   key={ticket.id}
                   href={`/support/${ticket.id}`}
-                  className="block bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-md transition-all"
+                  className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:border-blue-500 hover:shadow-md transition-all"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                           {ticket.title}
                         </h3>
                         <span
@@ -206,10 +214,10 @@ export default function SupportTicketsPage() {
                           {ticket.status.replace("_", " ")}
                         </span>
                       </div>
-                      <p className="text-gray-600 line-clamp-2 mb-2">
+                      <p className="text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
                         {ticket.description}
                       </p>
-                      <div className="flex gap-4 text-sm text-gray-500">
+                      <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="capitalize">{ticket.category}</span>
                         <span className={getPriorityColor(ticket.priority)}>
                           {ticket.priority} priority
@@ -226,7 +234,7 @@ export default function SupportTicketsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-gray-500">
+                    <div className="text-right text-sm text-gray-500 dark:text-gray-400">
                       {new Date(ticket.created_date).toLocaleDateString()}
                     </div>
                   </div>

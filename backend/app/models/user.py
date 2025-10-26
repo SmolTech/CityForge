@@ -11,8 +11,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default="user")  # 'admin' or 'user'
-    is_supporter = db.Column(db.Boolean, default=False)  # Can view and respond to support tickets
+    role = db.Column(db.String(20), nullable=False, default="user")  # 'admin', 'supporter', or 'user'
     is_active = db.Column(db.Boolean, default=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     last_login = db.Column(db.DateTime)
@@ -48,6 +47,11 @@ class User(db.Model):
     def is_admin(self):
         """Check if user has admin role."""
         return self.role == "admin"
+
+    @property
+    def is_supporter(self):
+        """Check if user has supporter role (or is admin)."""
+        return self.role in ["supporter", "admin"]
 
     def to_dict(self):
         return {
