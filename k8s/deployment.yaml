@@ -45,12 +45,7 @@ spec:
               value: "production"
             - name: PORT
               value: "3000"
-            # NEXT_PUBLIC_API_URL should be empty for browser requests to use relative URLs
-            # The ingress will route /api requests to the backend
             - name: NEXT_PUBLIC_API_URL
-              value: ""
-            # For server-side API calls (if needed in the future)
-            - name: NEXT_PUBLIC_SITE_URL
               value: "http://cityforge-backend-service:5000"
           resources:
             requests:

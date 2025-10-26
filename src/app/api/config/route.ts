@@ -8,6 +8,8 @@ export async function GET() {
   try {
     // Fetch site configuration from backend API
     // Use BACKEND_API_URL for server-side requests to backend container
+    // In Kubernetes, this should be set to the internal service (e.g., http://cityforge-backend:5000)
+    // Otherwise fall back to NEXT_PUBLIC_API_URL for local dev
     const backendUrl =
       process.env["BACKEND_API_URL"] ||
       process.env["NEXT_PUBLIC_API_URL"] ||

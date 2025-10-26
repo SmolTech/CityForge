@@ -11,7 +11,12 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default="user")  # 'admin', 'supporter', or 'user'
+    role = db.Column(
+        db.String(20), nullable=False, default="user"
+    )  # 'admin', 'supporter', or 'user'
+    is_supporter_flag = db.Column(
+        db.Boolean, default=False
+    )  # Admin-configurable supporter attribute
     is_active = db.Column(db.Boolean, default=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     last_login = db.Column(db.DateTime)
@@ -50,8 +55,8 @@ class User(db.Model):
 
     @property
     def is_supporter(self):
-        """Check if user has supporter role (or is admin)."""
-        return self.role in ["supporter", "admin"]
+        """Check if user has supporter role, is_supporter_flag, or is admin."""
+        return self.role in ["supporter", "admin"] or self.is_supporter_flag
 
     def to_dict(self):
         return {
@@ -63,6 +68,7 @@ class User(db.Model):
             "role": self.role,
             "is_admin": self.is_admin,
             "is_supporter": self.is_supporter,
+            "is_supporter_flag": self.is_supporter_flag,
             "is_active": self.is_active,
             "created_date": self.created_date.isoformat(),
             "last_login": self.last_login.isoformat() if self.last_login else None,

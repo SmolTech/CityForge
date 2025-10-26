@@ -7,6 +7,7 @@ export interface User {
   role: string;
   is_admin: boolean;
   is_supporter: boolean;
+  is_supporter_flag: boolean;
   is_active: boolean;
   created_date: string;
   last_login?: string;
