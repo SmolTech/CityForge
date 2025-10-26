@@ -27,8 +27,11 @@ export default function ResourcesScreen() {
 
   useEffect(() => {
     if (categories.length > 0 && selectedCategory === null) {
-      setSelectedCategory(categories[0].id);
-      loadItems(categories[0].id);
+      const firstCategory = categories[0];
+      if (firstCategory) {
+        setSelectedCategory(firstCategory.id);
+        loadItems(firstCategory.id);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories]);
@@ -46,9 +49,11 @@ export default function ResourcesScreen() {
       setError(null);
 
       if (categoriesData.length > 0) {
-        const firstCategoryId = categoriesData[0].id;
-        setSelectedCategory(firstCategoryId);
-        await loadItems(firstCategoryId);
+        const firstCategory = categoriesData[0];
+        if (firstCategory) {
+          setSelectedCategory(firstCategory.id);
+          await loadItems(firstCategory.id);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load resources");
