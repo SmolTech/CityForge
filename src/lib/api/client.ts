@@ -66,6 +66,7 @@ export class ApiClient {
         if (
           response.status === 401 &&
           endpoint !== "/api/auth/login" &&
+          endpoint !== "/api/auth/register" &&
           !skipAuthRedirect
         ) {
           // Token expired or invalid (but not a login failure)

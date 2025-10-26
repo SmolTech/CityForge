@@ -12,6 +12,7 @@ class User(db.Model):
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="user")  # 'admin' or 'user'
+    is_supporter = db.Column(db.Boolean, default=False)  # Can view and respond to support tickets
     is_active = db.Column(db.Boolean, default=True)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     last_login = db.Column(db.DateTime)
@@ -57,6 +58,7 @@ class User(db.Model):
             "username": self.username,
             "role": self.role,
             "is_admin": self.is_admin,
+            "is_supporter": self.is_supporter,
             "is_active": self.is_active,
             "created_date": self.created_date.isoformat(),
             "last_login": self.last_login.isoformat() if self.last_login else None,
