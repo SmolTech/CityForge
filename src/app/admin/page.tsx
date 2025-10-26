@@ -2614,6 +2614,7 @@ function UserEditModal({
     last_name: user.last_name,
     role: user.role,
     is_active: user.is_active,
+    is_supporter_flag: user.is_supporter_flag,
   });
 
   const handleChange = (
@@ -2712,6 +2713,21 @@ function UserEditModal({
               />
               <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                 Active
+              </span>
+            </label>
+          </div>
+
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="is_supporter_flag"
+                checked={formData.is_supporter_flag}
+                onChange={handleChange}
+                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+              />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Supporter (can be set independently of role)
               </span>
             </label>
           </div>
