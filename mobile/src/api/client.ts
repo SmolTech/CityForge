@@ -16,7 +16,7 @@ import type {
   ApiError,
 } from "../types/api";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "http://localhost:5000";
 
 class ApiClient {
   private async request<T>(
@@ -24,13 +24,16 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = await tokenStorage.getToken();
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     // Add Authorization header if token exists and not explicitly excluded
-    if (token && !options.headers?.["X-Skip-Auth"]) {
+    const skipAuth = (options.headers as Record<string, string>)?.[
+      "X-Skip-Auth"
+    ];
+    if (token && !skipAuth) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
