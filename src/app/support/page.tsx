@@ -103,7 +103,7 @@ export default function SupportTicketsPage() {
         <div className="max-w-6xl mx-auto py-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Mutual Support</h1>
+            <h1 className="text-3xl font-bold mb-2">Community Support</h1>
             <p className="text-gray-600 dark:text-gray-400">
               Request and offer support within our community
             </p>
