@@ -63,7 +63,8 @@ def register():
 
     access_token = create_access_token(identity=user.id)
 
-    response = make_response(jsonify({"user": user.to_dict()}), 201)
+    # Return token in response body for mobile apps, and set cookie for web
+    response = make_response(jsonify({"user": user.to_dict(), "access_token": access_token}), 201)
     set_access_cookies(response, access_token)
 
     return response
@@ -92,7 +93,8 @@ def login():
 
         access_token = create_access_token(identity=user.id)
 
-        response = make_response(jsonify({"user": user.to_dict()}))
+        # Return token in response body for mobile apps, and set cookie for web
+        response = make_response(jsonify({"user": user.to_dict(), "access_token": access_token}))
         set_access_cookies(response, access_token)
 
         return response
