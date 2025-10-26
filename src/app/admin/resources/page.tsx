@@ -11,6 +11,10 @@ import {
 } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { logger } from "@/lib/logger";
+import {
+  formatPhoneNumber,
+  getPhoneValidationError,
+} from "@/lib/phone-validation";
 
 export default function AdminResourcesPage() {
   const router = useRouter();
@@ -492,8 +496,22 @@ function QuickAccessForm({
         }
   );
 
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate and format phone number
+    if (formData.phone) {
+      const formattedPhone = formatPhoneNumber(formData.phone);
+      if (!formattedPhone) {
+        setPhoneError(getPhoneValidationError());
+        return;
+      }
+      formData.phone = formattedPhone;
+    }
+
+    setPhoneError(null);
     onSubmit(formData);
   };
 
@@ -549,10 +567,23 @@ function QuickAccessForm({
         <input
           type="text"
           value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          onChange={(e) => {
+            setFormData({ ...formData, phone: e.target.value });
+            setPhoneError(null); // Clear error when user types
+          }}
+          className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 ${
+            phoneError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+          } dark:bg-gray-700 dark:text-white`}
+          placeholder="(508) 555-0123 or +15085550123"
           required
         />
+        {phoneError && (
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {phoneError}
+          </p>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -628,8 +659,22 @@ function ResourceItemForm({
     }
   );
 
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate and format phone number (optional field)
+    if (formData.phone) {
+      const formattedPhone = formatPhoneNumber(formData.phone);
+      if (!formattedPhone) {
+        setPhoneError(getPhoneValidationError());
+        return;
+      }
+      formData.phone = formattedPhone;
+    }
+
+    setPhoneError(null);
     onSubmit(formData);
   };
 
@@ -690,31 +735,40 @@ function ResourceItemForm({
           required
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Phone (optional)
-          </label>
-          <input
-            type="text"
-            value={formData.phone}
-            onChange={(e) =>
-              setFormData({ ...formData, phone: e.target.value })
-            }
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Icon
-          </label>
-          <input
-            type="text"
-            value={formData.icon}
-            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Phone (optional)
+        </label>
+        <input
+          type="text"
+          value={formData.phone}
+          onChange={(e) => {
+            setFormData({ ...formData, phone: e.target.value });
+            setPhoneError(null); // Clear error when user types
+          }}
+          className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 ${
+            phoneError
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+          } dark:bg-gray-700 dark:text-white`}
+          placeholder="(508) 555-0123 or +15085550123"
+        />
+        {phoneError && (
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {phoneError}
+          </p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Icon
+        </label>
+        <input
+          type="text"
+          value={formData.icon}
+          onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+        />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
