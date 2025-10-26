@@ -58,6 +58,7 @@ export async function GET() {
           domain: "community.local",
           shortName: "Community",
           fullName: "Community Website",
+          googleAnalyticsId: "",
         },
         pagination: {
           defaultLimit: 20,

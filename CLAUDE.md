@@ -4,20 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-CityForge is a full-stack community website platform built with Next.js 15 and a Python Flask backend. The application features a business directory, resource directory, community submissions, and search functionality. Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
+CityForge is a full-stack community platform with web and mobile interfaces built with Next.js 15, React Native/Expo, and a Python Flask backend. The application features a business directory, resource directory, community submissions, and search functionality. Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
 
 ## Architecture
 
-The project is structured as a three-component application:
+The project is structured as a four-component application:
 
-- **Frontend**: Next.js 15 with TypeScript, Tailwind CSS v4, and app router
+- **Web Frontend**: Next.js 15 with TypeScript, Tailwind CSS v4, and app router
+- **Mobile App**: React Native with Expo for iOS and Android
 - **Backend**: Python Flask API with SQLAlchemy ORM and PostgreSQL database
 - **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
 - **Infrastructure**: Docker containers with automated builds via GitHub Actions
 
 ### Key Components
 
-- **Frontend App** (`src/app/`): Next.js pages for business directory, resources, admin dashboard, authentication, and search
+- **Web Frontend** (`src/app/`): Next.js pages for business directory, resources, admin dashboard, authentication, and search
+- **Mobile App** (`mobile/`): React Native/Expo mobile application with native navigation and secure token storage
 - **Backend API** (`backend/`): Flask application providing REST APIs for cards, resources, auth, admin, and search
 - **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
 - **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources
@@ -25,7 +27,7 @@ The project is structured as a three-component application:
 
 ## Development Commands
 
-### Frontend Development
+### Web Frontend Development
 
 ```bash
 # Development server with Turbopack
@@ -43,6 +45,32 @@ npm run lint:fix      # ESLint with auto-fix
 npm run format        # Prettier formatting
 npm run format:check  # Prettier check only
 npm run typecheck     # TypeScript validation
+```
+
+### Mobile App Development
+
+```bash
+# From mobile/ directory
+npm install
+
+# Start Expo development server
+npm start
+
+# Run on iOS Simulator (macOS only)
+npm run ios
+
+# Run on Android Emulator
+npm run android
+
+# Run on web (for testing)
+npm run web
+
+# Environment configuration
+cp .env.example .env
+# Edit .env with appropriate API URL:
+#   iOS Simulator: http://localhost:5000
+#   Android Emulator: http://10.0.2.2:5000
+#   Physical Device: http://YOUR_COMPUTER_IP:5000
 ```
 
 ### Backend Development
@@ -351,24 +379,43 @@ logging.getLogger('sqlalchemy.pool').setLevel(logging.DEBUG)
 
 ### Authentication Security
 
-The application uses **httpOnly cookies** for JWT token storage to protect against XSS attacks:
+The application supports **dual authentication modes** for web and mobile clients:
 
-**Security Features:**
+**Web Authentication (httpOnly Cookies):**
 
 - **httpOnly cookies**: JavaScript cannot access authentication tokens, preventing XSS token theft
 - **SameSite protection**: Cookies use `SameSite=Lax` to protect against CSRF attacks
 - **HTTPS enforcement**: Cookies are marked as `Secure` in production (HTTPS only)
 - **CORS credentials**: Backend configured to accept cookies from authorized origins only
+
+**Mobile Authentication (Bearer Tokens):**
+
+- **Secure storage**: Tokens stored using Expo SecureStore (encrypted, hardware-backed)
+- **Authorization headers**: Tokens sent via `Authorization: Bearer <token>` header
+- **No cookie support**: Mobile apps cannot use httpOnly cookies
+- **Token in response**: Login/register endpoints return `access_token` in response body
+
+**Shared Security Features:**
+
 - **Database-backed blacklist**: Logout immediately invalidates tokens via database blacklist
+- **Same token format**: Both web and mobile use identical JWT tokens
+- **Unified validation**: Backend validates tokens regardless of delivery method
 
 **Backend Configuration** (`backend/app/__init__.py`):
 
 ```python
-app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+# Support both cookies (web) and headers (mobile)
+app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
+
+# Cookie configuration (for web)
 app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
 app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
 app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Can enable with CSRF tokens
+
+# Header configuration (for mobile)
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
 ```
 
 **CORS Configuration** (`backend/app/__init__.py`):
@@ -561,6 +608,63 @@ Uses Next.js 15 app router with the following pages:
 
 **Authentication Enforcement:**
 All forum pages check authentication on mount and redirect unauthenticated users to `/login?redirect=[original-url]`. This allows users to return to their intended destination after logging in.
+
+### Mobile App Structure
+
+The mobile app (`mobile/`) is built with React Native and Expo:
+
+**Project Structure:**
+
+```
+mobile/
+├── src/
+│   ├── api/          # API client with token-based auth
+│   ├── components/   # Reusable UI components
+│   ├── contexts/     # React contexts (AuthContext)
+│   ├── navigation/   # React Navigation setup
+│   ├── screens/      # Screen components
+│   ├── types/        # TypeScript type definitions
+│   └── utils/        # Utilities (tokenStorage, etc.)
+├── assets/           # Images, fonts, icons
+├── App.tsx           # Root component
+└── app.json          # Expo configuration
+```
+
+**Main Screens:**
+
+- **Authentication Flow:**
+  - `LoginScreen` - User login with email/password
+  - `RegisterScreen` - New user registration
+
+- **Main Tabs (Bottom Navigation):**
+  - `BusinessScreen` - Business directory with infinite scroll
+  - `ResourcesScreen` - Resource directory with categories
+  - `SearchScreen` - Full-text search interface
+  - `ProfileScreen` - User profile and settings
+
+**Key Features:**
+
+- **React Navigation**: Bottom tabs + stack navigation for auth flow
+- **Secure Token Storage**: Expo SecureStore for encrypted token storage
+- **Auto-reconnect**: Auth state persists across app restarts
+- **Pull-to-refresh**: All list screens support pull-to-refresh
+- **Infinite scroll**: Business directory loads more items on scroll
+- **Error handling**: User-friendly error messages with retry options
+
+**Authentication Flow:**
+
+1. App checks for stored token on mount
+2. If token exists, validates with backend (`/api/auth/me`)
+3. If valid, user is authenticated and sees main tabs
+4. If invalid/missing, user sees login/register screens
+5. After login, token is stored in SecureStore and user sees main tabs
+
+**API Client** (`mobile/src/api/client.ts`):
+
+- Shares same API structure as web client
+- Uses Authorization headers instead of cookies
+- Automatically includes token from SecureStore
+- Handles 401 responses by clearing token and redirecting to login
 
 ### Configuration Management
 
