@@ -38,13 +38,25 @@ class User(db.Model):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
 
+    @property
+    def username(self):
+        """Computed username from first_name and last_name."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def is_admin(self):
+        """Check if user has admin role."""
+        return self.role == "admin"
+
     def to_dict(self):
         return {
             "id": self.id,
             "email": self.email,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "username": self.username,
             "role": self.role,
+            "is_admin": self.is_admin,
             "is_active": self.is_active,
             "created_date": self.created_date.isoformat(),
             "last_login": self.last_login.isoformat() if self.last_login else None,

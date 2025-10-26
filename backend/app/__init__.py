@@ -55,8 +55,10 @@ def create_app():
     )
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=Config.ACCESS_TOKEN_EXPIRES_DAYS)
 
-    # JWT Cookie Configuration (httpOnly cookies for security)
-    app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    # JWT Configuration - Support both cookies (web) and headers (mobile)
+    app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
+
+    # Cookie configuration (for web browsers)
     app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
     app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
     app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
@@ -65,6 +67,10 @@ def create_app():
     )
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
     app.config["JWT_COOKIE_DOMAIN"] = None  # Same domain only
+
+    # Header configuration (for mobile apps)
+    app.config["JWT_HEADER_NAME"] = "Authorization"
+    app.config["JWT_HEADER_TYPE"] = "Bearer"
 
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
     app.config["MAX_CONTENT_LENGTH"] = Config.MAX_FILE_SIZE
