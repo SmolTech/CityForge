@@ -32,9 +32,9 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (apiClient.isAuthenticated()) {
-      router.push("/dashboard");
-    }
+    // Don't auto-redirect based on isAuthenticated() since it always returns true
+    // with httpOnly cookies and would cause unwanted redirects.
+    // Users can navigate to dashboard manually if already logged in.
   }, [router]);
 
   useEffect(() => {
