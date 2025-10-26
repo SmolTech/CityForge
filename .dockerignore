@@ -15,5 +15,3 @@ README.md
 *.tgz
 *.tar.gz
 mobile/
-backend/
-indexer/
