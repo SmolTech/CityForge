@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from marshmallow import ValidationError
 from sqlalchemy import func, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app import db
@@ -303,7 +304,47 @@ def admin_approve_submission(submission_id):
     submission.review_notes = data.get("notes", "")
     submission.card_id = card.id
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Handle race condition where tag was created by another transaction
+        db.session.rollback()
+
+        # Retry: re-query all tags and rebuild associations
+        card_data = Card(
+            name=submission.name,
+            description=submission.description,
+            website_url=submission.website_url,
+            phone_number=submission.phone_number,
+            email=submission.email,
+            address=submission.address,
+            address_override_url=submission.address_override_url,
+            contact_name=submission.contact_name,
+            image_url=submission.image_url,
+            featured=data.get("featured", False),
+            approved=True,
+            created_by=submission.submitted_by,
+            approved_by=user_id,
+            approved_date=datetime.now(UTC),
+        )
+
+        if submission.tags_text:
+            tag_names = [tag.strip().lower() for tag in submission.tags_text.split(",") if tag.strip()]
+            for tag_name in tag_names:
+                # This time, tags should all exist
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if tag:
+                    card_data.tags.append(tag)
+
+        db.session.add(card_data)
+        submission.status = "approved"
+        submission.reviewed_by = user_id
+        submission.reviewed_date = datetime.now(UTC)
+        submission.review_notes = data.get("notes", "")
+        submission.card_id = card_data.id
+
+        db.session.commit()
+        card = card_data  # Update reference for response
 
     return jsonify(
         {
