@@ -42,7 +42,7 @@ def search_resources():
                 "fields": {
                     "title": {},
                     "description": {},
-                    "content": {"fragment_size": 150, "number_of_fragments": 2},
+                    "content": {"fragment_size": 300, "number_of_fragments": 3},
                 }
             },
             "from": offset,
@@ -58,8 +58,8 @@ def search_resources():
             content_excerpt = ""
             if source.get("content"):
                 content_text = source["content"]
-                if len(content_text) > 400:
-                    content_excerpt = content_text[:400] + "..."
+                if len(content_text) > 800:
+                    content_excerpt = content_text[:800] + "..."
                 else:
                     content_excerpt = content_text
 
