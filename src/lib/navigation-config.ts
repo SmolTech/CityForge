@@ -52,7 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
     lockedTooltip: "Login To View Classifieds",
   },
   {
-    label: "Mutual Support",
+    label: "Community Support",
     href: "/support",
     requiresAuth: true,
     showLockedWhenGuest: true,
