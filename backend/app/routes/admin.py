@@ -329,7 +329,9 @@ def admin_approve_submission(submission_id):
         )
 
         if submission.tags_text:
-            tag_names = [tag.strip().lower() for tag in submission.tags_text.split(",") if tag.strip()]
+            tag_names = [
+                tag.strip().lower() for tag in submission.tags_text.split(",") if tag.strip()
+            ]
             for tag_name in tag_names:
                 # This time, tags should all exist
                 tag = Tag.query.filter_by(name=tag_name).first()
