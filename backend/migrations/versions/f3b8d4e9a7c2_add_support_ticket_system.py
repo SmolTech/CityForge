@@ -18,17 +18,6 @@ depends_on = None
 
 
 def upgrade():
-    # Add is_supporter column to users table
-    with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("is_supporter", sa.Boolean(), nullable=True))
-
-    # Set default value for existing users
-    op.execute("UPDATE users SET is_supporter = false WHERE is_supporter IS NULL")
-
-    # Make column non-nullable after setting defaults
-    with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.alter_column("is_supporter", nullable=False, server_default=sa.text("false"))
-
     # Create support_tickets table
     op.create_table(
         "support_tickets",
@@ -86,7 +75,3 @@ def downgrade():
         batch_op.drop_index(batch_op.f("ix_support_tickets_category"))
 
     op.drop_table("support_tickets")
-
-    # Remove is_supporter column from users table
-    with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.drop_column("is_supporter")

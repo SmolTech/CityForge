@@ -510,12 +510,10 @@ def admin_update_user(user_id):
             return jsonify({"message": "Validation failed", "errors": err.messages}), 400
 
     # Update admin-specific fields (not validated)
-    if "role" in data and data["role"] in ["admin", "user"]:
+    if "role" in data and data["role"] in ["admin", "supporter", "user"]:
         user.role = data["role"]
     if "is_active" in data:
         user.is_active = data["is_active"]
-    if "is_supporter" in data:
-        user.is_supporter = data["is_supporter"]
 
     db.session.commit()
 

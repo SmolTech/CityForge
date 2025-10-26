@@ -100,10 +100,7 @@ export default function NewSupportTicketPage() {
           </div>
 
           {/* Form */}
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-lg border border-gray-200 p-8"
-          >
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                 {error}
@@ -122,7 +119,7 @@ export default function NewSupportTicketPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Brief summary of your request"
               />
             </div>
@@ -141,7 +138,7 @@ export default function NewSupportTicketPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[150px]"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[150px]"
                 placeholder="Provide details about what help you need"
               />
             </div>
@@ -163,7 +160,7 @@ export default function NewSupportTicketPage() {
                     category: e.target.value as typeof formData.category,
                   })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="housing">Housing</option>
                 <option value="food">Food</option>
@@ -190,7 +187,7 @@ export default function NewSupportTicketPage() {
                     priority: e.target.value as typeof formData.priority,
                   })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -226,7 +223,7 @@ export default function NewSupportTicketPage() {
               </button>
               <Link
                 href="/support"
-                className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </Link>
