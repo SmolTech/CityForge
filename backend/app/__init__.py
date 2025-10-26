@@ -179,6 +179,7 @@ def create_app():
         resources,
         reviews,
         search,
+        support_tickets,
         upload,
     )
 
@@ -192,6 +193,7 @@ def create_app():
     app.register_blueprint(reviews.bp)
     app.register_blueprint(forums.bp)
     app.register_blueprint(data_management.bp)
+    app.register_blueprint(support_tickets.bp)
 
     # Register error handlers
     from app.utils.errors import register_error_handlers

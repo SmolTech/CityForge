@@ -514,6 +514,8 @@ def admin_update_user(user_id):
         user.role = data["role"]
     if "is_active" in data:
         user.is_active = data["is_active"]
+    if "is_supporter" in data:
+        user.is_supporter = data["is_supporter"]
 
     db.session.commit()
 

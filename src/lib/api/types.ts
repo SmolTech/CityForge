@@ -5,6 +5,8 @@ export interface User {
   first_name: string;
   last_name: string;
   role: string;
+  is_admin: boolean;
+  is_supporter: boolean;
   is_active: boolean;
   created_date: string;
   last_login?: string;

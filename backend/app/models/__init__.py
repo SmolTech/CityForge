@@ -10,6 +10,7 @@ from app.models.help_wanted import HelpWantedComment, HelpWantedPost, HelpWanted
 from app.models.indexing_job import IndexingJob
 from app.models.resource import QuickAccessItem, ResourceCategory, ResourceConfig, ResourceItem
 from app.models.review import Review
+from app.models.support_ticket import SupportTicket, SupportTicketMessage
 from app.models.user import User
 
 __all__ = [
@@ -33,4 +34,6 @@ __all__ = [
     "ForumPost",
     "ForumReport",
     "IndexingJob",
+    "SupportTicket",
+    "SupportTicketMessage",
 ]
