@@ -294,7 +294,7 @@ export default function AdminResourcesPage() {
                               </button>
                               <button
                                 onClick={() =>
-                                  setDeletingQuickAccessId(index + 1)
+                                  setDeletingQuickAccessId(item.id)
                                 }
                                 className="text-red-600 hover:text-red-800 dark:text-red-400"
                               >

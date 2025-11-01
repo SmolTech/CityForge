@@ -38,12 +38,15 @@ class QuickAccessItem(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.identifier,
+            "id": self.id,
+            "identifier": self.identifier,
             "title": self.title,
             "subtitle": self.subtitle,
             "phone": self.phone,
             "color": self.color,
             "icon": self.icon,
+            "display_order": self.display_order,
+            "is_active": self.is_active,
         }
 
 
