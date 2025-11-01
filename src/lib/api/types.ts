@@ -124,12 +124,15 @@ export interface ResourceConfig {
 }
 
 export interface QuickAccessItem {
-  id: string;
+  id: number;
+  identifier: string;
   title: string;
   subtitle: string;
   phone: string;
   color: string;
   icon: string;
+  display_order: number;
+  is_active: boolean;
 }
 
 export interface QuickAccessItemInput {

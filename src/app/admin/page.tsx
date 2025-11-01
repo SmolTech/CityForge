@@ -2020,9 +2020,7 @@ export default function AdminPage() {
                               Edit
                             </button>
                             <button
-                              onClick={() =>
-                                setDeletingQuickAccessId(index + 1)
-                              }
+                              onClick={() => setDeletingQuickAccessId(item.id)}
                               className="text-red-600 hover:text-red-800 dark:text-red-400"
                             >
                               Delete

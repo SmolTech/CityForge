@@ -196,122 +196,130 @@ def seed_default_data():
     else:
         print("  ✓ Configuration already exists (skipped)")
 
-    # Quick Access items
-    quick_access_defaults = [
-        ("emergency", "Emergency", "Call 911", "911", "red", "phone", 1),
-        ("police", "Police", "Non-Emergency", "555-0100", "blue", "phone", 2),
-        ("fire", "Fire Department", "Non-Emergency", "555-0101", "orange", "fire", 3),
-        ("medical", "Medical", "Health Services", "555-0102", "green", "heart", 4),
-    ]
+    # Quick Access items - only seed if database is truly empty
+    # Don't re-create default items if they were intentionally deleted by admin
+    if quick_access_count == 0 and resource_count == 0:
+        quick_access_defaults = [
+            ("emergency", "Emergency", "Call 911", "911", "red", "phone", 1),
+            ("police", "Police", "Non-Emergency", "555-0100", "blue", "phone", 2),
+            ("fire", "Fire Department", "Non-Emergency", "555-0101", "orange", "fire", 3),
+            ("medical", "Medical", "Health Services", "555-0102", "green", "heart", 4),
+        ]
 
-    quick_access_created = 0
-    for identifier, title, subtitle, phone, color, icon, order in quick_access_defaults:
-        existing = QuickAccessItem.query.filter_by(identifier=identifier).first()
-        if not existing:
-            item = QuickAccessItem(
-                identifier=identifier,
-                title=title,
-                subtitle=subtitle,
-                phone=phone,
-                color=color,
-                icon=icon,
-                display_order=order,
-            )
-            db.session.add(item)
-            quick_access_created += 1
+        quick_access_created = 0
+        for identifier, title, subtitle, phone, color, icon, order in quick_access_defaults:
+            existing = QuickAccessItem.query.filter_by(identifier=identifier).first()
+            if not existing:
+                item = QuickAccessItem(
+                    identifier=identifier,
+                    title=title,
+                    subtitle=subtitle,
+                    phone=phone,
+                    color=color,
+                    icon=icon,
+                    display_order=order,
+                )
+                db.session.add(item)
+                quick_access_created += 1
 
-    if quick_access_created > 0:
-        db.session.commit()
-        print(f"  ✓ Created {quick_access_created} quick access items")
+        if quick_access_created > 0:
+            db.session.commit()
+            print(f"  ✓ Created {quick_access_created} quick access items")
+        else:
+            print("  ✓ Quick access items already exist (skipped)")
     else:
-        print("  ✓ Quick access items already exist (skipped)")
+        print("  ✓ Skipping default quick access items (database has existing data)")
 
-    # Resource items
-    resource_defaults = [
-        (
-            "Health & Wellness",
-            "Local Hospital",
-            "https://example.com/hospital",
-            "Primary hospital serving the community with emergency and general medical services.",
-            "555-0200",
-            "123 Medical Ave",
-            "building",
-            1,
-        ),
-        (
-            "Health & Wellness",
-            "Community Health Clinic",
-            "https://example.com/clinic",
-            "Free and low-cost health services for community members.",
-            "555-0201",
-            "456 Care St",
-            "heart",
-            2,
-        ),
-        (
-            "Government Services",
-            "City Hall",
-            "https://example.com/cityhall",
-            "Municipal government offices and services.",
-            "555-0300",
-            "789 Main St",
-            "building",
-            1,
-        ),
-        (
-            "Government Services",
-            "Public Library",
-            "https://example.com/library",
-            "Free books, internet access, and community programs.",
-            "555-0301",
-            "321 Book Ln",
-            "book",
-            2,
-        ),
-        (
-            "Education",
-            "School District Office",
-            "https://example.com/schools",
-            "Information about local schools and educational programs.",
-            "555-0400",
-            "555 School Rd",
-            "academic",
-            1,
-        ),
-        (
-            "Community Services",
-            "Food Bank",
-            "https://example.com/foodbank",
-            "Free food assistance for families in need.",
-            "555-0500",
-            "111 Help Way",
-            "heart",
-            1,
-        ),
-    ]
+    # Resource items - only seed if database is truly empty
+    # Don't re-create default items if they were intentionally deleted by admin
+    if quick_access_count == 0 and resource_count == 0:
+        resource_defaults = [
+            (
+                "Health & Wellness",
+                "Local Hospital",
+                "https://example.com/hospital",
+                "Primary hospital serving the community with emergency and general medical services.",
+                "555-0200",
+                "123 Medical Ave",
+                "building",
+                1,
+            ),
+            (
+                "Health & Wellness",
+                "Community Health Clinic",
+                "https://example.com/clinic",
+                "Free and low-cost health services for community members.",
+                "555-0201",
+                "456 Care St",
+                "heart",
+                2,
+            ),
+            (
+                "Government Services",
+                "City Hall",
+                "https://example.com/cityhall",
+                "Municipal government offices and services.",
+                "555-0300",
+                "789 Main St",
+                "building",
+                1,
+            ),
+            (
+                "Government Services",
+                "Public Library",
+                "https://example.com/library",
+                "Free books, internet access, and community programs.",
+                "555-0301",
+                "321 Book Ln",
+                "book",
+                2,
+            ),
+            (
+                "Education",
+                "School District Office",
+                "https://example.com/schools",
+                "Information about local schools and educational programs.",
+                "555-0400",
+                "555 School Rd",
+                "academic",
+                1,
+            ),
+            (
+                "Community Services",
+                "Food Bank",
+                "https://example.com/foodbank",
+                "Free food assistance for families in need.",
+                "555-0500",
+                "111 Help Way",
+                "heart",
+                1,
+            ),
+        ]
 
-    resources_created = 0
-    for category, title, url, description, phone, address, icon, order in resource_defaults:
-        existing = ResourceItem.query.filter_by(title=title, category=category).first()
-        if not existing:
-            item = ResourceItem(
-                category=category,
-                title=title,
-                url=url,
-                description=description,
-                phone=phone,
-                address=address,
-                icon=icon,
-                display_order=order,
-            )
-            db.session.add(item)
-            resources_created += 1
+        resources_created = 0
+        for category, title, url, description, phone, address, icon, order in resource_defaults:
+            existing = ResourceItem.query.filter_by(title=title, category=category).first()
+            if not existing:
+                item = ResourceItem(
+                    category=category,
+                    title=title,
+                    url=url,
+                    description=description,
+                    phone=phone,
+                    address=address,
+                    icon=icon,
+                    display_order=order,
+                )
+                db.session.add(item)
+                resources_created += 1
 
-    if resources_created > 0:
-        db.session.commit()
-        print(f"  ✓ Created {resources_created} resource items")
+        if resources_created > 0:
+            db.session.commit()
+            print(f"  ✓ Created {resources_created} resource items")
+        else:
+            print("  ✓ Resource items already exist (skipped)")
     else:
-        print("  ✓ Resource items already exist (skipped)")
+        print("  ✓ Skipping default resource items (database has existing data)")
 
 
 def check_admin_user():

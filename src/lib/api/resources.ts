@@ -131,27 +131,11 @@ export class ResourcesApi extends ApiClient {
     });
   }
 
-  async adminGetQuickAccessItems(): Promise<
-    Array<{
-      id: string;
-      title: string;
-      subtitle: string;
-      phone: string;
-      color: string;
-      icon: string;
-    }>
-  > {
+  async adminGetQuickAccessItems(): Promise<QuickAccessItem[]> {
     return this.request("/api/admin/resources/quick-access");
   }
 
-  async adminGetQuickAccessItem(id: number): Promise<{
-    id: string;
-    title: string;
-    subtitle: string;
-    phone: string;
-    color: string;
-    icon: string;
-  }> {
+  async adminGetQuickAccessItem(id: number): Promise<QuickAccessItem> {
     return this.request(`/api/admin/resources/quick-access/${id}`);
   }
 
