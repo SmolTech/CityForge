@@ -28,6 +28,18 @@ jobs:
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 
+      - name: Cache Expo and Metro
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.expo
+            mobile/.expo
+            mobile/node_modules/.cache
+          key: ${{ runner.os }}-expo-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-
+
       - name: Install dependencies
         working-directory: mobile
         run: npm ci

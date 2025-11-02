@@ -53,6 +53,19 @@ jobs:
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 
+      - name: Cache Expo and EAS
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.expo
+            ~/.eas
+            mobile/.expo
+            mobile/node_modules/.cache
+          key: ${{ runner.os }}-eas-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-eas-
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
