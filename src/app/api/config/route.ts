@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 300; // Revalidate every 5 minutes
+// This route will be statically generated at build time and revalidated every 5 minutes
+export const revalidate = 300;
 
 export async function GET() {
   try {
+    // During build time (when NEXT_PHASE is 'phase-production-build'),
+    // return fallback config immediately to prevent dynamic server usage
+    if (process.env["NEXT_PHASE"] === "phase-production-build") {
+      logger.info("Build phase detected, returning fallback config");
+      return getFallbackResponse();
+    }
+
     // Fetch site configuration from backend API
     // Use BACKEND_API_URL for server-side requests to backend container
     // In Kubernetes, this should be set to the internal service (e.g., http://cityforge-backend:5000)
@@ -17,9 +24,7 @@ export async function GET() {
 
     logger.info(`Fetching site config from: ${backendUrl}/api/site-config`);
 
-    const response = await fetch(`${backendUrl}/api/site-config`, {
-      next: { revalidate: 300 }, // Cache backend response for 5 minutes
-    });
+    const response = await fetch(`${backendUrl}/api/site-config`);
 
     if (!response.ok) {
       logger.error(`Backend API returned ${response.status}`);
@@ -45,32 +50,36 @@ export async function GET() {
     logger.error("Failed to load site config:", error);
 
     // Fallback configuration with shorter cache
-    return NextResponse.json(
-      {
-        site: {
-          title: "Community Website",
-          description:
-            "Helping connect people to the resources available to them.",
-          tagline: "Community Directory",
-          directoryDescription:
-            "Discover local resources and community information.",
-          copyright: "2025",
-          copyrightHolder: "Community",
-          copyrightUrl: "#",
-          domain: "community.local",
-          shortName: "Community",
-          fullName: "Community Website",
-          googleAnalyticsId: "",
-        },
-        pagination: {
-          defaultLimit: 20,
-        },
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-        },
-      }
-    );
+    return getFallbackResponse();
   }
+}
+
+function getFallbackResponse() {
+  return NextResponse.json(
+    {
+      site: {
+        title: "Community Website",
+        description:
+          "Helping connect people to the resources available to them.",
+        tagline: "Community Directory",
+        directoryDescription:
+          "Discover local resources and community information.",
+        copyright: "2025",
+        copyrightHolder: "Community",
+        copyrightUrl: "#",
+        domain: "community.local",
+        shortName: "Community",
+        fullName: "Community Website",
+        googleAnalyticsId: "",
+      },
+      pagination: {
+        defaultLimit: 20,
+      },
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    }
+  );
 }

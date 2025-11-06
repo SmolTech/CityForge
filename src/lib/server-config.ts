@@ -49,7 +49,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
     const baseUrl =
       process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
     const response = await fetch(`${baseUrl}/api/config`, {
-      cache: "no-store", // Always get fresh config
+      next: { revalidate: 300 }, // Cache for 5 minutes
     });
 
     if (!response.ok) {
