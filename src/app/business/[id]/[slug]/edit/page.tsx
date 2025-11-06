@@ -40,15 +40,22 @@ export default function EditBusinessPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
+      // First, check if the user is actually authenticated by making an API call
+      let userResponse;
+      try {
+        userResponse = await apiClient.getCurrentUser();
+      } catch (error: any) {
+        // If getCurrentUser fails, user is not authenticated
+        logger.error("User not authenticated:", error);
         router.push("/login");
         return;
       }
 
-      const [userResponse, businessData] = await Promise.all([
-        apiClient.getCurrentUser(),
-        apiClient.getBusiness(Number(params["id"]), params["slug"] as string),
-      ]);
+      // Load business data
+      const businessData = await apiClient.getBusiness(
+        Number(params["id"]),
+        params["slug"] as string
+      );
 
       setUser(userResponse.user);
       setBusiness(businessData);
@@ -127,8 +134,26 @@ export default function EditBusinessPage() {
         ...formData,
         image_url: response.url,
       });
-    } catch {
-      setError("Failed to upload image. Please try again.");
+    } catch (error: any) {
+      logger.error("Image upload failed:", error);
+
+      // Check if it's an authentication error
+      if (
+        error.message?.includes("401") ||
+        error.message?.includes("Unauthorized")
+      ) {
+        setError(
+          "Authentication expired. Please log in again to upload images."
+        );
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      } else {
+        setError(
+          `Failed to upload image: ${error.message || "Please try again."}`
+        );
+      }
     } finally {
       setImageUploading(false);
     }
