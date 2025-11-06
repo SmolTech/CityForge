@@ -14,10 +14,10 @@ resources:
 
 images:
   - name: ghcr.io/smoltech/cityforge-frontend
-    newTag: 0.7.11
+    newTag: latest
   - name: ghcr.io/smoltech/cityforge-backend
-    newTag: 0.7.11
+    newTag: latest
   - name: ghcr.io/smoltech/cityforge-indexer
-    newTag: 0.7.11
+    newTag: latest
 
 namespace: community
