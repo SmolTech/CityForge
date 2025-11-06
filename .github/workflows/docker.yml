@@ -11,9 +11,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
-  BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
-  INDEXER_IMAGE_NAME: ${{ github.repository }}-indexer
+  FRONTEND_IMAGE_NAME: smoltech/cityforge-frontend
+  BACKEND_IMAGE_NAME: smoltech/cityforge-backend
+  INDEXER_IMAGE_NAME: smoltech/cityforge-indexer
 
 jobs:
   build-and-push:
