@@ -52,6 +52,8 @@ spec:
                     secretKeyRef:
                       key: password
                       name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                - name: BACKEND_URL
+                  value: "http://cityforge-backend-service:5000"
               resources:
                 requests:
                   memory: "128Mi"

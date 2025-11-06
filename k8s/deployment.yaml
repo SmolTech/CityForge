@@ -47,6 +47,8 @@ spec:
               value: "3000"
             - name: NEXT_PUBLIC_API_URL
               value: "http://cityforge-backend-service:5000"
+            - name: NEXT_PUBLIC_SITE_URL
+              value: "https://cityforge.example.com" # Replace with your actual domain
           resources:
             requests:
               memory: "128Mi"

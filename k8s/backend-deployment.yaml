@@ -30,7 +30,7 @@ spec:
           image: ghcr.io/smoltech/cityforge-backend
           imagePullPolicy: Always
           # Use initialize_db.py which handles both fresh and existing databases
-          command: ["python", "initialize_db.py", "--non-interactive"]
+          command: ["python", "initialize_db.py"]
           env:
             - name: POSTGRES_HOST
               value: "cityforge-db"
@@ -105,6 +105,16 @@ spec:
               value: "DEBUG" # Set to DEBUG, INFO, WARNING, or ERROR
             - name: FLASK_ENV
               value: "production" # Keep production for security, but with debug logs
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: jwt_secret_key
+                  name: cityforge-backend-secrets
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: secret_key
+                  name: cityforge-backend-secrets
           livenessProbe:
             httpGet:
               path: /health
