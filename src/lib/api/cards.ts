@@ -97,6 +97,17 @@ export class CardsApi extends ApiClient {
       throw new Error(`Upload failed: ${response.status}`);
     }
 
-    return response.json();
+    const result = await response.json();
+
+    // Handle new response format with backward compatibility
+    if (result.success && result.url) {
+      return {
+        filename: result.filename || file.name,
+        url: result.url,
+      };
+    }
+
+    // Fallback for old response format
+    return result;
   }
 }
