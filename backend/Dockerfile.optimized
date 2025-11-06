@@ -1,0 +1,34 @@
+# Multi-stage build for better caching
+FROM python:3.11-slim AS base
+
+# Install system dependencies in a separate layer
+RUN apt-get update && apt-get install -y curl && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Dependencies stage - cached separately
+FROM base AS deps
+WORKDIR /app
+COPY requirements.txt .
+
+# Use pip cache mount for faster builds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+# Application stage
+FROM base AS app
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# Copy application code (this changes more frequently)
+COPY . .
+
+# Create non-root user with specific UID/GID to match Kubernetes security context
+RUN groupadd -r appuser --gid 1001 && useradd -r -g appuser --uid 1001 appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "wsgi:app"]
