@@ -94,7 +94,22 @@ export class CardsApi extends ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `Upload failed (${response.status})`;
+
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.msg) {
+          errorMessage = errorData.msg;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+      }
+
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
