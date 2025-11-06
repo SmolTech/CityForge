@@ -113,6 +113,16 @@ export interface AuthResponse {
   user: User;
 }
 
+// Upload types
+export interface UploadResponse {
+  success: boolean;
+  url: string;
+  filename?: string;
+  public_id?: string;
+  storage: "cloudinary" | "local";
+  message: string;
+}
+
 // Resource types
 export interface ResourceConfig {
   id: number;

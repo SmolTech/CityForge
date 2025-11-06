@@ -115,6 +115,25 @@ spec:
                 secretKeyRef:
                   key: secret_key
                   name: cityforge-backend-secrets
+            # Cloudinary configuration (optional - for image hosting)
+            - name: CLOUDINARY_CLOUD_NAME
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_cloud_name
+                  name: cityforge-backend-secrets
+                  optional: true
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_api_key
+                  name: cityforge-backend-secrets
+                  optional: true
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_api_secret
+                  name: cityforge-backend-secrets
+                  optional: true
           livenessProbe:
             httpGet:
               path: /health

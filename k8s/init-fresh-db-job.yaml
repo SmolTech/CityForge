@@ -20,7 +20,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: init-db
-          image: ghcr.io/smoltech/cityforge/cityforge-backend:latest
+          image: ghcr.io/smoltech/cityforge-backend
           imagePullPolicy: Always
           # Use the new initialize_db.py script that handles both fresh and existing databases
           command: ["python", "initialize_db.py", "--non-interactive"]
