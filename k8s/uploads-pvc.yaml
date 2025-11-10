@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cityforge-uploads-pvc
+  namespace: cityforge
+  labels:
+    app: cityforge-uploads
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany # Multiple backend pods can read/write
+  resources:
+    requests:
+      storage: 10Gi # 10GB storage for uploaded images
+  # Optional: Specify storage class if needed
+  # storageClassName: fast-ssd
+---
+# Optional: Create a service account for upload management (future use)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cityforge-uploads
+  namespace: cityforge
+  labels:
+    app: cityforge-uploads
