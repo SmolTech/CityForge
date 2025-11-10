@@ -18,20 +18,7 @@ spec:
     - host: "cityforge.cityforge"
       http:
         paths:
-          - path: /api/config
-            pathType: Prefix
-            backend:
-              service:
-                name: cityforge-service
-                port:
-                  number: 80
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: cityforge-backend-service
-                port:
-                  number: 5000
+          # All traffic now goes to Next.js service (includes both UI and API routes)
           - path: /
             pathType: Prefix
             backend:
@@ -42,20 +29,7 @@ spec:
     - host: "www.cityforge.cityforge"
       http:
         paths:
-          - path: /api/config
-            pathType: Prefix
-            backend:
-              service:
-                name: cityforge-service
-                port:
-                  number: 80
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: cityforge-backend-service
-                port:
-                  number: 5000
+          # All traffic now goes to Next.js service (includes both UI and API routes)
           - path: /
             pathType: Prefix
             backend:

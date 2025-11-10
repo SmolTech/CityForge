@@ -140,9 +140,9 @@ export async function GET(
     if (includeRatings && card.reviews) {
       const ratings = card.reviews
         .map((review: any) => review.rating)
-        .filter((rating) => rating !== null);
+        .filter((rating: any) => rating !== null);
       if (ratings.length > 0) {
-        const sum = ratings.reduce((acc, rating) => acc + rating, 0);
+        const sum = ratings.reduce((acc: any, rating: any) => acc + rating, 0);
         transformedCard.average_rating = sum / ratings.length;
         transformedCard.review_count = ratings.length;
       } else {

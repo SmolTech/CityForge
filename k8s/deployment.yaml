@@ -45,26 +45,86 @@ spec:
               value: "production"
             - name: PORT
               value: "3000"
-            - name: NEXT_PUBLIC_API_URL
-              value: "http://cityforge-backend-service:5000"
             - name: NEXT_PUBLIC_SITE_URL
               value: "https://cityforge.example.com" # Replace with your actual domain
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
+            # Database connection for Prisma (Next.js API routes)
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: POSTGRES_HOST
+              value: "cityforge-db"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "cityforge"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            # JWT configuration for authentication
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: jwt_secret_key
+                  name: cityforge-backend-secrets
+            # OpenSearch configuration for search functionality
+            - name: OPENSEARCH_HOST
+              value: "opensearch-service"
+            - name: OPENSEARCH_PORT
+              value: "9200"
+            - name: OPENSEARCH_NAMESPACE
+              value: "cityforge"
+            # Upload folder configuration
+            - name: UPLOAD_FOLDER
+              value: "/app/uploads"
+            # Cloudinary configuration (optional - for image hosting)
+            - name: CLOUDINARY_CLOUD_NAME
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_cloud_name
+                  name: cityforge-backend-secrets
+                  optional: true
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_api_key
+                  name: cityforge-backend-secrets
+                  optional: true
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: cloudinary_api_secret
+                  name: cityforge-backend-secrets
+                  optional: true
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
+          # Resource allocation increased since container now handles both frontend and all API endpoints
+          resources:
+            requests:
+              memory: "384Mi" # Increased from 256Mi since container now handles both frontend and backend
+              cpu: "250m" # Slightly increased from 200m for additional API load
+            limits:
+              memory: "1.5Gi" # Increased from 1Gi for safety margin
+              cpu: "1200m" # Increased from 1000m for API processing
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: cityforge-uploads-pvc

@@ -35,7 +35,7 @@ async function main() {
     }),
   ]);
 
-  console.log(`✅ Created ${tags.length} tags`);
+  console.log("✅ Created", tags.length, "tags");
 
   // Create sample cards
   const cards = [
@@ -125,25 +125,35 @@ async function main() {
           tags: true,
         },
       });
-      console.log(`✅ Created card: ${card.name}`);
+      console.log("✅ Created card:", card.name);
       createdCount++;
     } catch (error) {
       console.error(
-        `❌ Failed to create card: ${cardData.name}`,
+        "❌ Failed to create card:",
+        cardData.name,
+        "Error:",
         error.message
       );
     }
   }
 
   console.log(
-    `\n🎉 Successfully created ${createdCount} cards out of ${cards.length} attempts`
+    "🎉 Successfully created",
+    createdCount,
+    "cards out of",
+    cards.length,
+    "attempts"
   );
 
   // Show final count
   const totalCards = await prisma.card.count();
   const totalTags = await prisma.tag.count();
   console.log(
-    `📊 Database now contains: ${totalCards} cards and ${totalTags} tags`
+    "📊 Database now contains:",
+    totalCards,
+    "cards and",
+    totalTags,
+    "tags"
   );
 }
 
