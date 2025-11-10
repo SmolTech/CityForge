@@ -134,6 +134,12 @@ spec:
                   key: cloudinary_api_secret
                   name: cityforge-backend-secrets
                   optional: true
+            # Upload folder configuration
+            - name: UPLOAD_FOLDER
+              value: "/app/uploads"
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
           livenessProbe:
             httpGet:
               path: /health
@@ -153,6 +159,10 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: cityforge-uploads-pvc
 ---
 apiVersion: v1
 kind: Service
