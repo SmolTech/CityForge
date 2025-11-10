@@ -139,7 +139,7 @@ export async function GET(
     // Add ratings if requested
     if (includeRatings && card.reviews) {
       const ratings = card.reviews
-        .map((review) => review.rating)
+        .map((review: any) => review.rating)
         .filter((rating) => rating !== null);
       if (ratings.length > 0) {
         const sum = ratings.reduce((acc, rating) => acc + rating, 0);
