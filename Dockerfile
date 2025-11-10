@@ -15,11 +15,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Generate Prisma client before building
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
+RUN npx prisma generate
+
 # Build the application
 RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
+# Install curl for health checks
+RUN apk add --no-cache curl
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -29,6 +35,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+
+# Copy database initialization script
+COPY --from=builder /app/scripts ./scripts
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
