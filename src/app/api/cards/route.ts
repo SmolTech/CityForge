@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform cards to match API format
-    const transformedCards = cards.map((card) => {
+    const transformedCards = cards.map((card: any) => {
       const baseCard: any = {
         id: card.id,
         name: card.name,
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         created_date: card.createdDate.toISOString(),
         updated_date: card.updatedDate.toISOString(),
         approved_date: card.approvedDate?.toISOString(),
-        tags: card.tags.map((tag) => tag.name),
+        tags: card.tags.map((tag: any) => tag.name),
       };
 
       // Add optional fields
@@ -160,10 +160,13 @@ export async function GET(request: NextRequest) {
 
       if (includeRatings && card.reviews) {
         const ratings = card.reviews
-          .map((review) => review.rating)
-          .filter((rating) => rating !== null);
+          .map((review: any) => review.rating)
+          .filter((rating: any) => rating !== null);
         if (ratings.length > 0) {
-          const sum = ratings.reduce((acc, rating) => acc + rating, 0);
+          const sum = ratings.reduce(
+            (acc: any, rating: any) => acc + rating,
+            0
+          );
           baseCard.average_rating = sum / ratings.length;
           baseCard.review_count = ratings.length;
         } else {

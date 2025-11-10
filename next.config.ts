@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: [],
+  serverExternalPackages: ["@prisma/client"],
   // Selective API proxy - only forward non-migrated endpoints to Flask backend
   async rewrites() {
     const backendUrl =
@@ -10,31 +10,7 @@ const nextConfig: NextConfig = {
 
     return [
       // Proxy non-migrated endpoints to Flask backend
-      // Cards API has been migrated to Next.js, so no longer proxy those
-      {
-        source: "/api/resources/:path*",
-        destination: `${backendUrl}/api/resources/:path*`,
-      },
-      {
-        source: "/api/tags",
-        destination: `${backendUrl}/api/tags`,
-      },
-      {
-        source: "/api/submissions/:path*",
-        destination: `${backendUrl}/api/submissions/:path*`,
-      },
-      {
-        source: "/api/search/:path*",
-        destination: `${backendUrl}/api/search/:path*`,
-      },
-      {
-        source: "/api/config",
-        destination: `${backendUrl}/api/site-config`,
-      },
-      {
-        source: "/api/site-config",
-        destination: `${backendUrl}/api/site-config`,
-      },
+      // Cards API, Tags API, Site Config API, Resources API, Submissions API, Search API, and Upload API have been migrated to Next.js
       {
         source: "/api/forums/:path*",
         destination: `${backendUrl}/api/forums/:path*`,
@@ -46,10 +22,6 @@ const nextConfig: NextConfig = {
       {
         source: "/api/support-tickets/:path*",
         destination: `${backendUrl}/api/support-tickets/:path*`,
-      },
-      {
-        source: "/api/upload",
-        destination: `${backendUrl}/api/upload`,
       },
       // Admin endpoints that haven't been migrated yet
       {

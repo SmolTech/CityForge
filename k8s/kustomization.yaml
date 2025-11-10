@@ -7,7 +7,7 @@ resources:
   # - backend-secrets.yaml
   - deployment.yaml
   - service.yaml
-  - backend-deployment.yaml
+  # backend-deployment.yaml - REMOVED (Flask backend no longer needed)
   - postgres.yaml
   - uploads-pvc.yaml
   - ingress.yaml
@@ -16,11 +16,10 @@ resources:
   - token-cleanup-cronjob.yaml
 
 images:
-  - name: ghcr.io/smoltech/cityforge-frontend
+  - name: ghcr.io/smoltech/cityforge/cityforge-frontend
     newTag: latest
-  - name: ghcr.io/smoltech/cityforge-backend
-    newTag: latest
-  - name: ghcr.io/smoltech/cityforge-indexer
+  # ghcr.io/smoltech/cityforge-backend - REMOVED (Flask backend no longer needed)
+  - name: ghcr.io/smoltech/cityforge/cityforge-indexer
     newTag: latest
 
 namespace: community

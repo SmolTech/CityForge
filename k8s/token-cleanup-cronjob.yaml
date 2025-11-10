@@ -37,12 +37,14 @@ spec:
                 capabilities:
                   drop:
                     - ALL
-              image: ghcr.io/smoltech/cityforge-backend
+              image: ghcr.io/smoltech/cityforge/cityforge-frontend
               imagePullPolicy: Always
               command:
-                - python
-                - cleanup_expired_tokens.py
+                - node
+                - scripts/token-cleanup.mjs
               env:
+                - name: DATABASE_URL
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
                 - name: POSTGRES_HOST
                   value: "cityforge-db"
                 - name: POSTGRES_PORT
@@ -59,13 +61,6 @@ spec:
                     secretKeyRef:
                       key: password
                       name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                # JWT secret is required for Flask app initialization
-                - name: JWT_SECRET_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      key: jwt_secret_key
-                      name: cityforge-backend-secrets
-                      optional: true
               resources:
                 requests:
                   memory: "64Mi"

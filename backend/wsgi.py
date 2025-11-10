@@ -5,8 +5,9 @@ from app import create_app, db
 app = create_app()
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
+    # Skip db.create_all() during migration phase - tables already exist from Prisma
+    # with app.app_context():
+    #     db.create_all()
 
     # Only bind to 0.0.0.0 in production (container), use localhost for development
     host = "0.0.0.0" if os.getenv("FLASK_ENV") == "production" else "127.0.0.1"

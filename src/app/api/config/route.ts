@@ -1,51 +1,56 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { resourceQueries } from "@/lib/db/queries";
 
 // This route will be statically generated at build time and revalidated every 5 minutes
 export const revalidate = 300;
 
 export async function GET() {
   try {
-    // During build time (when NEXT_PHASE is 'phase-production-build'),
-    // return fallback config immediately to prevent dynamic server usage
-    if (process.env["NEXT_PHASE"] === "phase-production-build") {
-      logger.info("Build phase detected, returning fallback config");
-      return getFallbackResponse();
-    }
+    logger.info("Site config API request");
 
-    // Fetch site configuration from backend API
-    // Use BACKEND_API_URL for server-side requests to backend container
-    // In Kubernetes, this should be set to the internal service (e.g., http://cityforge-backend:5000)
-    // Otherwise fall back to NEXT_PUBLIC_API_URL for local dev
-    const backendUrl =
-      process.env["BACKEND_API_URL"] ||
-      process.env["NEXT_PUBLIC_API_URL"] ||
-      "http://localhost:5000";
+    // Get site configuration directly from database using Prisma
+    const configData = await resourceQueries.getSiteConfig();
 
-    logger.info(`Fetching site config from: ${backendUrl}/api/site-config`);
+    // Build configuration object with fallback values
+    const siteConfig = {
+      title: configData["site_title"] || "Community Website",
+      description:
+        configData["site_description"] ||
+        "Helping connect people to the resources available to them.",
+      tagline: configData["site_tagline"] || "Community Directory",
+      directoryDescription:
+        configData["directory_description"] ||
+        "Discover local resources and community information.",
+      copyright: configData["site_copyright"] || "2025",
+      copyrightHolder: configData["site_copyright_holder"] || "Community",
+      copyrightUrl: configData["site_copyright_url"] || "#",
+      domain: configData["site_domain"] || "community.local",
+      shortName: configData["site_short_name"] || "Community",
+      fullName: configData["site_full_name"] || "Community Website",
+      themeColor: configData["site_theme_color"] || "#000000",
+      backgroundColor: configData["site_background_color"] || "#ffffff",
+      googleAnalyticsId: configData["google_analytics_id"] || "",
+    };
 
-    const response = await fetch(`${backendUrl}/api/site-config`);
+    // Pagination configuration
+    const paginationConfig = {
+      defaultLimit: parseInt(configData["pagination_default_limit"] || "20"),
+    };
 
-    if (!response.ok) {
-      logger.error(`Backend API returned ${response.status}`);
-      throw new Error(`Backend API returned ${response.status}`);
-    }
+    const response = {
+      site: siteConfig,
+      pagination: paginationConfig,
+    };
 
-    const config = await response.json();
-    logger.info("Site config loaded successfully:", config.site?.title);
+    logger.info("Site config loaded successfully:", siteConfig.title);
 
     // Return the site configuration with caching headers
-    return NextResponse.json(
-      {
-        site: config.site,
-        pagination: config.pagination || { defaultLimit: 20 },
+    return NextResponse.json(response, {
+      headers: {
+        "Cache-Control": "public, max-age=300", // 5 minutes cache
       },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        },
-      }
-    );
+    });
   } catch (error) {
     logger.error("Failed to load site config:", error);
 
@@ -70,6 +75,8 @@ function getFallbackResponse() {
         domain: "community.local",
         shortName: "Community",
         fullName: "Community Website",
+        themeColor: "#000000",
+        backgroundColor: "#ffffff",
         googleAnalyticsId: "",
       },
       pagination: {
@@ -78,7 +85,7 @@ function getFallbackResponse() {
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        "Cache-Control": "public, max-age=60", // 1 minute cache for fallback
       },
     }
   );

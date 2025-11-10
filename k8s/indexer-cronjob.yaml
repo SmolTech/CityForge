@@ -52,8 +52,9 @@ spec:
                     secretKeyRef:
                       key: password
                       name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                # Updated to use Next.js API endpoint instead of Flask backend
                 - name: BACKEND_URL
-                  value: "http://cityforge-backend-service:5000"
+                  value: "http://cityforge-service/api"
               resources:
                 requests:
                   memory: "128Mi"
