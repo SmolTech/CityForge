@@ -35,43 +35,7 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: cityforge-backend
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: community_db
-      OPENSEARCH_HOST: opensearch
-      OPENSEARCH_PORT: 9200
-      JWT_SECRET_KEY: change-this-in-production
-      UPLOAD_FOLDER: /app/uploads
-      FLASK_ENV: production
-      FLASK_APP: app:create_app
-      # Optional: Set these to create an admin user automatically on first run
-      # ADMIN_EMAIL: admin@example.com
-      # ADMIN_PASSWORD: ChangeThisPassword123!
-    volumes:
-      - backend_uploads:/app/uploads
-    expose:
-      - "5000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      opensearch:
-        condition: service_healthy
-    command: >
-      sh -c "python initialize_db.py &&
-             gunicorn --bind 0.0.0.0:5000 --workers 4 wsgi:app"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Backend service removed - Next.js frontend now handles all API endpoints
 
   frontend:
     build:
@@ -79,13 +43,44 @@ services:
       dockerfile: Dockerfile
     container_name: cityforge-frontend
     environment:
-      NEXT_PUBLIC_API_URL: ""
-      BACKEND_API_URL: http://backend:5000
+      NODE_ENV: production
+      PORT: 3000
+      # Database connection for Prisma (Next.js API routes)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/community_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: community_db
+      # JWT configuration for authentication
+      JWT_SECRET_KEY: change-this-in-production
+      # OpenSearch configuration for search functionality
+      OPENSEARCH_HOST: opensearch
+      OPENSEARCH_PORT: 9200
+      OPENSEARCH_NAMESPACE: default
+      # Upload folder configuration
+      UPLOAD_FOLDER: /app/uploads
+      # Optional: Set these to create an admin user automatically
+      # ADMIN_EMAIL: admin@example.com
+      # ADMIN_PASSWORD: ChangeThisPassword123!
+    volumes:
+      - frontend_uploads:/app/uploads
     expose:
       - "3000"
     depends_on:
-      backend:
+      postgres:
         condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    # Initialize database using Node.js script, then start Next.js
+    command: >
+      sh -c "node scripts/db-init.mjs &&
+             node server.js"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://0.0.0.0:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -94,11 +89,9 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - backend_uploads:/app/uploads:ro
+      - frontend_uploads:/app/uploads:ro
     depends_on:
       frontend:
-        condition: service_started
-      backend:
         condition: service_healthy
     healthcheck:
       test:
@@ -119,7 +112,7 @@ services:
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
-      BACKEND_URL: http://backend:5000
+      BACKEND_URL: http://frontend:3000 # Updated to point to Next.js frontend
       NAMESPACE: default
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -127,7 +120,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: community_db
     depends_on:
-      backend:
+      frontend:
         condition: service_healthy
       opensearch:
         condition: service_healthy
@@ -136,4 +129,4 @@ services:
 volumes:
   postgres_data:
   opensearch_data:
-  backend_uploads:
+  frontend_uploads: # Renamed from backend_uploads since frontend now handles uploads
