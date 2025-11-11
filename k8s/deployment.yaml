@@ -84,13 +84,6 @@ spec:
                 secretKeyRef:
                   key: jwt_secret_key
                   name: cityforge-backend-secrets
-            # OpenSearch configuration for search functionality
-            - name: OPENSEARCH_HOST
-              value: "opensearch-service"
-            - name: OPENSEARCH_PORT
-              value: "9200"
-            - name: OPENSEARCH_NAMESPACE
-              value: "cityforge"
             # Upload folder configuration
             - name: UPLOAD_FOLDER
               value: "/app/uploads"
@@ -128,14 +121,14 @@ spec:
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
-          # Resource allocation increased since container now handles both frontend and all API endpoints
+          # Resource allocation for Next.js application with built-in API routes
           resources:
             requests:
-              memory: "384Mi" # Increased from 256Mi since container now handles both frontend and backend
-              cpu: "250m" # Slightly increased from 200m for additional API load
+              memory: "384Mi"
+              cpu: "250m"
             limits:
-              memory: "1.5Gi" # Increased from 1Gi for safety margin
-              cpu: "1200m" # Increased from 1000m for API processing
+              memory: "1.5Gi"
+              cpu: "1200m"
       volumes:
         - name: uploads-storage
           persistentVolumeClaim:
