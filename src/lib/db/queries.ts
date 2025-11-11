@@ -223,7 +223,7 @@ export const tagQueries = {
       orderBy: { name: "asc" },
       include: {
         _count: {
-          select: { cards: true },
+          select: { card_tags: true },
         },
       },
     });
