@@ -34,7 +34,8 @@ export async function GET(
 
     const uploadFolder = process.env["UPLOAD_FOLDER"] || "uploads";
     const uploadPath = path.resolve(process.cwd(), uploadFolder);
-    const filePath = path.resolve(uploadPath, filename);
+    // Safe: filename is validated above with regex to only allow [a-zA-Z0-9._-], and we verify the path below
+    const filePath = path.resolve(uploadPath, filename); // nosemgrep
 
     // Verify the resolved path is still within the upload directory
     if (
