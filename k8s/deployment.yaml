@@ -36,7 +36,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          image: ghcr.io/smoltech/cityforge-frontend
+          image: ghcr.io/smoltech/cityforge/cityforge-frontend
           imagePullPolicy: Always
           # Use startup script to construct DATABASE_URL at runtime
           command: ["/bin/sh"]
