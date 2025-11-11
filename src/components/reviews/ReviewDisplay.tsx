@@ -49,10 +49,13 @@ export default function ReviewDisplay({
 
   const loadReviews = useCallback(async () => {
     try {
-      const response = await fetch(`/api/cards/${cardId}/reviews`);
+      const response = await fetch(`/api/cards/${cardId}/reviews`, {
+        credentials: "include", // Include httpOnly cookies
+      });
       if (!response.ok) throw new Error("Failed to load reviews");
       const data = await response.json();
       setReviews(data.reviews || []);
+      setSummary(data.summary || null); // Summary is included in the same response
     } catch (err) {
       logger.error("Error loading reviews:", err);
       setError("Failed to load reviews");
@@ -61,20 +64,8 @@ export default function ReviewDisplay({
     }
   }, [cardId]);
 
-  const loadSummary = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/cards/${cardId}/reviews/summary`);
-      if (!response.ok) throw new Error("Failed to load review summary");
-      const data = await response.json();
-      setSummary(data);
-    } catch (err) {
-      logger.error("Error loading review summary:", err);
-    }
-  }, [cardId]);
-
   useEffect(() => {
     loadReviews();
-    loadSummary();
 
     // Get current user ID
     const loadCurrentUser = async () => {
@@ -88,7 +79,7 @@ export default function ReviewDisplay({
       }
     };
     loadCurrentUser();
-  }, [loadReviews, loadSummary]);
+  }, [loadReviews]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -111,13 +102,12 @@ export default function ReviewDisplay({
     }
 
     try {
-      const token = localStorage.getItem("auth_token");
       const response = await fetch(`/api/reviews/${reviewId}/report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
+        credentials: "include", // Use httpOnly cookies instead of localStorage token
         body: JSON.stringify({ reason: reportReason }),
       });
 

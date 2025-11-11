@@ -316,7 +316,7 @@ export const reviewQueries = {
       prisma.review.findMany({
         where: {
           cardId,
-          OR: [{ hidden: false }, { hidden: null }],
+          hidden: false,
         },
         include: {
           user: { select: { firstName: true, lastName: true } },
@@ -328,7 +328,7 @@ export const reviewQueries = {
       prisma.review.count({
         where: {
           cardId,
-          OR: [{ hidden: false }, { hidden: null }],
+          hidden: false,
         },
       }),
     ]);
@@ -365,6 +365,80 @@ export const reviewQueries = {
         card: { select: { name: true } },
       },
     });
+  },
+
+  /**
+   * Report a review
+   */
+  async reportReview(
+    reviewId: number,
+    reporterId: number,
+    reason: string,
+    details?: string
+  ) {
+    return await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        reported: true,
+        reportedBy: reporterId,
+        reportedDate: new Date(),
+        reportedReason: details ? `${reason}: ${details}` : reason,
+      },
+    });
+  },
+
+  /**
+   * Get card rating summary (average rating and count)
+   */
+  async getCardRatingSummary(cardId: number) {
+    const result = await prisma.review.aggregate({
+      where: {
+        cardId,
+        hidden: false,
+      },
+      _avg: {
+        rating: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    return {
+      averageRating: result._avg.rating
+        ? Math.round(result._avg.rating * 10) / 10
+        : null,
+      totalReviews: result._count.id,
+    };
+  },
+
+  /**
+   * Get rating distribution for a card (for star rating histogram)
+   */
+  async getCardRatingDistribution(cardId: number) {
+    const distribution = await prisma.review.groupBy({
+      by: ["rating"],
+      where: {
+        cardId,
+        hidden: false,
+      },
+      _count: {
+        rating: true,
+      },
+      orderBy: {
+        rating: "asc",
+      },
+    });
+
+    // Convert to array format expected by frontend (5 elements for ratings 1-5)
+    const result = Array(5).fill(0);
+    distribution.forEach((item) => {
+      if (item.rating >= 1 && item.rating <= 5) {
+        result[item.rating - 1] = item._count.rating;
+      }
+    });
+
+    return result;
   },
 
   /**
@@ -410,60 +484,6 @@ export const reviewQueries = {
         reportedReason: details ? `${reason}: ${details}` : reason,
       },
     });
-  },
-
-  /**
-   * Get card rating summary (average rating and count)
-   */
-  async getCardRatingSummary(cardId: number) {
-    const result = await prisma.review.aggregate({
-      where: {
-        cardId,
-        OR: [{ hidden: false }, { hidden: null }],
-      },
-      _avg: {
-        rating: true,
-      },
-      _count: {
-        id: true,
-      },
-    });
-
-    return {
-      averageRating: result._avg.rating
-        ? Math.round(result._avg.rating * 10) / 10
-        : null,
-      totalReviews: result._count.id,
-    };
-  },
-
-  /**
-   * Get rating distribution for a card (for star rating histogram)
-   */
-  async getCardRatingDistribution(cardId: number) {
-    const distribution = await prisma.review.groupBy({
-      by: ["rating"],
-      where: {
-        cardId,
-        OR: [{ hidden: false }, { hidden: null }],
-      },
-      _count: {
-        rating: true,
-      },
-      orderBy: {
-        rating: "asc",
-      },
-    });
-
-    // Convert to array format expected by frontend (5 elements for ratings 1-5)
-    const result = Array(5).fill(0);
-    distribution.forEach((item) => {
-      if (item.rating >= 1 && item.rating <= 5) {
-        result[item.rating - 1] = item._count.rating;
-      }
-    });
-
-    return result;
   },
 };
 

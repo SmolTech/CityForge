@@ -52,11 +52,6 @@ export default function ReviewForm({
     setError(null);
 
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("auth_token")
-          : null;
-
       const isEdit = !!existingReview;
       const url = isEdit
         ? `/api/reviews/${existingReview.id}`
@@ -67,8 +62,8 @@ export default function ReviewForm({
         method,
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
+        credentials: "include", // Use httpOnly cookies instead of localStorage token
         body: JSON.stringify({
           rating,
           title: title.trim(),

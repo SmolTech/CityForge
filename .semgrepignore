@@ -4,3 +4,8 @@ nginx.conf
 
 # Ignore test files - they use test passwords intentionally
 backend/tests/
+
+# Ignore development/test files with expected secrets
+cookies.txt
+scripts/seed-test-data.mjs
+scripts/update-passwords.mjs
