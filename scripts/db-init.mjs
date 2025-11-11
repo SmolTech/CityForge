@@ -5,6 +5,20 @@
  * This replaces the Flask-based initialize_db.py script
  */
 
+// Construct DATABASE_URL if not already set (for Kubernetes deployments)
+if (!process.env.DATABASE_URL) {
+  const user = process.env.POSTGRES_USER || "postgres";
+  const password = process.env.POSTGRES_PASSWORD || "postgres";
+  const host = process.env.POSTGRES_HOST || "cityforge-db";
+  const port = process.env.POSTGRES_PORT || "5432";
+  const database = process.env.POSTGRES_DB || "cityforge";
+
+  process.env.DATABASE_URL = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  console.log(
+    `Constructed DATABASE_URL: postgresql://${user}:***@${host}:${port}/${database}`
+  );
+}
+
 import { PrismaClient } from "@prisma/client";
 
 async function initializeDatabase() {
