@@ -11,6 +11,14 @@ export async function GET() {
     console.log("=== HEALTH CHECK DEBUG ===");
     console.log("NODE_ENV:", process.env["NODE_ENV"]);
     console.log("DATABASE_URL from env:", process.env["DATABASE_URL"]);
+    console.log("POSTGRES_USER:", process.env["POSTGRES_USER"]);
+    console.log(
+      "POSTGRES_PASSWORD:",
+      process.env["POSTGRES_PASSWORD"] ? "***SET***" : "***NOT SET***"
+    );
+    console.log("POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
+    console.log("POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
+    console.log("POSTGRES_DB:", process.env["POSTGRES_DB"]);
     console.log(
       "All env keys:",
       Object.keys(process.env).filter(
@@ -18,12 +26,14 @@ export async function GET() {
       )
     );
 
-    // Get the database URL for display purposes
-    const databaseUrl =
-      process.env["DATABASE_URL"] ||
-      "postgresql://postgres:postgres@postgres:5432/community_db";
+    // Construct DATABASE_URL like the Prisma client does
+    const user = process.env["POSTGRES_USER"] || "postgres";
+    const host = process.env["POSTGRES_HOST"] || "cityforge-db";
+    const port = process.env["POSTGRES_PORT"] || "5432";
+    const database = process.env["POSTGRES_DB"] || "cityforge";
+    const constructedUrl = `postgresql://${user}:***@${host}:${port}/${database}`;
 
-    console.log("Final DATABASE_URL:", databaseUrl);
+    console.log("Constructed DATABASE_URL:", constructedUrl);
 
     // Use the shared database client with explicit URL configuration
     const healthCheck = await checkDatabaseHealth();
@@ -37,7 +47,7 @@ export async function GET() {
             database: "connected",
             server: "running",
           },
-          databaseUrl: databaseUrl.substring(0, 50) + "...",
+          databaseUrl: constructedUrl,
         },
         {
           status: 200,
