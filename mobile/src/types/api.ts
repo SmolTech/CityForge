@@ -1,9 +1,16 @@
 export interface User {
   id: number;
   email: string;
-  username: string;
+  first_name: string;
+  last_name: string;
+  username: string; // Computed from first_name + last_name
+  role: string;
   is_admin: boolean;
-  created_at: string;
+  is_supporter: boolean;
+  is_supporter_flag: boolean;
+  is_active: boolean;
+  created_date: string;
+  last_login?: string;
 }
 
 export interface Tag {
@@ -27,8 +34,8 @@ export interface Card {
   logo_url?: string;
   slug: string;
   tags: Tag[];
-  created_at: string;
-  updated_at: string;
+  created_date: string;
+  updated_date: string;
 }
 
 export interface CardSubmission {
@@ -41,7 +48,7 @@ export interface CardSubmission {
   website?: string;
   status: "pending" | "approved" | "rejected";
   submitted_by?: User;
-  created_at: string;
+  created_date: string;
 }
 
 export interface ResourceCategory {

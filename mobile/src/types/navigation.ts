@@ -6,6 +6,8 @@ export type RootStackParamList = {
   Register: undefined;
   CardDetail: { id: number };
   BusinessDetail: { slug: string };
+  InstanceManager: undefined;
+  AddInstance: undefined;
 };
 
 export type MainTabParamList = {
