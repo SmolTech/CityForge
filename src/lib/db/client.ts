@@ -8,7 +8,19 @@ declare global {
 
 // Build DATABASE_URL from individual components if not provided
 function getDatabaseUrl(): string {
+  // Debug: Log when getDatabaseUrl is called and what values it sees
+  console.log("[getDatabaseUrl] Called at:", new Date().toISOString());
+  console.log("[getDatabaseUrl] POSTGRES_USER:", process.env["POSTGRES_USER"]);
+  console.log(
+    "[getDatabaseUrl] POSTGRES_PASSWORD:",
+    process.env["POSTGRES_PASSWORD"] ? "***SET***" : "***NOT SET***"
+  );
+  console.log("[getDatabaseUrl] POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
+  console.log("[getDatabaseUrl] POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
+  console.log("[getDatabaseUrl] POSTGRES_DB:", process.env["POSTGRES_DB"]);
+
   if (process.env["DATABASE_URL"]) {
+    console.log("[getDatabaseUrl] Using DATABASE_URL from environment");
     return process.env["DATABASE_URL"];
   }
 
@@ -22,7 +34,12 @@ function getDatabaseUrl(): string {
   // Database defaults to the database name from postgres.yaml (spec.databases)
   const database = process.env["POSTGRES_DB"] || "cityforge";
 
-  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  const url = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  console.log(
+    `[getDatabaseUrl] Constructed URL: postgresql://${user}:***@${host}:${port}/${database}`
+  );
+
+  return url;
 }
 
 // Create a singleton Prisma client instance with explicit database URL for Docker compatibility
