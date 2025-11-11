@@ -136,10 +136,12 @@ async function uploadToLocal(
       throw new Error("Invalid filename generated");
     }
 
-    const filePath = path.join(uploadPath, uniqueFilename);
+    // Safe: uniqueFilename is validated above to not contain .., /, or \
+    const filePath = path.join(uploadPath, uniqueFilename); // nosemgrep
 
     // Verify the final path is still within the upload directory
-    const resolvedPath = path.resolve(filePath);
+    // Safe: we verify resolvedPath.startsWith(uploadPath) immediately after
+    const resolvedPath = path.resolve(filePath); // nosemgrep
     if (!resolvedPath.startsWith(uploadPath)) {
       throw new Error("Invalid file path - outside upload directory");
     }
