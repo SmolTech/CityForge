@@ -22,11 +22,6 @@ export default function NewThreadPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!apiClient.isAuthenticated()) {
-      router.push(`/login?redirect=/forums/${categorySlug}/new`);
-      return;
-    }
     loadCategory();
   }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
 

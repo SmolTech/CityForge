@@ -29,16 +29,13 @@ export default function NewSupportTicketPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login?redirect=/support/new");
-        return;
-      }
-
       const userResponse = await apiClient.getCurrentUser();
       setUser(userResponse.user);
     } catch (error) {
       logger.error("Failed to load data:", error);
-      router.push("/login?redirect=/support/new");
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login?redirect=/support/new");
+      }
     } finally {
       setLoading(false);
     }

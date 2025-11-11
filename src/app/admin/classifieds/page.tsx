@@ -44,11 +44,6 @@ export default function AdminHelpWantedPage() {
 
   const checkAuth = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
-
       const userResponse = await apiClient.getCurrentUser();
       if (userResponse.user.role !== "admin") {
         router.push("/");
@@ -59,7 +54,9 @@ export default function AdminHelpWantedPage() {
       setLoading(false);
     } catch (error) {
       logger.error("Failed to authenticate:", error);
-      router.push("/login");
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login");
+      }
     }
   };
 

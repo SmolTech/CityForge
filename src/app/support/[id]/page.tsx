@@ -26,11 +26,6 @@ export default function SupportTicketDetailPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push(`/login?redirect=/support/${ticketId}`);
-        return;
-      }
-
       const [userResponse, ticketResponse] = await Promise.all([
         apiClient.getCurrentUser(),
         apiClient.getTicket(ticketId),
@@ -40,7 +35,7 @@ export default function SupportTicketDetailPage() {
       setTicket(ticketResponse);
     } catch (error) {
       logger.error("Failed to load ticket:", error);
-      if (!apiClient.isAuthenticated()) {
+      if ((error as Error & { status?: number }).status === 401) {
         router.push(`/login?redirect=/support/${ticketId}`);
       }
     } finally {

@@ -50,11 +50,6 @@ export default function HelpWantedPage() {
 
   const loadPosts = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login?redirect=/classifieds");
-        return;
-      }
-
       const response = await apiClient.getHelpWantedPosts(
         categoryFilter === "all" ? undefined : categoryFilter,
         statusFilter === "all" ? undefined : statusFilter
@@ -62,7 +57,10 @@ export default function HelpWantedPage() {
       setPosts(response.posts);
     } catch (error) {
       logger.error("Failed to load help wanted posts:", error);
-      router.push("/login?redirect=/classifieds");
+      // Check if it's an auth error (401)
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login?redirect=/classifieds");
+      }
     } finally {
       setLoading(false);
     }
