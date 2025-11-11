@@ -13,11 +13,14 @@ function getDatabaseUrl(): string {
   }
 
   // Build from individual components (for Kubernetes deployments)
+  // These come from the Zalando Postgres Operator secret or fallback to defaults
   const user = process.env["POSTGRES_USER"] || "postgres";
   const password = process.env["POSTGRES_PASSWORD"] || "postgres";
-  const host = process.env["POSTGRES_HOST"] || "postgres";
+  // Host defaults to cluster name from postgres.yaml (metadata.name)
+  const host = process.env["POSTGRES_HOST"] || "cityforge-db";
   const port = process.env["POSTGRES_PORT"] || "5432";
-  const database = process.env["POSTGRES_DB"] || "community_db";
+  // Database defaults to the database name from postgres.yaml (spec.databases)
+  const database = process.env["POSTGRES_DB"] || "cityforge";
 
   return `postgresql://${user}:${password}@${host}:${port}/${database}`;
 }
