@@ -6,15 +6,29 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
+// Build DATABASE_URL from individual components if not provided
+function getDatabaseUrl(): string {
+  if (process.env["DATABASE_URL"]) {
+    return process.env["DATABASE_URL"];
+  }
+
+  // Build from individual components (for Kubernetes deployments)
+  const user = process.env["POSTGRES_USER"] || "postgres";
+  const password = process.env["POSTGRES_PASSWORD"] || "postgres";
+  const host = process.env["POSTGRES_HOST"] || "postgres";
+  const port = process.env["POSTGRES_PORT"] || "5432";
+  const database = process.env["POSTGRES_DB"] || "community_db";
+
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+}
+
 // Create a singleton Prisma client instance with explicit database URL for Docker compatibility
 export const prisma =
   globalThis.__prisma ||
   new PrismaClient({
     datasources: {
       db: {
-        url:
-          process.env["DATABASE_URL"] ||
-          "postgresql://postgres:postgres@postgres:5432/community_db",
+        url: getDatabaseUrl(),
       },
     },
     log:
