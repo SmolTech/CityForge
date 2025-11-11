@@ -9,10 +9,14 @@ resources:
   - postgres.yaml
   - uploads-pvc.yaml
   - ingress.yaml
+  - opensearch.yaml
+  - indexer-cronjob.yaml
   - token-cleanup-cronjob.yaml
 
 images:
   - name: ghcr.io/smoltech/cityforge-frontend
+    newTag: latest
+  - name: ghcr.io/smoltech/cityforge-indexer
     newTag: latest
 
 namespace: community
