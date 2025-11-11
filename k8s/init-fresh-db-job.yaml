@@ -20,7 +20,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: init-db
-          image: ghcr.io/smoltech/cityforge/cityforge-frontend
+          image: ghcr.io/smoltech/cityforge-frontend
           imagePullPolicy: Always
           # Use the new Node.js database initialization script
           command: ["node", "scripts/db-init.mjs"]
