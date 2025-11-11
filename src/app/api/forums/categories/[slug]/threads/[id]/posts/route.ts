@@ -91,6 +91,7 @@ export const POST = withAuth(
           content: validation.data!.content,
           createdBy: user.id,
           isFirstPost: false, // New posts are never first posts
+          reportCount: 0,
         },
         include: {
           creator: {

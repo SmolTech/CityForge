@@ -78,7 +78,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       updated_date:
         cardData.updatedDate?.toISOString() ?? new Date().toISOString(),
       approved_date: cardData.approvedDate?.toISOString() || null,
-      tags: cardData.tags.map((tag: any) => tag.name),
+      tags: cardData.card_tags.map((ct: any) => ct.tags.name),
     };
 
     // Add optional fields if requested

@@ -52,11 +52,13 @@ export async function GET(request: NextRequest) {
       } else {
         // AND logic (default): card must have all selected tags
         where.AND = tags.map((tag) => ({
-          tags: {
+          card_tags: {
             some: {
-              name: {
-                contains: tag,
-                mode: "insensitive",
+              tags: {
+                name: {
+                  contains: tag,
+                  mode: "insensitive",
+                },
               },
             },
           },
@@ -71,9 +73,13 @@ export async function GET(request: NextRequest) {
     const cards = await prisma.card.findMany({
       where,
       include: {
-        tags: {
-          select: {
-            name: true,
+        card_tags: {
+          include: {
+            tags: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         creator: includeShareUrls
@@ -125,7 +131,7 @@ export async function GET(request: NextRequest) {
         created_date: card.createdDate.toISOString(),
         updated_date: card.updatedDate.toISOString(),
         approved_date: card.approvedDate?.toISOString(),
-        tags: card.tags.map((tag: any) => tag.name),
+        tags: card.card_tags.map((ct: any) => ct.tags.name),
       };
 
       // Add optional fields
