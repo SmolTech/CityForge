@@ -242,7 +242,7 @@ def import_data(input_file, mode="skip", include_models=None):
 
         # Load JSON data
         logger.info("Loading JSON data...")
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             import_data_dict = json.load(f)
 
         # Validate format

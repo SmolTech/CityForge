@@ -185,7 +185,7 @@ def export_data(output_file, exclude_models=None, include_models=None):
         file_size = os.path.getsize(output_file)
         file_size_mb = file_size / (1024 * 1024)
 
-        logger.info(f"✓ Export complete!")
+        logger.info("✓ Export complete!")
         logger.info(f"  File: {output_file}")
         logger.info(f"  Size: {file_size_mb:.2f} MB")
         logger.info(f"  Models exported: {len(export_data_dict['data'])}")
