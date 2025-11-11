@@ -7,6 +7,8 @@ import type { RootStackParamList } from "../types/navigation";
 import MainTabNavigator from "./MainTabNavigator";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import InstanceManagerScreen from "../screens/InstanceManagerScreen";
+import AddInstanceScreen from "../screens/AddInstanceScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -27,6 +29,16 @@ export default function RootNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+          <Stack.Screen
+            name="InstanceManager"
+            component={InstanceManagerScreen}
+            options={{ headerShown: true, title: "Manage Instances" }}
+          />
+          <Stack.Screen
+            name="AddInstance"
+            component={AddInstanceScreen}
+            options={{ headerShown: true, title: "Add Instance" }}
+          />
         </>
       ) : (
         <>

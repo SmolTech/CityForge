@@ -7,10 +7,18 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../types/navigation";
 import { useAuth } from "../contexts/AuthContext";
+import { useInstance } from "../contexts/InstanceContext";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<NavigationProp>();
   const { user, logout, isLoading } = useAuth();
+  const { activeInstance, instances } = useInstance();
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -50,6 +58,35 @@ export default function ProfileScreen() {
             <Text style={styles.adminBadgeText}>Admin</Text>
           </View>
         )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Instance</Text>
+
+        <View style={styles.instanceInfo}>
+          <View style={styles.instanceDetails}>
+            <Text style={styles.instanceLabel}>Current Community</Text>
+            <Text style={styles.instanceName}>
+              {activeInstance?.name || "No instance selected"}
+            </Text>
+            {activeInstance && (
+              <Text style={styles.instanceUrl}>{activeInstance.apiUrl}</Text>
+            )}
+            {instances.length > 1 && (
+              <Text style={styles.instanceCount}>
+                {instances.length} instances available
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("InstanceManager")}
+        >
+          <Text style={styles.menuItemText}>Manage Instances</Text>
+          <Text style={styles.menuItemArrow}>→</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -240,5 +277,35 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: "#9ca3af",
+  },
+  instanceInfo: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  instanceDetails: {
+    gap: 4,
+  },
+  instanceLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  instanceName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  instanceUrl: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  instanceCount: {
+    fontSize: 12,
+    color: "#3b82f6",
+    marginTop: 4,
   },
 });

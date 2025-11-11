@@ -16,14 +16,35 @@ import type {
   ApiError,
 } from "../types/api";
 
-const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "http://localhost:5000";
+const DEFAULT_API_URL =
+  process.env["EXPO_PUBLIC_API_URL"] || "http://localhost:5000";
 
 class ApiClient {
+  private baseUrl: string = DEFAULT_API_URL;
+
+  /**
+   * Set the base URL for API requests (used when switching instances)
+   */
+  setBaseUrl(url: string) {
+    this.baseUrl = url;
+  }
+
+  /**
+   * Get the current base URL
+   */
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    token?: string | null
   ): Promise<T> {
-    const token = await tokenStorage.getToken();
+    // Use provided token or fall back to tokenStorage (for backward compatibility)
+    const authToken =
+      token !== undefined ? token : await tokenStorage.getToken();
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
@@ -33,11 +54,11 @@ class ApiClient {
     const skipAuth = (options.headers as Record<string, string>)?.[
       "X-Skip-Auth"
     ];
-    if (token && !skipAuth) {
-      headers["Authorization"] = `Bearer ${token}`;
+    if (authToken && !skipAuth) {
+      headers["Authorization"] = `Bearer ${authToken}`;
     }
 
-    const url = `${API_URL}${endpoint}`;
+    const url = `${this.baseUrl}${endpoint}`;
 
     try {
       const response = await fetch(url, {
