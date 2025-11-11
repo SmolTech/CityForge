@@ -20,7 +20,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: init-db
-          image: ghcr.io/smoltech/cityforge/cityforge-frontend
+          image: ghcr.io/smoltech/cityforge-frontend
           imagePullPolicy: Always
           # Use initialization script that creates schema and seeds data
           command: ["/bin/sh"]

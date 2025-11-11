@@ -39,6 +39,11 @@ COPY --from=builder /app/public ./public
 # Copy database initialization script
 COPY --from=builder /app/scripts ./scripts
 
+# Copy Prisma schema and CLI for database operations
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
