@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   # Note: backend-secrets.yaml should be created from backend-secrets.yaml.template
   # - backend-secrets.yaml
+  - postgres-config.yaml
   - deployment.yaml
   - service.yaml
   # backend-deployment.yaml - REMOVED (Flask backend no longer needed)

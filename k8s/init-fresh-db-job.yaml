@@ -25,7 +25,7 @@ spec:
           # Use the new Node.js database initialization script
           command: ["node", "scripts/db-init.mjs"]
           env:
-            # Database connection from Postgres Operator secret
+            # Database credentials from Postgres Operator secret
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -36,24 +36,22 @@ spec:
                 secretKeyRef:
                   key: password
                   name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            # Connection metadata from ConfigMap
             - name: POSTGRES_HOST
               valueFrom:
-                secretKeyRef:
-                  key: host
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_HOST
             - name: POSTGRES_PORT
               valueFrom:
-                secretKeyRef:
-                  key: port
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_PORT
             - name: POSTGRES_DB
               valueFrom:
-                secretKeyRef:
-                  key: dbname
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_DB
             # Optional: Set these to create an admin user automatically
             # - name: ADMIN_EMAIL
             #   value: "admin@example.com"
