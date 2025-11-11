@@ -43,6 +43,16 @@ export async function loadAppConfig(): Promise<AppConfig> {
     },
   };
 
+  // During build time, skip fetching and return defaults
+  // This prevents database connection errors during Docker builds
+  if (
+    process.env.NODE_ENV !== "production" &&
+    !process.env["NEXT_PUBLIC_SITE_URL"]
+  ) {
+    logger.warn("Build time detected, using default config");
+    return defaultConfig;
+  }
+
   try {
     // Fetch from Next.js API route (which in turn fetches from Python backend)
     // Use absolute URL for server-side fetch

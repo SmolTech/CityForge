@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { resourceQueries } from "@/lib/db/queries";
+import { checkDatabaseHealth } from "@/lib/db/client";
 
 // This route will be statically generated at build time and revalidated every 5 minutes
 export const revalidate = 300;
@@ -8,6 +9,16 @@ export const revalidate = 300;
 export async function GET() {
   try {
     logger.info("Site config API request");
+
+    // Check if database is available first (important for Docker builds)
+    const dbHealth = await checkDatabaseHealth();
+    if (dbHealth.status !== "healthy") {
+      logger.warn(
+        "Database unavailable during config request, using fallback:",
+        dbHealth.error
+      );
+      return getFallbackResponse();
+    }
 
     // Get site configuration directly from database using Prisma
     const configData = await resourceQueries.getSiteConfig();
