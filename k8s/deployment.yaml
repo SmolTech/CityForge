@@ -47,9 +47,7 @@ spec:
               value: "3000"
             - name: NEXT_PUBLIC_SITE_URL
               value: "https://cityforge.example.com" # Replace with your actual domain
-            # Database connection for Prisma (Next.js API routes)
-            - name: DATABASE_URL
-              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            # Database connection components for building DATABASE_URL
             - name: POSTGRES_HOST
               value: "cityforge-db"
             - name: POSTGRES_PORT
