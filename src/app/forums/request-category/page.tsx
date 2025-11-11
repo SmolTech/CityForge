@@ -18,11 +18,16 @@ export default function RequestCategoryPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!apiClient.isAuthenticated()) {
-      router.push("/login?redirect=/forums/request-category");
-      return;
-    }
+    const checkAuth = async () => {
+      try {
+        await apiClient.getCurrentUser();
+      } catch (error) {
+        if ((error as Error & { status?: number }).status === 401) {
+          router.push("/login?redirect=/forums/request-category");
+        }
+      }
+    };
+    checkAuth();
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

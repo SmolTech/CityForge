@@ -23,9 +23,18 @@ export default function NewHelpWantedPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!apiClient.isAuthenticated()) {
-      router.push("/login?redirect=/classifieds/new");
-    }
+    // Check authentication by trying to get current user
+    const checkAuth = async () => {
+      try {
+        await apiClient.getCurrentUser();
+      } catch (error) {
+        // If 401, redirect to login
+        if ((error as Error & { status?: number }).status === 401) {
+          router.push("/login?redirect=/classifieds/new");
+        }
+      }
+    };
+    checkAuth();
     loadSiteConfig();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

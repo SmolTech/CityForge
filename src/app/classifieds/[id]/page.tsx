@@ -49,11 +49,6 @@ export default function HelpWantedDetailPage() {
 
   const loadPost = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login?redirect=/classifieds/" + postId);
-        return;
-      }
-
       const [postData, userData] = await Promise.all([
         apiClient.getHelpWantedPost(postId),
         apiClient.getCurrentUser(),
@@ -63,7 +58,12 @@ export default function HelpWantedDetailPage() {
       setCurrentUser(userData.user);
     } catch (error) {
       logger.error("Failed to load post:", error);
-      router.push("/classifieds");
+      // Check if it's an auth error (401)
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login?redirect=/classifieds/" + postId);
+      } else {
+        router.push("/classifieds");
+      }
     } finally {
       setLoading(false);
     }

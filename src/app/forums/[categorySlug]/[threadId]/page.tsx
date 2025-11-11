@@ -33,11 +33,6 @@ export default function ThreadPage() {
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!apiClient.isAuthenticated()) {
-      router.push(`/login?redirect=/forums/${categorySlug}/${threadId}`);
-      return;
-    }
     loadData();
     loadCurrentUser();
   }, [threadId]); // eslint-disable-line react-hooks/exhaustive-deps

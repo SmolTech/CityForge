@@ -46,11 +46,6 @@ export default function SettingsPage() {
 
   const loadUserData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
-
       const response = await apiClient.getCurrentUser();
       setUser(response.user);
       setProfileData({
@@ -63,7 +58,9 @@ export default function SettingsPage() {
       }));
     } catch (error) {
       logger.error("Failed to load user data:", error);
-      router.push("/login");
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login");
+      }
     } finally {
       setLoading(false);
     }

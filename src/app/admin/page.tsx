@@ -153,11 +153,6 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
-
       const userResponse = await apiClient.getCurrentUser();
 
       if (userResponse.user.role !== "admin") {
@@ -169,7 +164,9 @@ export default function AdminPage() {
       await loadSubmissions(); // Load pending submissions by default
     } catch (error) {
       logger.error("Failed to load admin data:", error);
-      router.push("/login");
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login");
+      }
     } finally {
       setLoading(false);
     }

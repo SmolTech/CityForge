@@ -39,11 +39,6 @@ export default function DataManagementPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
-
       const userResponse = await apiClient.getCurrentUser();
       if (userResponse.user.role !== "admin") {
         router.push("/");
@@ -65,7 +60,9 @@ export default function DataManagementPage() {
       setModels(data.models);
     } catch (error) {
       logger.error("Failed to load data:", error);
-      router.push("/login");
+      if ((error as Error & { status?: number }).status === 401) {
+        router.push("/login");
+      }
     } finally {
       setLoading(false);
     }

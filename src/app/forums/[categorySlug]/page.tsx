@@ -20,11 +20,6 @@ export default function CategoryThreadsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!apiClient.isAuthenticated()) {
-      router.push(`/login?redirect=/forums/${categorySlug}`);
-      return;
-    }
     loadData();
   }, [categorySlug]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -24,11 +24,6 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
-      }
-
       const [userResponse, submissionsData, helpWantedData] = await Promise.all(
         [
           apiClient.getCurrentUser(),
@@ -55,10 +50,12 @@ export default function DashboardPage() {
           setLoading(false);
           return;
         }
+        // Only redirect to login for actual auth errors (401, 403)
+        if (status === 401) {
+          router.push("/login");
+          return;
+        }
       }
-
-      // Only redirect to login for actual auth errors (401, 403)
-      router.push("/login");
     } finally {
       setLoading(false);
     }

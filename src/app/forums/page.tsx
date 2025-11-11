@@ -16,11 +16,6 @@ export default function ForumsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!apiClient.isAuthenticated()) {
-      router.push("/login?redirect=/forums");
-      return;
-    }
     loadData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
