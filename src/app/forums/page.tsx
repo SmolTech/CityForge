@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ForumCategory } from "@/lib/api";
 import { Navigation } from "@/components/shared";
@@ -9,7 +8,6 @@ import { useConfig } from "@/contexts/ConfigContext";
 import { logger } from "@/lib/logger";
 
 export default function ForumsPage() {
-  const router = useRouter();
   const config = useConfig();
   const siteConfig = config.site;
   const [categories, setCategories] = useState<ForumCategory[]>([]);
@@ -17,7 +15,7 @@ export default function ForumsPage() {
 
   useEffect(() => {
     loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadData = async () => {
     try {
@@ -26,10 +24,8 @@ export default function ForumsPage() {
       setCategories(categoriesData);
     } catch (error) {
       logger.error("Failed to load forums data:", error);
-      // If unauthorized, redirect to login
-      if ((error as Error & { status?: number }).status === 401) {
-        router.push("/login?redirect=/forums");
-      }
+      // Categories are public, so no redirect needed
+      // Individual thread/post pages will redirect if auth is required
     } finally {
       setLoading(false);
     }
