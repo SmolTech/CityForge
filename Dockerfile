@@ -9,17 +9,23 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
+# Generate Prisma client in separate stage for better caching
+FROM base AS prisma
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY prisma ./prisma
+COPY package.json ./
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
+RUN npx prisma generate
+
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
 
-# Generate Prisma client before building
-ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
-RUN npx prisma generate
-
-# Build the application
+# Build the application (Prisma client already generated)
 RUN npm run build
 
 # Production image, copy all the files and run next

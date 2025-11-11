@@ -89,6 +89,16 @@ jobs:
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: npm-${{ runner.os }}-
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            nextjs-${{ runner.os }}-
+
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
@@ -101,9 +111,12 @@ jobs:
             type=gha,scope=frontend-deps-${{ hashFiles('package-lock.json') }}
             type=gha,scope=frontend-${{ github.ref_name }}
             type=gha,scope=frontend-main
+            type=gha,scope=frontend-develop
           cache-to: |
             type=gha,mode=max,scope=frontend-deps-${{ hashFiles('package-lock.json') }}
             type=gha,mode=max,scope=frontend-${{ github.ref_name }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Backend build job - can run in parallel
   build-backend:
@@ -145,9 +158,12 @@ jobs:
             type=gha,scope=backend-deps-${{ hashFiles('backend/requirements.txt') }}
             type=gha,scope=backend-${{ github.ref_name }}
             type=gha,scope=backend-main
+            type=gha,scope=backend-develop
           cache-to: |
             type=gha,mode=max,scope=backend-deps-${{ hashFiles('backend/requirements.txt') }}
             type=gha,mode=max,scope=backend-${{ github.ref_name }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Indexer build job - depends on backend for shared models
   build-indexer:
@@ -191,9 +207,13 @@ jobs:
             type=gha,scope=indexer-deps-${{ hashFiles('indexer/requirements.txt', 'backend/requirements.txt') }}
             type=gha,scope=indexer-${{ github.ref_name }}
             type=gha,scope=indexer-main
+            type=gha,scope=indexer-develop
+            type=gha,scope=backend-deps-${{ hashFiles('backend/requirements.txt') }}
           cache-to: |
             type=gha,mode=max,scope=indexer-deps-${{ hashFiles('indexer/requirements.txt', 'backend/requirements.txt') }}
             type=gha,mode=max,scope=indexer-${{ github.ref_name }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Summary job
   build-complete:
