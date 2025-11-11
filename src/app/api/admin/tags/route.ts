@@ -17,7 +17,7 @@ export const GET = withAuth(
           createdDate: true,
           _count: {
             select: {
-              cards: true, // Count of associated cards
+              card_tags: true, // Count of associated cards
             },
           },
         },
