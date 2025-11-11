@@ -20,10 +20,11 @@ spec:
         fsGroup: 1001
       containers:
         - name: init-db
-          image: ghcr.io/smoltech/cityforge-frontend
+          image: ghcr.io/smoltech/cityforge/cityforge-frontend
           imagePullPolicy: Always
-          # Use the new Node.js database initialization script
-          command: ["node", "scripts/db-init.mjs"]
+          # Use initialization script that creates schema and seeds data
+          command: ["/bin/sh"]
+          args: ["/app/scripts/init-db-with-schema.sh"]
           env:
             # Database credentials from Postgres Operator secret
             - name: POSTGRES_USER
