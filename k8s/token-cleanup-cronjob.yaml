@@ -37,7 +37,7 @@ spec:
                 capabilities:
                   drop:
                     - ALL
-              image: ghcr.io/smoltech/cityforge/cityforge-frontend
+              image: ghcr.io/smoltech/cityforge-frontend
               imagePullPolicy: Always
               command:
                 - node

@@ -38,6 +38,9 @@ spec:
                 - ALL
           image: ghcr.io/smoltech/cityforge-frontend
           imagePullPolicy: Always
+          # Use startup script to construct DATABASE_URL at runtime
+          command: ["/bin/sh"]
+          args: ["/app/scripts/start-with-db-url.sh"]
           ports:
             - containerPort: 3000
           env:
