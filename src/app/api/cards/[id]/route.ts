@@ -73,8 +73,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       featured: cardData.featured,
       image_url: cardData.imageUrl,
       approved: cardData.approved,
-      created_date: cardData.createdDate.toISOString(),
-      updated_date: cardData.updatedDate.toISOString(),
+      created_date:
+        cardData.createdDate?.toISOString() ?? new Date().toISOString(),
+      updated_date:
+        cardData.updatedDate?.toISOString() ?? new Date().toISOString(),
       approved_date: cardData.approvedDate?.toISOString() || null,
       tags: cardData.tags.map((tag: any) => tag.name),
     };

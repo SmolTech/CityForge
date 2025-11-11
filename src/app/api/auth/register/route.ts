@@ -62,7 +62,11 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate access token
-    const token = generateAccessToken(user);
+    const token = generateAccessToken({
+      ...user,
+      role: user.role as "admin" | "supporter" | "user",
+      isActive: user.isActive ?? true,
+    });
 
     // Convert user to the format expected by frontend
     const userResponse = {
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
       is_supporter: user.role === "supporter" || user.role === "admin",
       is_supporter_flag: false, // Not implemented in this schema yet
       is_active: user.isActive,
-      created_date: user.createdDate.toISOString(),
+      created_date: user.createdDate?.toISOString() ?? new Date().toISOString(),
       last_login: user.lastLogin?.toISOString() || null,
     };
 

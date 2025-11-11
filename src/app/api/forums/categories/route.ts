@@ -40,8 +40,10 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       slug: category.slug,
       display_order: category.displayOrder,
       is_active: category.isActive,
-      created_date: category.createdDate.toISOString(),
-      updated_date: category.updatedDate.toISOString(),
+      created_date:
+        category.createdDate?.toISOString() ?? new Date().toISOString(),
+      updated_date:
+        category.updatedDate?.toISOString() ?? new Date().toISOString(),
       creator: category.creator
         ? {
             id: category.creator.id,

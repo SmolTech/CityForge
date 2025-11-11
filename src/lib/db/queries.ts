@@ -150,7 +150,7 @@ export const cardQueries = {
       const card = await prisma.card.findUnique({
         where: { id, approved: true },
         include: {
-          tags: true,
+          card_tags: { include: { tags: true } },
           reviews: {
             where: { hidden: false },
             include: {
@@ -206,7 +206,7 @@ export const cardQueries = {
     return await prisma.card.create({
       data,
       include: {
-        tags: true,
+        card_tags: { include: { tags: true } },
         creator: { select: { firstName: true, lastName: true } },
       },
     });
@@ -378,7 +378,7 @@ export const resourceQueries = {
       icon: item.icon,
       display_order: item.displayOrder,
       is_active: item.isActive,
-      created_date: item.createdDate.toISOString(),
+      created_date: item.createdDate?.toISOString() ?? new Date().toISOString(),
     }));
   },
 
@@ -409,8 +409,8 @@ export const resourceQueries = {
       icon: item.icon,
       display_order: item.displayOrder,
       is_active: item.isActive,
-      created_date: item.createdDate.toISOString(),
-      updated_date: item.updatedDate.toISOString(),
+      created_date: item.createdDate?.toISOString() ?? new Date().toISOString(),
+      updated_date: item.updatedDate?.toISOString() ?? new Date().toISOString(),
     }));
   },
 
@@ -559,7 +559,8 @@ export const submissionQueries = {
       tags_text: submission.tagsText,
       status: submission.status,
       review_notes: submission.reviewNotes,
-      created_date: submission.createdDate.toISOString(),
+      created_date:
+        submission.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: submission.reviewedDate
         ? submission.reviewedDate.toISOString()
         : null,
@@ -625,7 +626,8 @@ export const submissionQueries = {
       tags_text: submission.tagsText,
       status: submission.status,
       review_notes: submission.reviewNotes,
-      created_date: submission.createdDate.toISOString(),
+      created_date:
+        submission.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: submission.reviewedDate
         ? submission.reviewedDate.toISOString()
         : null,
@@ -724,7 +726,8 @@ export const submissionQueries = {
       tags_text: modification.tagsText,
       status: modification.status,
       review_notes: modification.reviewNotes,
-      created_date: modification.createdDate.toISOString(),
+      created_date:
+        modification.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: modification.reviewedDate
         ? modification.reviewedDate.toISOString()
         : null,

@@ -93,8 +93,10 @@ export const GET = withAuth(
         is_locked: thread.isLocked,
         report_count: thread.reportCount,
         created_by: thread.createdBy,
-        created_date: thread.createdDate.toISOString(),
-        updated_date: thread.updatedDate.toISOString(),
+        created_date:
+          thread.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          thread.updatedDate?.toISOString() ?? new Date().toISOString(),
         post_count: thread._count.posts,
         creator: {
           id: thread.creator.id,
@@ -108,7 +110,9 @@ export const GET = withAuth(
                 thread.posts[0].content.length > 200
                   ? thread.posts[0].content.substring(0, 200) + "..."
                   : thread.posts[0].content,
-              created_date: thread.posts[0].createdDate.toISOString(),
+              created_date:
+                thread.posts[0].createdDate?.toISOString() ??
+                new Date().toISOString(),
               creator: {
                 id: thread.posts[0].creator.id,
                 first_name: thread.posts[0].creator.firstName,
@@ -126,8 +130,10 @@ export const GET = withAuth(
         description: category.description,
         is_active: category.isActive,
         display_order: category.displayOrder,
-        created_date: category.createdDate.toISOString(),
-        updated_date: category.updatedDate.toISOString(),
+        created_date:
+          category.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          category.updatedDate?.toISOString() ?? new Date().toISOString(),
       };
 
       const responseData = {
@@ -304,8 +310,10 @@ export const POST = withAuth(
         is_locked: result.thread.isLocked,
         report_count: result.thread.reportCount,
         created_by: result.thread.createdBy,
-        created_date: result.thread.createdDate.toISOString(),
-        updated_date: result.thread.updatedDate.toISOString(),
+        created_date:
+          result.thread.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          result.thread.updatedDate?.toISOString() ?? new Date().toISOString(),
         creator: {
           id: result.thread.creator.id,
           first_name: result.thread.creator.firstName,
@@ -319,7 +327,9 @@ export const POST = withAuth(
         first_post: {
           id: result.firstPost.id,
           content: result.firstPost.content,
-          created_date: result.firstPost.createdDate.toISOString(),
+          created_date:
+            result.firstPost.createdDate?.toISOString() ??
+            new Date().toISOString(),
           creator: {
             id: result.firstPost.creator.id,
             first_name: result.firstPost.creator.firstName,

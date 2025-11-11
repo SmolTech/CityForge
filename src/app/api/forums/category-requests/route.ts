@@ -114,7 +114,8 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       status: categoryRequest.status,
       requested_by: categoryRequest.requestedBy,
       reviewed_by: categoryRequest.reviewedBy,
-      created_date: categoryRequest.createdDate.toISOString(),
+      created_date:
+        categoryRequest.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: categoryRequest.reviewedDate?.toISOString() || null,
       review_notes: categoryRequest.reviewNotes,
       category_id: categoryRequest.categoryId,
@@ -195,7 +196,8 @@ export const GET = withAuth(async (_request: NextRequest, { user }) => {
       status: request.status,
       requested_by: request.requestedBy,
       reviewed_by: request.reviewedBy,
-      created_date: request.createdDate.toISOString(),
+      created_date:
+        request.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: request.reviewedDate?.toISOString() || null,
       review_notes: request.reviewNotes,
       category_id: request.categoryId,
