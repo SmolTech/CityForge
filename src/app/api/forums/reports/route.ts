@@ -171,7 +171,8 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       status: report.status,
       reported_by: report.reportedBy,
       reviewed_by: report.reviewedBy,
-      created_date: report.createdDate.toISOString(),
+      created_date:
+        report.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: report.reviewedDate?.toISOString() || null,
       resolution_notes: report.resolutionNotes,
       reporter: {
@@ -283,7 +284,8 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       status: report.status,
       reported_by: report.reportedBy,
       reviewed_by: report.reviewedBy,
-      created_date: report.createdDate.toISOString(),
+      created_date:
+        report.createdDate?.toISOString() ?? new Date().toISOString(),
       reviewed_date: report.reviewedDate?.toISOString() || null,
       resolution_notes: report.resolutionNotes,
       thread: {

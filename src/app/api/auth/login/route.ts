@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
-      isActive: user.isActive,
+      role: user.role as "admin" | "supporter" | "user",
+      isActive: user.isActive ?? true,
     });
 
     // Convert user to the format expected by frontend
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       is_supporter: user.role === "supporter" || user.role === "admin",
       is_supporter_flag: false, // Not implemented in this schema yet
       is_active: user.isActive,
-      created_date: user.createdDate.toISOString(),
+      created_date: user.createdDate?.toISOString() ?? new Date().toISOString(),
       last_login: new Date().toISOString(), // Use current time since we just updated it
     };
 

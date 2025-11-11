@@ -69,8 +69,10 @@ export const GET = withAuth(
         description: category.description,
         is_active: category.isActive,
         display_order: category.displayOrder,
-        created_date: category.createdDate.toISOString(),
-        updated_date: category.updatedDate.toISOString(),
+        created_date:
+          category.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          category.updatedDate?.toISOString() ?? new Date().toISOString(),
         creator: category.creator
           ? {
               id: category.creator.id,

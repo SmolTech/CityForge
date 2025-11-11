@@ -126,8 +126,10 @@ export const POST = withAuth(
         is_first_post: post.isFirstPost,
         report_count: post.reportCount,
         created_by: post.createdBy,
-        created_date: post.createdDate.toISOString(),
-        updated_date: post.updatedDate.toISOString(),
+        created_date:
+          post.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          post.updatedDate?.toISOString() ?? new Date().toISOString(),
         creator: {
           id: post.creator.id,
           first_name: post.creator.firstName,

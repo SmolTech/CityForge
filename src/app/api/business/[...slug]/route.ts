@@ -45,9 +45,13 @@ export async function GET(
         approved: true,
       },
       include: {
-        tags: {
-          select: {
-            name: true,
+        card_tags: {
+          include: {
+            tags: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         creator: {
@@ -111,10 +115,10 @@ export async function GET(
       featured: card.featured,
       image_url: card.imageUrl,
       approved: card.approved,
-      created_date: card.createdDate.toISOString(),
-      updated_date: card.updatedDate.toISOString(),
+      created_date: card.createdDate?.toISOString(),
+      updated_date: card.updatedDate?.toISOString(),
       approved_date: card.approvedDate?.toISOString(),
-      tags: card.tags.map((tag: any) => tag.name),
+      tags: card.card_tags.map((ct: any) => ct.tags.name),
       slug: actualSlug,
       share_url: `/business/${card.id}/${actualSlug}`,
     };

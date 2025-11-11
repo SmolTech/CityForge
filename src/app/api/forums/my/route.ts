@@ -95,8 +95,10 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
         is_locked: thread.isLocked,
         report_count: thread.reportCount,
         created_by: thread.createdBy,
-        created_date: thread.createdDate.toISOString(),
-        updated_date: thread.updatedDate.toISOString(),
+        created_date:
+          thread.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          thread.updatedDate?.toISOString() ?? new Date().toISOString(),
         category: {
           id: thread.category.id,
           name: thread.category.name,
@@ -187,8 +189,10 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
         is_first_post: post.isFirstPost,
         report_count: post.reportCount,
         created_by: post.createdBy,
-        created_date: post.createdDate.toISOString(),
-        updated_date: post.updatedDate.toISOString(),
+        created_date:
+          post.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          post.updatedDate?.toISOString() ?? new Date().toISOString(),
         edited_by: post.editedBy,
         edited_date: post.editedDate?.toISOString() || null,
         thread: {
