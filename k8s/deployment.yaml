@@ -6,7 +6,7 @@ metadata:
   labels:
     app: cityforge
 spec:
-  replicas: 3
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -47,8 +47,8 @@ spec:
               value: "3000"
             - name: NEXT_PUBLIC_SITE_URL
               value: "https://cityforge.example.com" # Replace with your actual domain
-            # Database connection from Postgres Operator secret
-            # The Zalando Postgres Operator creates a secret with connection details
+            # Database connection
+            # Credentials from Postgres Operator secret
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -59,24 +59,22 @@ spec:
                 secretKeyRef:
                   key: password
                   name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+            # Connection metadata from ConfigMap (must match postgres.yaml)
             - name: POSTGRES_HOST
               valueFrom:
-                secretKeyRef:
-                  key: host
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_HOST
             - name: POSTGRES_PORT
               valueFrom:
-                secretKeyRef:
-                  key: port
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_PORT
             - name: POSTGRES_DB
               valueFrom:
-                secretKeyRef:
-                  key: dbname
-                  name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
-                  optional: true
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_DB
             # JWT configuration for authentication
             - name: JWT_SECRET_KEY
               valueFrom:

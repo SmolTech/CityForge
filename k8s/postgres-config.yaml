@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: cityforge
+  labels:
+    app: cityforge
+data:
+  # These values must match the PostgreSQL resource (postgres.yaml)
+  # Host: Service name created by operator (matches metadata.name in postgres.yaml)
+  POSTGRES_HOST: "cityforge-db"
+  # Port: Standard PostgreSQL port
+  POSTGRES_PORT: "5432"
+  # Database: Must match spec.databases in postgres.yaml
+  POSTGRES_DB: "cityforge"
