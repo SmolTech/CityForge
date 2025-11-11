@@ -7,7 +7,7 @@ using the Cloudinary cloud service, replacing local file storage.
 
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 try:
     import cloudinary
@@ -77,9 +77,9 @@ def is_cloudinary_configured() -> bool:
 def upload_image_to_cloudinary(
     file: FileStorage,
     folder: str = "cityforge",
-    public_id: Optional[str] = None,
-    transformation: Optional[Dict[str, Any]] = None,
-) -> Tuple[bool, Optional[str], Optional[str]]:
+    public_id: str | None = None,
+    transformation: dict[str, Any] | None = None,
+) -> tuple[bool, str | None, str | None]:
     """
     Upload an image file to Cloudinary.
 
@@ -106,7 +106,7 @@ def upload_image_to_cloudinary(
             return False, None, None
 
         # Prepare upload options
-        upload_options: Dict[str, Any] = {
+        upload_options: dict[str, Any] = {
             "folder": folder,
             "resource_type": "image",
             "format": "auto",  # Auto-optimize format (WebP when supported)
@@ -179,10 +179,10 @@ def delete_image_from_cloudinary(public_id: str) -> bool:
 
 def generate_cloudinary_url(
     public_id: str,
-    transformation: Optional[Dict[str, Any]] = None,
+    transformation: dict[str, Any] | None = None,
     format: str = "auto",
     quality: str = "auto:good",
-) -> Optional[str]:
+) -> str | None:
     """
     Generate a Cloudinary URL for an image with optional transformations.
 
@@ -207,7 +207,7 @@ def generate_cloudinary_url(
         if not configure_cloudinary():
             return None
 
-        url_options: Dict[str, Any] = {"format": format, "quality": quality, "secure": True}
+        url_options: dict[str, Any] = {"format": format, "quality": quality, "secure": True}
 
         if transformation:
             url_options["transformation"] = transformation
@@ -220,7 +220,7 @@ def generate_cloudinary_url(
         return None
 
 
-def get_image_info(public_id: str) -> Optional[Dict[str, Any]]:
+def get_image_info(public_id: str) -> dict[str, Any] | None:
     """
     Get information about an image stored in Cloudinary.
 
