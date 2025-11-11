@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
-// GET /api/forums/categories - Get all active forum categories
-export const GET = withAuth(async (request: NextRequest, { user }) => {
+// GET /api/forums/categories - Get all active forum categories (public)
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const includeStats =
       searchParams.get("include_stats")?.toLowerCase() === "true";
 
     logger.info("Fetching forum categories", {
-      userId: user.id,
       includeStats,
     });
 
@@ -33,7 +31,7 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     });
 
     // Transform categories to match Flask API format
-    const transformedCategories = categories.map((category: any) => ({
+    const transformedCategories = categories.map((category) => ({
       id: category.id,
       name: category.name,
       description: category.description,
@@ -74,4 +72,4 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+}
