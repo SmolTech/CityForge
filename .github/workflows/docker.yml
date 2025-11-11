@@ -12,8 +12,6 @@ on:
 env:
   REGISTRY: ghcr.io
   FRONTEND_IMAGE_NAME: smoltech/cityforge-frontend
-  BACKEND_IMAGE_NAME: smoltech/cityforge-backend
-  INDEXER_IMAGE_NAME: smoltech/cityforge-indexer
 
 jobs:
   build-and-push:
@@ -48,24 +46,6 @@ jobs:
           restore-keys: |
             npm-${{ runner.os }}-
 
-      # Cache Python pip dependencies for backend
-      - name: Cache pip dependencies (backend)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-backend-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            pip-backend-${{ runner.os }}-
-
-      # Cache Python pip dependencies for indexer
-      - name: Cache pip dependencies (indexer)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-indexer-${{ runner.os }}-${{ hashFiles('indexer/requirements.txt') }}
-          restore-keys: |
-            pip-indexer-${{ runner.os }}-
-
       - name: Extract metadata for frontend
         id: meta-frontend
         uses: docker/metadata-action@v5
@@ -78,33 +58,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Extract metadata for backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=commit-
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Extract metadata for indexer
-        id: meta-indexer
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=commit-
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       # Build frontend with enhanced caching
@@ -128,48 +81,6 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-      # Build backend with enhanced caching
-      - name: Build and push backend Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: |
-            type=gha,scope=backend-deps-${{ hashFiles('backend/requirements.txt') }}
-            type=gha,scope=backend-${{ github.ref_name }}
-            type=gha,scope=backend-main
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:cache
-          cache-to: |
-            type=gha,mode=max,scope=backend-deps-${{ hashFiles('backend/requirements.txt') }}
-            type=gha,mode=max,scope=backend-${{ github.ref_name }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
-      # Build indexer with enhanced caching
-      - name: Build and push indexer Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./indexer/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-indexer.outputs.tags }}
-          labels: ${{ steps.meta-indexer.outputs.labels }}
-          cache-from: |
-            type=gha,scope=indexer-deps-${{ hashFiles('indexer/requirements.txt') }}
-            type=gha,scope=indexer-${{ github.ref_name }}
-            type=gha,scope=indexer-main
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:cache
-          cache-to: |
-            type=gha,mode=max,scope=indexer-deps-${{ hashFiles('indexer/requirements.txt') }}
-            type=gha,mode=max,scope=indexer-${{ github.ref_name }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
       # Push cache layers to registry for cross-runner sharing
       - name: Push cache images
         if: github.ref == 'refs/heads/main'
@@ -177,11 +88,3 @@ jobs:
           docker buildx imagetools create \
             --tag ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:cache \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
-
-          docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:cache \
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
-
-          docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:cache \
-            ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:latest
