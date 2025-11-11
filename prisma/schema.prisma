@@ -9,15 +9,15 @@ datasource db {
 
 model User {
   id                        Int                    @id @default(autoincrement())
-  email                     String                 @unique @db.VarChar(120)
+  email                     String                 @unique(map: "ix_users_email") @db.VarChar(120)
   passwordHash              String                 @map("password_hash") @db.VarChar(128)
   firstName                 String                 @map("first_name") @db.VarChar(50)
   lastName                  String                 @map("last_name") @db.VarChar(50)
-  role                      UserRole               @default(user)
+  role                      String                 @db.VarChar(20)
+  isActive                  Boolean?               @map("is_active")
+  createdDate               DateTime?              @map("created_date") @db.Timestamp(6)
+  lastLogin                 DateTime?              @map("last_login") @db.Timestamp(6)
   isSupporterFlag           Boolean                @default(false) @map("is_supporter_flag")
-  isActive                  Boolean                @default(true) @map("is_active")
-  createdDate               DateTime               @default(now()) @map("created_date")
-  lastLogin                 DateTime?              @map("last_login")
   reviewedModifications     CardModification[]     @relation("ModificationReviewer")
   cardModifications         CardModification[]     @relation("ModificationCreator")
   reviewedSubmissions       CardSubmission[]       @relation("SubmissionReviewer")
@@ -43,17 +43,15 @@ model User {
   supportTickets            SupportTicket[]        @relation("TicketCreator")
   revokedTokens             TokenBlacklist[]
 
-  @@index([email])
   @@map("users")
 }
 
 model Tag {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(500)
-  createdDate DateTime @default(now()) @map("created_date")
-  cards       Card[]   @relation("CardToTag")
+  id          Int         @id @default(autoincrement())
+  name        String      @unique(map: "ix_tags_name") @db.VarChar(500)
+  createdDate DateTime?   @map("created_date") @db.Timestamp(6)
+  card_tags   card_tags[]
 
-  @@index([name])
   @@map("tags")
 }
 
@@ -67,101 +65,99 @@ model Card {
   address            String?            @db.VarChar(255)
   addressOverrideUrl String?            @map("address_override_url") @db.VarChar(500)
   contactName        String?            @map("contact_name") @db.VarChar(100)
-  featured           Boolean            @default(false)
+  featured           Boolean?
   imageUrl           String?            @map("image_url") @db.VarChar(255)
   createdBy          Int?               @map("created_by")
-  approved           Boolean            @default(true)
+  approved           Boolean?
   approvedBy         Int?               @map("approved_by")
-  approvedDate       DateTime?          @map("approved_date")
-  createdDate        DateTime           @default(now()) @map("created_date")
-  updatedDate        DateTime           @default(now()) @updatedAt @map("updated_date")
+  approvedDate       DateTime?          @map("approved_date") @db.Timestamp(6)
+  createdDate        DateTime?          @map("created_date") @db.Timestamp(6)
+  updatedDate        DateTime?          @updatedAt @map("updated_date") @db.Timestamp(6)
   modifications      CardModification[]
   submissions        CardSubmission[]
-  approver           User?              @relation("CardApprover", fields: [approvedBy], references: [id])
-  creator            User?              @relation("CardCreator", fields: [createdBy], references: [id])
+  card_tags          card_tags[]
+  approver           User?              @relation("CardApprover", fields: [approvedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creator            User?              @relation("CardCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reviews            Review[]
-  tags               Tag[]              @relation("CardToTag")
 
-  @@index([name])
+  @@index([name], map: "ix_cards_name")
   @@map("cards")
 }
 
 model CardSubmission {
-  id                 Int              @id @default(autoincrement())
-  name               String           @db.VarChar(255)
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(255)
   description        String?
-  websiteUrl         String?          @map("website_url") @db.VarChar(255)
-  phoneNumber        String?          @map("phone_number") @db.VarChar(20)
-  email              String?          @db.VarChar(100)
-  address            String?          @db.VarChar(255)
-  addressOverrideUrl String?          @map("address_override_url") @db.VarChar(500)
-  contactName        String?          @map("contact_name") @db.VarChar(100)
-  imageUrl           String?          @map("image_url") @db.VarChar(255)
-  tagsText           String?          @map("tags_text")
-  status             SubmissionStatus @default(pending)
-  submittedBy        Int              @map("submitted_by")
-  reviewedBy         Int?             @map("reviewed_by")
-  reviewNotes        String?          @map("review_notes")
-  cardId             Int?             @map("card_id")
-  createdDate        DateTime         @default(now()) @map("created_date")
-  reviewedDate       DateTime?        @map("reviewed_date")
-  card               Card?            @relation(fields: [cardId], references: [id])
-  reviewer           User?            @relation("SubmissionReviewer", fields: [reviewedBy], references: [id])
-  submitter          User             @relation("SubmissionCreator", fields: [submittedBy], references: [id])
+  websiteUrl         String?   @map("website_url") @db.VarChar(255)
+  phoneNumber        String?   @map("phone_number") @db.VarChar(20)
+  email              String?   @db.VarChar(100)
+  address            String?   @db.VarChar(255)
+  addressOverrideUrl String?   @map("address_override_url") @db.VarChar(500)
+  contactName        String?   @map("contact_name") @db.VarChar(100)
+  imageUrl           String?   @map("image_url") @db.VarChar(255)
+  tagsText           String?   @map("tags_text")
+  status             String?   @db.VarChar(20)
+  submittedBy        Int       @map("submitted_by")
+  reviewedBy         Int?      @map("reviewed_by")
+  reviewNotes        String?   @map("review_notes")
+  cardId             Int?      @map("card_id")
+  createdDate        DateTime? @map("created_date") @db.Timestamp(6)
+  reviewedDate       DateTime? @map("reviewed_date") @db.Timestamp(6)
+  card               Card?     @relation(fields: [cardId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer           User?     @relation("SubmissionReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submitter          User      @relation("SubmissionCreator", fields: [submittedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("card_submissions")
 }
 
 model CardModification {
-  id                 Int              @id @default(autoincrement())
-  cardId             Int              @map("card_id")
-  name               String           @db.VarChar(255)
+  id                 Int       @id @default(autoincrement())
+  cardId             Int       @map("card_id")
+  name               String    @db.VarChar(255)
   description        String?
-  websiteUrl         String?          @map("website_url") @db.VarChar(255)
-  phoneNumber        String?          @map("phone_number") @db.VarChar(20)
-  email              String?          @db.VarChar(100)
-  address            String?          @db.VarChar(255)
-  addressOverrideUrl String?          @map("address_override_url") @db.VarChar(500)
-  contactName        String?          @map("contact_name") @db.VarChar(100)
-  imageUrl           String?          @map("image_url") @db.VarChar(255)
-  tagsText           String?          @map("tags_text")
-  status             SubmissionStatus @default(pending)
-  submittedBy        Int              @map("submitted_by")
-  reviewedBy         Int?             @map("reviewed_by")
-  reviewNotes        String?          @map("review_notes")
-  createdDate        DateTime         @default(now()) @map("created_date")
-  reviewedDate       DateTime?        @map("reviewed_date")
-  card               Card             @relation(fields: [cardId], references: [id])
-  reviewer           User?            @relation("ModificationReviewer", fields: [reviewedBy], references: [id])
-  submitter          User             @relation("ModificationCreator", fields: [submittedBy], references: [id])
+  websiteUrl         String?   @map("website_url") @db.VarChar(255)
+  phoneNumber        String?   @map("phone_number") @db.VarChar(20)
+  email              String?   @db.VarChar(100)
+  address            String?   @db.VarChar(255)
+  addressOverrideUrl String?   @map("address_override_url") @db.VarChar(500)
+  contactName        String?   @map("contact_name") @db.VarChar(100)
+  imageUrl           String?   @map("image_url") @db.VarChar(255)
+  tagsText           String?   @map("tags_text")
+  status             String?   @db.VarChar(20)
+  submittedBy        Int       @map("submitted_by")
+  reviewedBy         Int?      @map("reviewed_by")
+  reviewNotes        String?   @map("review_notes")
+  createdDate        DateTime? @map("created_date") @db.Timestamp(6)
+  reviewedDate       DateTime? @map("reviewed_date") @db.Timestamp(6)
+  card               Card      @relation(fields: [cardId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer           User?     @relation("ModificationReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submitter          User      @relation("ModificationCreator", fields: [submittedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("card_modifications")
 }
 
 model ResourceCategory {
   id            Int            @id @default(autoincrement())
-  name          String         @unique @db.VarChar(100)
-  displayOrder  Int            @default(0) @map("display_order")
-  createdDate   DateTime       @default(now()) @map("created_date")
+  name          String         @unique(map: "ix_resource_categories_name") @db.VarChar(100)
+  displayOrder  Int?           @map("display_order")
+  createdDate   DateTime?      @map("created_date") @db.Timestamp(6)
   resourceItems ResourceItem[]
 
-  @@index([name])
   @@map("resource_categories")
 }
 
 model QuickAccessItem {
-  id           Int      @id @default(autoincrement())
-  identifier   String   @unique @db.VarChar(50)
-  title        String   @db.VarChar(100)
-  subtitle     String   @db.VarChar(100)
-  phone        String   @db.VarChar(20)
-  color        String   @default("blue") @db.VarChar(20)
-  icon         String   @default("building") @db.VarChar(50)
-  displayOrder Int      @default(0) @map("display_order")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdDate  DateTime @default(now()) @map("created_date")
+  id           Int       @id @default(autoincrement())
+  identifier   String    @unique(map: "ix_quick_access_items_identifier") @db.VarChar(50)
+  title        String    @db.VarChar(100)
+  subtitle     String    @db.VarChar(100)
+  phone        String    @db.VarChar(20)
+  color        String    @db.VarChar(20)
+  icon         String    @db.VarChar(50)
+  displayOrder Int?      @map("display_order")
+  isActive     Boolean?  @map("is_active")
+  createdDate  DateTime? @map("created_date") @db.Timestamp(6)
 
-  @@index([identifier])
   @@map("quick_access_items")
 }
 
@@ -174,27 +170,26 @@ model ResourceItem {
   categoryId   Int?              @map("category_id")
   phone        String?           @db.VarChar(20)
   address      String?           @db.VarChar(500)
-  icon         String            @default("building") @db.VarChar(50)
-  displayOrder Int               @default(0) @map("display_order")
-  isActive     Boolean           @default(true) @map("is_active")
-  createdDate  DateTime          @default(now()) @map("created_date")
-  updatedDate  DateTime          @default(now()) @updatedAt @map("updated_date")
-  categoryObj  ResourceCategory? @relation(fields: [categoryId], references: [id])
+  icon         String            @db.VarChar(50)
+  displayOrder Int?              @map("display_order")
+  isActive     Boolean?          @map("is_active")
+  createdDate  DateTime?         @map("created_date") @db.Timestamp(6)
+  updatedDate  DateTime?         @updatedAt @map("updated_date") @db.Timestamp(6)
+  categoryObj  ResourceCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([title])
-  @@index([category])
+  @@index([category], map: "ix_resource_items_category")
+  @@index([title], map: "ix_resource_items_title")
   @@map("resource_items")
 }
 
 model ResourceConfig {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique @db.VarChar(100)
+  id          Int       @id @default(autoincrement())
+  key         String    @unique(map: "ix_resource_config_key") @db.VarChar(100)
   value       String
-  description String?  @db.VarChar(500)
-  createdDate DateTime @default(now()) @map("created_date")
-  updatedDate DateTime @default(now()) @updatedAt @map("updated_date")
+  description String?   @db.VarChar(500)
+  createdDate DateTime? @map("created_date") @db.Timestamp(6)
+  updatedDate DateTime? @updatedAt @map("updated_date") @db.Timestamp(6)
 
-  @@index([key])
   @@map("resource_config")
 }
 
@@ -205,61 +200,59 @@ model Review {
   rating         Int
   title          String?   @db.VarChar(200)
   comment        String?
-  reported       Boolean   @default(false)
+  reported       Boolean?
   reportedBy     Int?      @map("reported_by")
-  reportedDate   DateTime? @map("reported_date")
+  reportedDate   DateTime? @map("reported_date") @db.Timestamp(6)
   reportedReason String?   @map("reported_reason")
-  hidden         Boolean   @default(false)
-  createdDate    DateTime  @default(now()) @map("created_date")
-  updatedDate    DateTime  @default(now()) @updatedAt @map("updated_date")
-  card           Card      @relation(fields: [cardId], references: [id])
-  reporter       User?     @relation("ReviewReporter", fields: [reportedBy], references: [id])
-  user           User      @relation("ReviewCreator", fields: [userId], references: [id])
+  hidden         Boolean?
+  createdDate    DateTime? @map("created_date") @db.Timestamp(6)
+  updatedDate    DateTime? @updatedAt @map("updated_date") @db.Timestamp(6)
+  card           Card      @relation(fields: [cardId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reporter       User?     @relation("ReviewReporter", fields: [reportedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user           User      @relation("ReviewCreator", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([cardId])
-  @@index([userId])
-  @@index([reported])
-  @@index([hidden])
-  @@index([createdDate])
+  @@index([cardId], map: "ix_reviews_card_id")
+  @@index([createdDate], map: "ix_reviews_created_date")
+  @@index([hidden], map: "ix_reviews_hidden")
+  @@index([reported], map: "ix_reviews_reported")
+  @@index([userId], map: "ix_reviews_user_id")
   @@map("reviews")
 }
 
 model ForumCategory {
   id               Int                    @id @default(autoincrement())
-  name             String                 @unique @db.VarChar(100)
+  name             String                 @unique(map: "ix_forum_categories_name") @db.VarChar(100)
   description      String?
-  slug             String                 @unique @db.VarChar(120)
-  displayOrder     Int                    @default(0) @map("display_order")
-  isActive         Boolean                @default(true) @map("is_active")
+  slug             String                 @unique(map: "ix_forum_categories_slug") @db.VarChar(120)
+  displayOrder     Int?                   @map("display_order")
+  isActive         Boolean?               @map("is_active")
   createdBy        Int                    @map("created_by")
-  createdDate      DateTime               @default(now()) @map("created_date")
-  updatedDate      DateTime               @default(now()) @updatedAt @map("updated_date")
-  creator          User                   @relation(fields: [createdBy], references: [id])
+  createdDate      DateTime?              @map("created_date") @db.Timestamp(6)
+  updatedDate      DateTime?              @updatedAt @map("updated_date") @db.Timestamp(6)
+  creator          User                   @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   categoryRequests ForumCategoryRequest[]
   threads          ForumThread[]
 
-  @@index([name])
-  @@index([slug])
   @@map("forum_categories")
 }
 
 model ForumCategoryRequest {
-  id            Int              @id @default(autoincrement())
-  name          String           @db.VarChar(100)
+  id            Int            @id @default(autoincrement())
+  name          String         @db.VarChar(100)
   description   String?
   justification String?
-  status        SubmissionStatus @default(pending)
-  requestedBy   Int              @map("requested_by")
-  reviewedBy    Int?             @map("reviewed_by")
-  createdDate   DateTime         @default(now()) @map("created_date")
-  reviewedDate  DateTime?        @map("reviewed_date")
-  reviewNotes   String?          @map("review_notes")
-  categoryId    Int?             @map("category_id")
-  category      ForumCategory?   @relation(fields: [categoryId], references: [id])
-  requester     User             @relation("CategoryRequester", fields: [requestedBy], references: [id])
-  reviewer      User?            @relation("CategoryReviewer", fields: [reviewedBy], references: [id])
+  status        String?        @db.VarChar(20)
+  requestedBy   Int            @map("requested_by")
+  reviewedBy    Int?           @map("reviewed_by")
+  createdDate   DateTime?      @map("created_date") @db.Timestamp(6)
+  reviewedDate  DateTime?      @map("reviewed_date") @db.Timestamp(6)
+  reviewNotes   String?        @map("review_notes")
+  categoryId    Int?           @map("category_id")
+  category      ForumCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requester     User           @relation("CategoryRequester", fields: [requestedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer      User?          @relation("CategoryReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([status])
+  @@index([status], map: "ix_forum_category_requests_status")
   @@map("forum_category_requests")
 }
 
@@ -268,21 +261,21 @@ model ForumThread {
   categoryId  Int           @map("category_id")
   title       String        @db.VarChar(255)
   slug        String        @db.VarChar(280)
-  isPinned    Boolean       @default(false) @map("is_pinned")
-  isLocked    Boolean       @default(false) @map("is_locked")
-  reportCount Int           @default(0) @map("report_count")
+  isPinned    Boolean?      @map("is_pinned")
+  isLocked    Boolean?      @map("is_locked")
+  reportCount Int           @map("report_count")
   createdBy   Int           @map("created_by")
-  createdDate DateTime      @default(now()) @map("created_date")
-  updatedDate DateTime      @default(now()) @updatedAt @map("updated_date")
+  createdDate DateTime?     @map("created_date") @db.Timestamp(6)
+  updatedDate DateTime?     @updatedAt @map("updated_date") @db.Timestamp(6)
   posts       ForumPost[]
   reports     ForumReport[]
-  category    ForumCategory @relation(fields: [categoryId], references: [id])
-  creator     User          @relation(fields: [createdBy], references: [id])
+  category    ForumCategory @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creator     User          @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([title])
-  @@index([slug])
-  @@index([createdDate])
-  @@index([updatedDate])
+  @@index([createdDate], map: "ix_forum_threads_created_date")
+  @@index([slug], map: "ix_forum_threads_slug")
+  @@index([title], map: "ix_forum_threads_title")
+  @@index([updatedDate], map: "ix_forum_threads_updated_date")
   @@map("forum_threads")
 }
 
@@ -290,37 +283,37 @@ model ForumPost {
   id          Int           @id @default(autoincrement())
   threadId    Int           @map("thread_id")
   content     String
-  isFirstPost Boolean       @default(false) @map("is_first_post")
-  reportCount Int           @default(0) @map("report_count")
+  isFirstPost Boolean?      @map("is_first_post")
+  reportCount Int           @map("report_count")
   createdBy   Int           @map("created_by")
-  createdDate DateTime      @default(now()) @map("created_date")
-  updatedDate DateTime      @default(now()) @updatedAt @map("updated_date")
+  createdDate DateTime?     @map("created_date") @db.Timestamp(6)
+  updatedDate DateTime?     @updatedAt @map("updated_date") @db.Timestamp(6)
   editedBy    Int?          @map("edited_by")
-  editedDate  DateTime?     @map("edited_date")
-  creator     User          @relation("PostCreator", fields: [createdBy], references: [id])
-  editor      User?         @relation("PostEditor", fields: [editedBy], references: [id])
-  thread      ForumThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  editedDate  DateTime?     @map("edited_date") @db.Timestamp(6)
+  creator     User          @relation("PostCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  editor      User?         @relation("PostEditor", fields: [editedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  thread      ForumThread   @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reports     ForumReport[]
 
   @@map("forum_posts")
 }
 
 model ForumReport {
-  id              Int               @id @default(autoincrement())
-  threadId        Int               @map("thread_id")
-  postId          Int?              @map("post_id")
-  reason          ForumReportReason
+  id              Int         @id @default(autoincrement())
+  threadId        Int         @map("thread_id")
+  postId          Int?        @map("post_id")
+  reason          String      @db.VarChar(50)
   details         String?
-  status          SubmissionStatus  @default(pending)
-  reportedBy      Int               @map("reported_by")
-  reviewedBy      Int?              @map("reviewed_by")
-  createdDate     DateTime          @default(now()) @map("created_date")
-  reviewedDate    DateTime?         @map("reviewed_date")
-  resolutionNotes String?           @map("resolution_notes")
-  post            ForumPost?        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter        User              @relation("ForumReporter", fields: [reportedBy], references: [id])
-  reviewer        User?             @relation("ForumReviewedBy", fields: [reviewedBy], references: [id])
-  thread          ForumThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  status          String?     @db.VarChar(20)
+  reportedBy      Int         @map("reported_by")
+  reviewedBy      Int?        @map("reviewed_by")
+  createdDate     DateTime?   @map("created_date") @db.Timestamp(6)
+  reviewedDate    DateTime?   @map("reviewed_date") @db.Timestamp(6)
+  resolutionNotes String?     @map("resolution_notes")
+  post            ForumPost?  @relation(fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reporter        User        @relation("ForumReporter", fields: [reportedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer        User?       @relation("ForumReviewedBy", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  thread          ForumThread @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("forum_reports")
 }
@@ -329,23 +322,23 @@ model HelpWantedPost {
   id                Int                 @id @default(autoincrement())
   title             String              @db.VarChar(255)
   description       String
-  category          HelpWantedCategory
-  status            HelpWantedStatus    @default(open)
+  category          String              @db.VarChar(50)
+  status            String?             @db.VarChar(20)
   location          String?             @db.VarChar(255)
   budget            String?             @db.VarChar(100)
-  contactPreference String              @default("message") @map("contact_preference") @db.VarChar(50)
-  reportCount       Int                 @default(0) @map("report_count")
+  contactPreference String?             @map("contact_preference") @db.VarChar(50)
+  reportCount       Int                 @map("report_count")
   createdBy         Int                 @map("created_by")
-  createdDate       DateTime            @default(now()) @map("created_date")
-  updatedDate       DateTime            @default(now()) @updatedAt @map("updated_date")
+  createdDate       DateTime?           @map("created_date") @db.Timestamp(6)
+  updatedDate       DateTime?           @updatedAt @map("updated_date") @db.Timestamp(6)
   comments          HelpWantedComment[]
-  creator           User                @relation(fields: [createdBy], references: [id])
+  creator           User                @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reports           HelpWantedReport[]
 
-  @@index([title])
-  @@index([category])
-  @@index([status])
-  @@index([createdDate])
+  @@index([category], map: "ix_help_wanted_posts_category")
+  @@index([createdDate], map: "ix_help_wanted_posts_created_date")
+  @@index([status], map: "ix_help_wanted_posts_status")
+  @@index([title], map: "ix_help_wanted_posts_title")
   @@map("help_wanted_posts")
 }
 
@@ -355,30 +348,30 @@ model HelpWantedComment {
   content     String
   parentId    Int?                @map("parent_id")
   createdBy   Int                 @map("created_by")
-  createdDate DateTime            @default(now()) @map("created_date")
-  updatedDate DateTime            @default(now()) @updatedAt @map("updated_date")
-  creator     User                @relation(fields: [createdBy], references: [id])
-  parent      HelpWantedComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  createdDate DateTime?           @map("created_date") @db.Timestamp(6)
+  updatedDate DateTime?           @updatedAt @map("updated_date") @db.Timestamp(6)
+  creator     User                @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent      HelpWantedComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies     HelpWantedComment[] @relation("CommentReplies")
-  post        HelpWantedPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post        HelpWantedPost      @relation(fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("help_wanted_comments")
 }
 
 model HelpWantedReport {
-  id              Int                @id @default(autoincrement())
-  postId          Int                @map("post_id")
-  reason          ReviewReportReason
+  id              Int            @id @default(autoincrement())
+  postId          Int            @map("post_id")
+  reason          String         @db.VarChar(50)
   details         String?
-  status          SubmissionStatus   @default(pending)
-  reportedBy      Int                @map("reported_by")
-  reviewedBy      Int?               @map("reviewed_by")
-  createdDate     DateTime           @default(now()) @map("created_date")
-  reviewedDate    DateTime?          @map("reviewed_date")
-  resolutionNotes String?            @map("resolution_notes")
-  post            HelpWantedPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter        User               @relation("HelpWantedReporter", fields: [reportedBy], references: [id])
-  reviewer        User?              @relation("HelpWantedReviewer", fields: [reviewedBy], references: [id])
+  status          String?        @db.VarChar(20)
+  reportedBy      Int            @map("reported_by")
+  reviewedBy      Int?           @map("reviewed_by")
+  createdDate     DateTime?      @map("created_date") @db.Timestamp(6)
+  reviewedDate    DateTime?      @map("reviewed_date") @db.Timestamp(6)
+  resolutionNotes String?        @map("resolution_notes")
+  post            HelpWantedPost @relation(fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reporter        User           @relation("HelpWantedReporter", fields: [reportedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer        User?          @relation("HelpWantedReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("help_wanted_reports")
 }
@@ -387,24 +380,24 @@ model SupportTicket {
   id                Int                    @id @default(autoincrement())
   title             String                 @db.VarChar(255)
   description       String
-  category          SupportTicketCategory
-  status            SupportTicketStatus    @default(open)
-  priority          SupportTicketPriority  @default(normal)
-  isAnonymous       Boolean                @default(false) @map("is_anonymous")
+  category          String                 @db.VarChar(50)
+  status            String                 @db.VarChar(20)
+  priority          String                 @db.VarChar(20)
+  isAnonymous       Boolean                @map("is_anonymous")
   createdBy         Int                    @map("created_by")
   assignedTo        Int?                   @map("assigned_to")
-  createdDate       DateTime               @default(now()) @map("created_date")
-  updatedDate       DateTime               @default(now()) @updatedAt @map("updated_date")
-  resolvedDate      DateTime?              @map("resolved_date")
-  closedDate        DateTime?              @map("closed_date")
+  createdDate       DateTime?              @map("created_date") @db.Timestamptz(6)
+  updatedDate       DateTime?              @updatedAt @map("updated_date") @db.Timestamptz(6)
+  resolvedDate      DateTime?              @map("resolved_date") @db.Timestamptz(6)
+  closedDate        DateTime?              @map("closed_date") @db.Timestamptz(6)
   messages          SupportTicketMessage[]
-  assignedSupporter User?                  @relation("TicketAssignee", fields: [assignedTo], references: [id])
-  creator           User                   @relation("TicketCreator", fields: [createdBy], references: [id])
+  assignedSupporter User?                  @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creator           User                   @relation("TicketCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([title])
-  @@index([category])
-  @@index([status])
-  @@index([createdDate])
+  @@index([category], map: "ix_support_tickets_category")
+  @@index([createdDate], map: "ix_support_tickets_created_date")
+  @@index([status], map: "ix_support_tickets_status")
+  @@index([title], map: "ix_support_tickets_title")
   @@map("support_tickets")
 }
 
@@ -412,111 +405,55 @@ model SupportTicketMessage {
   id             Int           @id @default(autoincrement())
   ticketId       Int           @map("ticket_id")
   content        String
-  isInternalNote Boolean       @default(false) @map("is_internal_note")
+  isInternalNote Boolean       @map("is_internal_note")
   createdBy      Int           @map("created_by")
-  createdDate    DateTime      @default(now()) @map("created_date")
-  updatedDate    DateTime      @default(now()) @updatedAt @map("updated_date")
-  creator        User          @relation(fields: [createdBy], references: [id])
-  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdDate    DateTime?     @map("created_date") @db.Timestamptz(6)
+  updatedDate    DateTime?     @updatedAt @map("updated_date") @db.Timestamptz(6)
+  creator        User          @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("support_ticket_messages")
 }
 
 model IndexingJob {
-  id           Int               @id @default(autoincrement())
-  resourceId   Int               @map("resource_id")
-  status       IndexingJobStatus @default(pending)
-  pagesIndexed Int               @default(0) @map("pages_indexed")
-  totalPages   Int               @default(0) @map("total_pages")
-  lastError    String?           @map("last_error")
-  startedAt    DateTime?         @map("started_at") @db.Timestamptz(6)
-  completedAt  DateTime?         @map("completed_at") @db.Timestamptz(6)
-  retryCount   Int               @default(0) @map("retry_count")
-  createdDate  DateTime          @default(now()) @map("created_date") @db.Timestamptz(6)
-  updatedDate  DateTime?         @updatedAt @map("updated_date") @db.Timestamptz(6)
+  id           Int       @id @default(autoincrement())
+  resourceId   Int       @map("resource_id")
+  status       String    @db.VarChar(20)
+  pagesIndexed Int?      @map("pages_indexed")
+  totalPages   Int?      @map("total_pages")
+  lastError    String?   @map("last_error")
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(6)
+  retryCount   Int?      @map("retry_count")
+  createdDate  DateTime? @map("created_date") @db.Timestamptz(6)
+  updatedDate  DateTime? @updatedAt @map("updated_date") @db.Timestamptz(6)
 
-  @@index([resourceId])
-  @@index([status])
+  @@index([resourceId], map: "ix_indexing_jobs_resource_id")
+  @@index([status], map: "ix_indexing_jobs_status")
   @@map("indexing_jobs")
 }
 
 model TokenBlacklist {
   id        Int      @id @default(autoincrement())
-  jti       String   @unique @db.VarChar(36)
+  jti       String   @unique(map: "ix_token_blacklist_jti") @db.VarChar(36)
   tokenType String   @map("token_type") @db.VarChar(10)
   userId    Int?     @map("user_id")
-  revokedAt DateTime @default(now()) @map("revoked_at")
-  expiresAt DateTime @map("expires_at")
-  user      User?    @relation(fields: [userId], references: [id])
+  revokedAt DateTime @map("revoked_at") @db.Timestamp(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(6)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([jti])
   @@map("token_blacklist")
 }
 
-enum UserRole {
-  admin
-  supporter
-  user
+model alembic_version {
+  version_num String @id(map: "alembic_version_pkc") @db.VarChar(32)
 }
 
-enum SubmissionStatus {
-  pending
-  approved
-  rejected
-}
+model card_tags {
+  card_id Int
+  tag_id  Int
+  cards   Card @relation(fields: [card_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tags    Tag  @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-enum SupportTicketStatus {
-  open
-  in_progress
-  resolved
-  closed
-}
-
-enum SupportTicketPriority {
-  low
-  normal
-  high
-  urgent
-}
-
-enum SupportTicketCategory {
-  housing
-  food
-  transportation
-  healthcare
-  financial
-  other
-}
-
-enum HelpWantedCategory {
-  hiring
-  collaboration
-  general
-}
-
-enum HelpWantedStatus {
-  open
-  closed
-}
-
-enum ForumReportReason {
-  spam
-  inappropriate
-  harassment
-  off_topic
-  other
-}
-
-enum IndexingJobStatus {
-  pending
-  in_progress
-  completed
-  failed
-}
-
-enum ReviewReportReason {
-  spam
-  inappropriate
-  misleading
-  other
+  @@id([card_id, tag_id])
 }

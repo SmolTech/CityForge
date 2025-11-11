@@ -12,9 +12,9 @@ echo "=== Database Initialization ==="
 echo "Target database: postgresql://${POSTGRES_USER}:***@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
 echo "DATABASE_URL is set: $([ -n "$DATABASE_URL" ] && echo "YES" || echo "NO")"
 
-# Push Prisma schema to database (creates/updates tables without migrations)
-echo "Pushing Prisma schema to database..."
-npx prisma db push --accept-data-loss
+# Run Prisma migrations (safe, will not lose data)
+echo "Running Prisma migrations..."
+npx prisma migrate deploy
 
 # Run data seeding
 echo "Seeding default data..."
