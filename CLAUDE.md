@@ -314,6 +314,14 @@ The Flask backend defines the following main models:
 - `QuickAccessItem`: Featured quick-access items
 - `ResourceConfig`: Site-wide configuration values
 
+**Forum Models:**
+
+- `ForumCategory`: Forum categories with slugs and display ordering
+- `ForumThread`: Discussion threads within categories (with pin/lock status)
+- `ForumPost`: Individual posts within threads
+- `ForumCategoryRequest`: User requests for new forum categories (pending admin approval)
+- `ForumReport`: User reports of inappropriate content (pending admin resolution)
+
 ### Database Connection Pooling
 
 The application uses SQLAlchemy's connection pooling with optimized settings for production reliability:
@@ -582,6 +590,34 @@ limiter = Limiter(
 - `/admin/users/*` - User management
 - `/admin/tags/*` - Tag management
 - `/admin/resources/*` - Resource directory management
+- `/admin/forums/*` - Forum administration (categories, requests, reports, threads)
+
+#### Admin Forum API Endpoints
+
+**Category Management:**
+
+- `GET /api/admin/forums/categories` - List all forum categories
+- `POST /api/admin/forums/categories` - Create new forum category
+- `GET /api/admin/forums/categories/{id}` - Get specific category details
+- `PUT /api/admin/forums/categories/{id}` - Update forum category
+- `DELETE /api/admin/forums/categories/{id}` - Delete forum category
+
+**Category Request Management:**
+
+- `GET /api/admin/forums/category-requests` - List pending category requests
+- `POST /api/admin/forums/category-requests/{id}/approve` - Approve category request
+- `POST /api/admin/forums/category-requests/{id}/reject` - Reject category request
+
+**Content Moderation:**
+
+- `GET /api/admin/forums/reports` - List reported content
+- `POST /api/admin/forums/reports/{id}/resolve` - Resolve report (dismiss, delete post, delete thread)
+
+**Thread Management:**
+
+- `DELETE /api/admin/forums/threads/{id}` - Delete thread and all posts
+- `POST /api/admin/forums/threads/{id}/pin` - Pin/unpin thread
+- `POST /api/admin/forums/threads/{id}/lock` - Lock/unlock thread
 
 ### Frontend Structure
 
@@ -596,6 +632,7 @@ Uses Next.js 15 app router with the following pages:
 - `/dashboard` - User dashboard
 - `/settings` - User settings
 - `/admin` - Admin dashboard (admin users only)
+- `/admin/forums` - Admin forum management (admin users only)
 - `/forums/*` - Community forums (requires authentication)
 
 **Forum Pages (Authentication Required):**
@@ -608,6 +645,100 @@ Uses Next.js 15 app router with the following pages:
 
 **Authentication Enforcement:**
 All forum pages check authentication on mount and redirect unauthenticated users to `/login?redirect=[original-url]`. This allows users to return to their intended destination after logging in.
+
+### Admin Forum Management
+
+The application provides comprehensive forum administration tools for managing community discussions:
+
+#### Category Management
+
+**Features:**
+
+- Create, read, update, delete forum categories
+- Automatic slug generation from category names with conflict detection
+- Display order management for organizing category hierarchy
+- Category activation/deactivation without deletion
+- Input validation for names and descriptions
+
+**Workflow:**
+
+1. Admin creates category with name and description
+2. System generates URL-safe slug automatically
+3. Category appears in forum listings with specified display order
+4. Admin can later edit, reorder, or deactivate categories
+
+#### Community Category Requests
+
+**User Flow:**
+
+1. Users can request new forum categories via `/forums/request-category`
+2. Requests include category name, description, and justification
+3. Requests appear in admin panel for review
+
+**Admin Workflow:**
+
+1. Admin reviews pending requests at `/admin/forums`
+2. Admin can approve or reject requests with notes
+3. **Approved requests**: Automatically create new forum categories
+4. **Rejected requests**: User receives feedback via admin notes
+5. Complete audit trail maintains request history
+
+#### Content Moderation System
+
+**Report Processing:**
+
+- Users can report inappropriate forum content (posts, threads)
+- Reports include content details, reporter info, and reason
+- Reports queue in admin panel for review
+
+**Resolution Actions:**
+
+- **Dismiss Report**: Mark as reviewed, no action taken
+- **Delete Post**: Remove specific reported post
+- **Delete Thread**: Remove entire thread and all posts
+
+**Audit Trail:**
+
+- All resolutions logged with admin reviewer and timestamp
+- Complete history of moderation actions
+- Reports maintain status tracking (pending/resolved)
+
+#### Thread Management Tools
+
+**Administrative Controls:**
+
+- **Delete Threads**: Cascade deletion removes thread and all associated posts
+- **Pin/Unpin**: Featured threads appear at top of category listings
+- **Lock/Unlock**: Prevent new posts while preserving content
+
+**Safety Features:**
+
+- Confirmation required for destructive actions
+- Cascade deletions properly handle related data (posts, reports)
+- Status changes immediately reflected in forum interface
+
+#### API Implementation Highlights
+
+**Next.js 15 Compatibility:**
+
+- All admin forum APIs properly handle Next.js 15 async route parameters
+- Robust error handling with consistent JSON error responses
+- JWT authentication integration with role-based access control
+
+**Database Integration:**
+
+- Proper foreign key relationships ensure data integrity
+- Cascade deletion handling prevents orphaned records
+- Transaction support for complex operations
+
+**Security Features:**
+
+- Admin role verification on all endpoints
+- Input validation and sanitization
+- SQL injection prevention via parameterized queries
+- Rate limiting on admin endpoints
+
+The admin forum system provides professional-grade community management tools suitable for both small communities and larger forum deployments.
 
 ### Mobile App Structure
 
