@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 export const GET = withAuth(
   async (
     _request: NextRequest,
+    _context,
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
@@ -75,6 +76,7 @@ export const GET = withAuth(
 export const PUT = withAuth(
   async (
     request: NextRequest,
+    _context,
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
@@ -174,6 +176,7 @@ export const PUT = withAuth(
 export const DELETE = withAuth(
   async (
     _request: NextRequest,
+    _context,
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
