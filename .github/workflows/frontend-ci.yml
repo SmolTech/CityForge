@@ -112,30 +112,7 @@ jobs:
       - name: Validate log redaction functionality
         run: |
           echo "🔍 Testing log redaction with sample sensitive data..."
-          node -e "
-          const { redactSensitiveData } = require('./src/lib/utils/log-redaction.js');
-          const testData = [
-            'postgresql://user:secret@localhost:5432/db',
-            'password: mysecret123',
-            'Bearer eyJhbGciOiJIUzI1NiJ9.test.signature',
-            'api_key: sk-1234567890abcdef'
-          ];
-
-          let allPassed = true;
-          testData.forEach((data, i) => {
-            const redacted = redactSensitiveData(data);
-            const isRedacted = redacted.includes('***REDACTED***') || redacted !== data;
-            console.log(\`Test \${i+1}: \${isRedacted ? '✅ PASS' : '❌ FAIL'} - \${data.substring(0, 30)}...\`);
-            if (!isRedacted) allPassed = false;
-          });
-
-          if (!allPassed) {
-            console.error('❌ Security validation failed - sensitive data not properly redacted');
-            process.exit(1);
-          } else {
-            console.log('✅ All security validations passed');
-          }
-          "
+          npm run test:run -- src/lib/utils/log-redaction.test.ts --reporter=verbose
 
       - name: Check for hardcoded secrets
         run: |
