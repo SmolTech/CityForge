@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { logger } from "./logger";
 
 const TOKEN_KEY = "auth_token";
 
@@ -7,7 +8,7 @@ export const tokenStorage = {
     try {
       return await SecureStore.getItemAsync(TOKEN_KEY);
     } catch (error) {
-      console.error("Error getting token:", error);
+      logger.error("Error getting token:", error);
       return null;
     }
   },
@@ -16,7 +17,7 @@ export const tokenStorage = {
     try {
       await SecureStore.setItemAsync(TOKEN_KEY, token);
     } catch (error) {
-      console.error("Error setting token:", error);
+      logger.error("Error setting token:", error);
     }
   },
 
@@ -24,7 +25,7 @@ export const tokenStorage = {
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
     } catch (error) {
-      console.error("Error removing token:", error);
+      logger.error("Error removing token:", error);
     }
   },
 };
