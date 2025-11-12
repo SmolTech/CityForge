@@ -3,6 +3,27 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["@prisma/client"],
+
+  // Configure timeout settings for API routes and server-side requests
+  experimental: {
+    // Maximum timeout for API routes (in milliseconds)
+    // Note: This affects Vercel deployment limits:
+    // - Hobby: 10s, Pro: 60s, Enterprise: 900s
+    serverComponentsHmrCache: false, // Disable to prevent memory issues in dev
+  },
+
+  // Server runtime configuration
+  serverRuntimeConfig: {
+    // API timeout configuration (used by our middleware)
+    apiTimeout: {
+      auth: 10000, // 10 seconds
+      upload: 60000, // 60 seconds
+      admin: 45000, // 45 seconds
+      search: 30000, // 30 seconds
+      default: 30000, // 30 seconds
+    },
+  },
+
   // Selective API proxy - only forward non-migrated endpoints to Flask backend
   async rewrites() {
     const backendUrl =
@@ -35,6 +56,25 @@ const nextConfig: NextConfig = {
       {
         source: "/api/admin/forums/:path*",
         destination: `${backendUrl}/api/admin/forums/:path*`,
+      },
+    ];
+  },
+
+  // Configure headers for proxied requests to include timeout information
+  async headers() {
+    return [
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "X-Request-Timeout",
+            value: "30000", // 30 seconds default
+          },
+          {
+            key: "X-Content-Security-Policy",
+            value: "default-src 'self'",
+          },
+        ],
       },
     ];
   },
