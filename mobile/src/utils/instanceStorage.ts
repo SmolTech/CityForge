@@ -12,7 +12,9 @@ const INSTANCE_TOKEN_PREFIX = "cityforge_token_";
 export async function loadInstances(): Promise<Instance[]> {
   try {
     const data = await AsyncStorage.getItem(INSTANCES_KEY);
-    if (!data) return [];
+    if (!data) {
+      return [];
+    }
 
     const instances: Instance[] = JSON.parse(data);
 

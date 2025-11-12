@@ -55,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [activeInstance?.token, activeInstance?.id]);
 
   const checkAuth = async () => {
-    if (!activeInstance) return;
+    if (!activeInstance) {
+      return;
+    }
 
     try {
       if (activeInstance.token) {
@@ -108,7 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    if (!activeInstance) return;
+    if (!activeInstance) {
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -124,7 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    if (!activeInstance) return;
+    if (!activeInstance) {
+      return;
+    }
 
     try {
       const userData = await apiClient.getCurrentUser();

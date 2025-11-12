@@ -18,7 +18,7 @@ import type {
 } from "../types/api";
 
 const DEFAULT_API_URL =
-  process.env["EXPO_PUBLIC_API_URL"] || "http://localhost:5000";
+  process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
 
 class ApiClient {
   private baseUrl: string = DEFAULT_API_URL;
@@ -56,7 +56,7 @@ class ApiClient {
       "X-Skip-Auth"
     ];
     if (authToken && !skipAuth) {
-      headers["Authorization"] = `Bearer ${authToken}`;
+      headers.Authorization = `Bearer ${authToken}`;
     }
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -162,11 +162,18 @@ class ApiClient {
     per_page?: number;
   }): Promise<PaginatedResponse<Card>> {
     const queryParams = new URLSearchParams();
-    if (params?.tag) queryParams.append("tag", params.tag);
-    if (params?.search) queryParams.append("search", params.search);
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.per_page)
+    if (params?.tag) {
+      queryParams.append("tag", params.tag);
+    }
+    if (params?.search) {
+      queryParams.append("search", params.search);
+    }
+    if (params?.page) {
+      queryParams.append("page", params.page.toString());
+    }
+    if (params?.per_page) {
       queryParams.append("per_page", params.per_page.toString());
+    }
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Card>>(
