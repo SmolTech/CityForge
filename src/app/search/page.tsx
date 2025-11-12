@@ -1,16 +1,13 @@
 import React from "react";
 import { Navigation } from "@/components/shared";
 import { SearchInterface } from "@/components/search";
-import { loadAppConfig } from "@/lib/server-config";
 
 export const dynamic = "force-dynamic";
 
-export default async function SearchPage() {
-  const appConfig = await loadAppConfig();
-
+export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentPage="Search" siteTitle={appConfig.site.title} />
+      <Navigation currentPage="Search" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-12 text-center">
