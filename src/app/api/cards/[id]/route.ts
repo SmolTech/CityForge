@@ -71,20 +71,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
         shareUrl?: string;
       };
       if (cardWithUrls.slug && cardWithUrls.shareUrl) {
-        transformedCard.slug = cardWithUrls.slug;
-        transformedCard.share_url = cardWithUrls.shareUrl;
+        transformedCard["slug"] = cardWithUrls.slug;
+        transformedCard["share_url"] = cardWithUrls.shareUrl;
       }
     }
 
     if (cardData.creator) {
-      transformedCard.creator = {
+      transformedCard["creator"] = {
         first_name: cardData.creator.firstName,
         last_name: cardData.creator.lastName,
       };
     }
 
     if (cardData.approver) {
-      transformedCard.approver = {
+      transformedCard["approver"] = {
         first_name: cardData.approver.firstName,
         last_name: cardData.approver.lastName,
       };
@@ -95,12 +95,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
         averageRating?: number;
         reviewCount?: number;
       };
-      transformedCard.average_rating = cardWithRatings.averageRating;
-      transformedCard.review_count = cardWithRatings.reviewCount;
+      transformedCard["average_rating"] = cardWithRatings.averageRating;
+      transformedCard["review_count"] = cardWithRatings.reviewCount;
 
       // Include reviews if present
       if (cardData.reviews && Array.isArray(cardData.reviews)) {
-        transformedCard.reviews = cardData.reviews.map((review) => ({
+        transformedCard["reviews"] = cardData.reviews.map((review) => ({
           rating: review.rating,
           comment: review.comment,
           created_date: review.createdDate?.toISOString(),
