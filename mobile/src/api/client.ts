@@ -1,5 +1,9 @@
 import { tokenStorage } from "../utils/tokenStorage";
 import { logger } from "../utils/logger";
+import {
+  fetchWithMobileTimeout,
+  MobileTimeoutError,
+} from "../utils/fetchTimeout";
 import type {
   User,
   Card,
@@ -62,7 +66,7 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithMobileTimeout(url, {
         ...options,
         headers,
       });
@@ -81,6 +85,19 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
+      // Handle timeout errors specifically
+      if (error instanceof MobileTimeoutError) {
+        logger.error(
+          "Mobile request timeout for",
+          endpoint,
+          ":",
+          error.message
+        );
+        throw new Error(
+          "Request timed out. Please check your connection and try again."
+        );
+      }
+
       if (error instanceof Error) {
         throw error;
       }

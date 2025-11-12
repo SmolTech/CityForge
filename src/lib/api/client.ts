@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { fetchWithTimeout, TimeoutError } from "@/lib/utils/fetch-timeout";
 
 const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] ||
@@ -59,7 +60,10 @@ export class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, fetchOptions);
+      const response = await fetchWithTimeout(
+        `${this.baseUrl}${endpoint}`,
+        fetchOptions
+      );
 
       if (!response.ok) {
         // Handle 401 Unauthorized
@@ -106,6 +110,20 @@ export class ApiClient {
 
       return await response.json();
     } catch (error) {
+      // Handle timeout errors specifically
+      if (error instanceof TimeoutError) {
+        logger.error("Request timeout for", endpoint, ":", error.message);
+        const timeoutError = new Error(
+          "Request timed out. Please try again later."
+        ) as Error & {
+          status?: number;
+          details?: unknown;
+        };
+        timeoutError.status = 408; // Request Timeout
+        timeoutError.details = { originalError: error.message };
+        throw timeoutError;
+      }
+
       logger.error("API request failed for", endpoint, ":", error);
       throw error;
     }
