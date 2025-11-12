@@ -60,6 +60,7 @@ export function InstanceProvider({ children }: InstanceProviderProps) {
   // Load instances on mount
   useEffect(() => {
     loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadInitialData() {

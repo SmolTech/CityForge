@@ -10,8 +10,9 @@ import {
 import { useInstance } from "../contexts/InstanceContext";
 import type { Instance } from "../types/instance";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../types/navigation";
 
-type Props = NativeStackScreenProps<any, "InstanceManager">;
+type Props = NativeStackScreenProps<RootStackParamList, "InstanceManager">;
 
 export default function InstanceManagerScreen({ navigation }: Props) {
   const { instances, activeInstance, switchInstance, removeInstance } =
