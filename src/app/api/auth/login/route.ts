@@ -1,9 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validateUserLogin } from "@/lib/auth/validation";
 import { verifyPassword } from "@/lib/auth/password";
 import { generateAccessToken, createAuthResponse } from "@/lib/auth/jwt";
 import { logger } from "@/lib/logger";
+import {
+  handleApiError,
+  ValidationError,
+  UnauthorizedError,
+} from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,13 +17,7 @@ export async function POST(request: NextRequest) {
     // Validate input data
     const validation = validateUserLogin(data);
     if (!validation.valid) {
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          errors: validation.errors,
-        },
-        { status: 400 }
-      );
+      throw new ValidationError("Validation failed", validation.errors);
     }
 
     const { email, password } = validation.data!;
@@ -45,10 +44,7 @@ export async function POST(request: NextRequest) {
       !user.isActive ||
       !(await verifyPassword(password, user.passwordHash))
     ) {
-      return NextResponse.json(
-        { message: "Invalid credentials" },
-        { status: 401 }
-      );
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     // Update last login timestamp
@@ -88,7 +84,6 @@ export async function POST(request: NextRequest) {
     // Return response with token in body (mobile) and httpOnly cookie (web)
     return createAuthResponse({ user: userResponse }, token);
   } catch (error) {
-    logger.error("Login error:", error);
-    return NextResponse.json({ message: "Login failed" }, { status: 500 });
+    return handleApiError(error, "POST /api/auth/login");
   }
 }

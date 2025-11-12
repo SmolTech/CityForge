@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cardQueries } from "@/lib/db/queries";
 import { logger } from "@/lib/logger";
+import { handleApiError, BadRequestError, NotFoundError } from "@/lib/errors";
 
 // Cache for 5 minutes (300 seconds) to match Flask API
 export const revalidate = 300;
@@ -18,15 +19,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Validate card ID
     if (isNaN(cardId) || cardId <= 0) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Invalid card ID",
-            code: 400,
-          },
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError("Invalid card ID");
     }
 
     // Parse query parameters
@@ -48,19 +41,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     );
 
     if (!cardData) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Card not found",
-            code: 404,
-          },
-        },
-        { status: 404 }
-      );
+      throw new NotFoundError("Card");
     }
 
     // Transform to snake_case format to match Flask API
-    const transformedCard: any = {
+    const transformedCard: Record<string, unknown> = {
       id: cardData.id,
       name: cardData.name,
       description: cardData.description,
@@ -81,7 +66,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Add optional fields if requested
     if (includeShareUrls) {
-      const cardWithUrls = cardData as any;
+      const cardWithUrls = cardData as typeof cardData & {
+        slug?: string;
+        shareUrl?: string;
+      };
       if (cardWithUrls.slug && cardWithUrls.shareUrl) {
         transformedCard.slug = cardWithUrls.slug;
         transformedCard.share_url = cardWithUrls.shareUrl;
@@ -103,47 +91,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     if (includeRatings) {
-      const cardWithRatings = cardData as any;
+      const cardWithRatings = cardData as typeof cardData & {
+        averageRating?: number;
+        reviewCount?: number;
+      };
       transformedCard.average_rating = cardWithRatings.averageRating;
       transformedCard.review_count = cardWithRatings.reviewCount;
 
       // Include reviews if present
       if (cardData.reviews && Array.isArray(cardData.reviews)) {
-        transformedCard.reviews = cardData.reviews.map((review: any) => ({
-          rating: review.rating,
-          comment: review.comment,
-          created_date: review.createdDate?.toISOString(),
-          user: review.user
-            ? {
-                first_name: review.user.firstName,
-                last_name: review.user.lastName,
-              }
-            : null,
-        }));
-      }
-    }
-
-    if (cardData.creator) {
-      transformedCard.creator = {
-        first_name: cardData.creator.firstName,
-        last_name: cardData.creator.lastName,
-      };
-    }
-
-    if (cardData.approver) {
-      transformedCard.approver = {
-        first_name: cardData.approver.firstName,
-        last_name: cardData.approver.lastName,
-      };
-    }
-
-    if (includeRatings) {
-      transformedCard.average_rating = cardData.averageRating;
-      transformedCard.review_count = cardData.reviewCount;
-
-      // Include reviews if present
-      if (cardData.reviews && Array.isArray(cardData.reviews)) {
-        transformedCard.reviews = cardData.reviews.map((review: any) => ({
+        transformedCard.reviews = cardData.reviews.map((review) => ({
           rating: review.rating,
           comment: review.comment,
           created_date: review.createdDate?.toISOString(),
@@ -164,19 +121,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     response.headers.set("Cache-Control", "public, max-age=300");
 
     return response;
-  } catch (error: any) {
-    logger.error("Failed to fetch card:", error);
-
-    return NextResponse.json(
-      {
-        error: {
-          message: "Failed to fetch card",
-          code: 500,
-          details:
-            process.env.NODE_ENV === "development" ? error?.message : undefined,
-        },
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, "GET /api/cards/[id]");
   }
 }

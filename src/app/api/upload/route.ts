@@ -6,6 +6,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { logger } from "@/lib/logger";
+import { handleApiError, BadRequestError } from "@/lib/errors";
 
 // File type validation
 const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp"]);
@@ -170,24 +171,15 @@ export const POST = withAuth(async (request: NextRequest) => {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json(
-        { message: "No file provided" },
-        { status: 400 }
-      );
+      throw new BadRequestError("No file provided");
     }
 
     if (!file.name) {
-      return NextResponse.json(
-        { message: "No file selected" },
-        { status: 400 }
-      );
+      throw new BadRequestError("No file selected");
     }
 
     if (!isAllowedFile(file.name)) {
-      return NextResponse.json(
-        { message: "Invalid file type" },
-        { status: 400 }
-      );
+      throw new BadRequestError("Invalid file type");
     }
 
     // Convert file to ArrayBuffer
@@ -231,14 +223,6 @@ export const POST = withAuth(async (request: NextRequest) => {
       throw new Error(localResult.error || "Local upload failed");
     }
   } catch (error) {
-    logger.error("File upload failed:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "File upload failed",
-        error: String(error),
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, "POST /api/upload");
   }
 });

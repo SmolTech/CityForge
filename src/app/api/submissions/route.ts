@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { submissionQueries } from "@/lib/db/queries";
 import { validateCardSubmission } from "@/lib/validation/submissions";
-import { logger } from "@/lib/logger";
+import {
+  handleApiError,
+  BadRequestError,
+  RateLimitError,
+  ValidationError,
+} from "@/lib/errors";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -34,18 +39,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
   try {
     // Rate limiting: 10 requests per hour per user
     if (!checkRateLimit(user.id, 10)) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Rate limit exceeded. Please try again later.",
-            code: 429,
-            details: {
-              description: "10 per 1 hour",
-            },
-          },
-        },
-        { status: 429 }
-      );
+      throw new RateLimitError();
     }
 
     // Parse request body
@@ -53,21 +47,11 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     try {
       data = await request.json();
     } catch {
-      return NextResponse.json(
-        {
-          message: "No data provided",
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError("No data provided");
     }
 
     if (!data) {
-      return NextResponse.json(
-        {
-          message: "No data provided",
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError("No data provided");
     }
 
     // Validate input data
@@ -81,23 +65,12 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
         errorMessages[error.field]!.push(error.message);
       });
 
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          errors: errorMessages,
-        },
-        { status: 400 }
-      );
+      throw new ValidationError("Validation failed", errorMessages);
     }
 
     // At this point, validation.data is guaranteed to exist
     if (!validation.data) {
-      return NextResponse.json(
-        {
-          message: "Validation failed - no data",
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError("Validation failed - no data");
     }
 
     // Create submission in database
@@ -120,16 +93,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     // Return the submission data directly (already in Flask API format from queries.ts)
     return NextResponse.json(submission, { status: 201 });
   } catch (error) {
-    logger.error("Error creating card submission:", error);
-    return NextResponse.json(
-      {
-        error: {
-          message: "Internal server error",
-          code: 500,
-        },
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, "POST /api/submissions");
   }
 });
 
@@ -141,15 +105,6 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     // Return the submissions data directly (already in Flask API format from queries.ts)
     return NextResponse.json(submissions);
   } catch (error) {
-    logger.error("Error fetching user submissions:", error);
-    return NextResponse.json(
-      {
-        error: {
-          message: "Internal server error",
-          code: 500,
-        },
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, "GET /api/submissions");
   }
 });
