@@ -3,6 +3,8 @@ export {
   connectToDatabase,
   checkDatabaseHealth,
   withTransaction,
+  withRetry,
+  withRetryAndTransaction,
 } from "./client";
 
 // Common database operations
