@@ -94,7 +94,12 @@ export async function checkDatabaseHealth() {
 
 // Transaction helper with error handling and timeout options
 export async function withTransaction<T>(
-  fn: (tx: typeof prisma) => Promise<T>,
+  fn: (
+    tx: Omit<
+      PrismaClient,
+      "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+    >
+  ) => Promise<T>,
   options?: {
     maxWait?: number; // Max time to wait for transaction to start (ms)
     timeout?: number; // Max time transaction can run (ms)
@@ -202,7 +207,12 @@ function isRetryableError(error: unknown): boolean {
  * Combined retry + transaction wrapper for critical operations
  */
 export async function withRetryAndTransaction<T>(
-  callback: (tx: typeof prisma) => Promise<T>,
+  callback: (
+    tx: Omit<
+      PrismaClient,
+      "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+    >
+  ) => Promise<T>,
   options: {
     maxRetries?: number;
     baseDelay?: number;

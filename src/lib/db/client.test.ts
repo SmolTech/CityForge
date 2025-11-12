@@ -41,14 +41,10 @@ import {
 } from "./client";
 
 // Get mock references
-const { __mocks } = (await import("@prisma/client")) as {
-  __mocks: {
-    mockTransaction: ReturnType<typeof vi.fn>;
-    mockConnect: ReturnType<typeof vi.fn>;
-    mockQueryRaw: ReturnType<typeof vi.fn>;
-  };
-};
-const { mockTransaction, mockConnect, mockQueryRaw } = __mocks;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const prismaModule = (await import("@prisma/client")) as any;
+const { mockTransaction, mockConnect, mockQueryRaw } =
+  prismaModule.__mocks || {};
 
 describe("Database Client", () => {
   beforeEach(() => {
@@ -97,7 +93,9 @@ describe("Database Client", () => {
   describe("withTransaction", () => {
     it("should execute transaction successfully", async () => {
       const mockTx = { card: { create: vi.fn() } };
-      mockTransaction.mockImplementation((cb) => cb(mockTx));
+      mockTransaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb(mockTx)
+      );
 
       const callback = vi.fn().mockResolvedValue("result");
       const result = await withTransaction(callback);
@@ -118,7 +116,9 @@ describe("Database Client", () => {
     });
 
     it("should pass transaction options", async () => {
-      mockTransaction.mockImplementation((cb) => cb({}));
+      mockTransaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb({})
+      );
 
       const callback = vi.fn().mockResolvedValue("result");
       await withTransaction(callback, {
@@ -220,7 +220,7 @@ describe("Database Client", () => {
       // First call fails with retryable error, second succeeds
       mockTransaction
         .mockRejectedValueOnce({ code: "P1001" })
-        .mockImplementation((cb) => cb(mockTx));
+        .mockImplementation((cb: (tx: unknown) => unknown) => cb(mockTx));
 
       const callback = vi.fn().mockResolvedValue("success");
 
@@ -249,7 +249,9 @@ describe("Database Client", () => {
     });
 
     it("should pass transaction timeout options", async () => {
-      mockTransaction.mockImplementation((cb) => cb({}));
+      mockTransaction.mockImplementation((cb: (tx: unknown) => unknown) =>
+        cb({})
+      );
 
       const callback = vi.fn().mockResolvedValue("result");
       await withRetryAndTransaction(callback, {
