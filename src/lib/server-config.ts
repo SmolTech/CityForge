@@ -5,6 +5,7 @@ import {
   FooterConfig,
 } from "./resources";
 import { logger } from "@/lib/logger";
+import { fetchWithTimeout } from "@/lib/utils/fetch-timeout";
 
 export async function loadAppConfig(): Promise<AppConfig> {
   // Default fallback config
@@ -58,7 +59,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
     // Use absolute URL for server-side fetch
     const baseUrl =
       process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/config`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/config`, {
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
 

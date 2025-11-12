@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import SearchResults from "./SearchResults";
+import { fetchWithTimeout } from "@/lib/utils/fetch-timeout";
 
 interface SearchResult {
   id: number;
@@ -62,7 +63,7 @@ export default function SearchInterface() {
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `/api/search?q=${encodeURIComponent(searchQuery.trim())}&page=${page}`
       );
 
