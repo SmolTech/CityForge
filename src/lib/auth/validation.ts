@@ -32,6 +32,12 @@ function validateEmail(email: string): string[] {
     return errors;
   }
 
+  // Length validation (prevent DoS with extremely long emails)
+  if (email.length > 255) {
+    errors.push("Email must not exceed 255 characters");
+    return errors;
+  }
+
   // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
