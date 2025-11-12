@@ -73,10 +73,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       featured: cardData.featured,
       image_url: cardData.imageUrl,
       approved: cardData.approved,
-      created_date:
-        cardData.createdDate?.toISOString() ?? new Date().toISOString(),
-      updated_date:
-        cardData.updatedDate?.toISOString() ?? new Date().toISOString(),
+      created_date: cardData.createdDate?.toISOString(),
+      updated_date: cardData.updatedDate?.toISOString(),
       approved_date: cardData.approvedDate?.toISOString() || null,
       tags: cardData.card_tags.map((ct: any) => ct.tags.name),
     };
@@ -114,7 +112,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         transformedCard.reviews = cardData.reviews.map((review: any) => ({
           rating: review.rating,
           comment: review.comment,
-          created_date: review.createdDate.toISOString(),
+          created_date: review.createdDate?.toISOString(),
           user: review.user
             ? {
                 first_name: review.user.firstName,
@@ -148,7 +146,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         transformedCard.reviews = cardData.reviews.map((review: any) => ({
           rating: review.rating,
           comment: review.comment,
-          created_date: review.createdDate.toISOString(),
+          created_date: review.createdDate?.toISOString(),
           user: review.user
             ? {
                 first_name: review.user.firstName,
@@ -166,14 +164,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
     response.headers.set("Cache-Control", "public, max-age=300");
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Failed to fetch card:", error);
+    console.error("Failed to fetch card - detailed error:", {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+    });
 
     return NextResponse.json(
       {
         error: {
           message: "Failed to fetch card",
           code: 500,
+          details:
+            process.env.NODE_ENV === "development" ? error?.message : undefined,
         },
       },
       { status: 500 }
