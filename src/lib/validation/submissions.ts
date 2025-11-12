@@ -70,6 +70,11 @@ function validatePhoneNumber(value: string): string | null {
 function validateUrl(value: string): string | null {
   if (!value) return null;
 
+  // Length validation (prevent DoS with extremely long URLs)
+  if (value.length > 2000) {
+    return "URL must not exceed 2000 characters";
+  }
+
   if (!value.startsWith("http://") && !value.startsWith("https://")) {
     return "URL must start with http:// or https://";
   }
