@@ -8,7 +8,9 @@
       { "argsIgnorePattern": "^_" }
     ],
     "react-hooks/exhaustive-deps": "warn",
-    "no-console": "warn"
+    "no-console": "off",
+    "no-new": "off",
+    "quotes": "off"
   },
   "ignorePatterns": ["node_modules/", ".expo/", "web-build/", "dist/"]
 }
