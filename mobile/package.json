@@ -13,6 +13,7 @@
     "@react-navigation/bottom-tabs": "^7.5.0",
     "@react-navigation/native": "^7.1.18",
     "@react-navigation/native-stack": "^7.5.1",
+    "eas-cli": "^16.26.0",
     "expo": "^54.0.23",
     "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~3.0.8",
@@ -22,13 +23,13 @@
     "react-native-screens": "~4.16.0"
   },
   "devDependencies": {
+    "@react-native/eslint-config": "^0.75.0",
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2",
-    "eslint": "^8.57.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
     "eslint-config-expo": "^7.0.0",
-    "@react-native/eslint-config": "^0.75.0"
+    "typescript": "~5.9.2"
   },
   "private": true
 }
