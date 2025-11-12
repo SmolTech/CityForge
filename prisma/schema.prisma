@@ -81,6 +81,9 @@ model Card {
   reviews            Review[]
 
   @@index([name], map: "ix_cards_name")
+  @@index([approved], map: "ix_cards_approved")
+  @@index([createdDate], map: "ix_cards_created_date")
+  @@index([approved, createdDate], map: "ix_cards_approved_created_date")
   @@map("cards")
 }
 
@@ -276,6 +279,7 @@ model ForumThread {
   @@index([slug], map: "ix_forum_threads_slug")
   @@index([title], map: "ix_forum_threads_title")
   @@index([updatedDate], map: "ix_forum_threads_updated_date")
+  @@index([categoryId, isPinned, updatedDate], map: "ix_forum_threads_category_pinned_updated")
   @@map("forum_threads")
 }
 
@@ -295,6 +299,8 @@ model ForumPost {
   thread      ForumThread   @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reports     ForumReport[]
 
+  @@index([threadId, createdDate], map: "ix_forum_posts_thread_created")
+  @@index([createdBy], map: "ix_forum_posts_created_by")
   @@map("forum_posts")
 }
 
@@ -456,4 +462,5 @@ model card_tags {
   tags    Tag  @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([card_id, tag_id])
+  @@index([tag_id], map: "ix_card_tags_tag_id")
 }
