@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { loadAppConfig } from "@/lib/server-config";
 import { ToastProvider } from "@/components/shared";
 import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
@@ -18,10 +17,11 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const config = await loadAppConfig();
+  // Use static defaults during build time to avoid database dependency
+  // Dynamic configuration will be handled by the ConfigProvider at runtime
   return {
-    title: config.site.title,
-    description: config.site.description,
+    title: "Community Website",
+    description: "Helping connect people to the resources available to them.",
   };
 }
 

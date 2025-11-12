@@ -10,6 +10,15 @@ export async function GET() {
   try {
     logger.info("Site config API request");
 
+    // During build time, return fallback response immediately
+    // This prevents database connection attempts during Docker builds
+    if (process.env.NODE_ENV !== "production" && !process.env["DATABASE_URL"]) {
+      logger.warn(
+        "Build time detected (no DATABASE_URL), using fallback config"
+      );
+      return getFallbackResponse();
+    }
+
     // Check if database is available first (important for Docker builds)
     const dbHealth = await checkDatabaseHealth();
     if (dbHealth.status !== "healthy") {
