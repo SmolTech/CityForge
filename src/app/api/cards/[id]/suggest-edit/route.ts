@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { submissionQueries, cardQueries } from "@/lib/db/queries";
 import { validateCardModification } from "@/lib/validation/submissions";
-import { logger } from "@/lib/logger";
+import {
+  handleApiError,
+  BadRequestError,
+  NotFoundError,
+  RateLimitError,
+  ValidationError,
+} from "@/lib/errors";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -35,40 +41,19 @@ export const POST = withAuth(
     try {
       // Rate limiting: 10 requests per hour per user
       if (!checkRateLimit(user.id, 10)) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Rate limit exceeded. Please try again later.",
-              code: 429,
-              details: {
-                description: "10 per 1 hour",
-              },
-            },
-          },
-          { status: 429 }
-        );
+        throw new RateLimitError();
       }
 
       // Get card ID from URL parameters
       const cardId = parseInt(context?.params?.id as string);
       if (isNaN(cardId)) {
-        return NextResponse.json(
-          {
-            message: "Invalid card ID",
-          },
-          { status: 400 }
-        );
+        throw new BadRequestError("Invalid card ID");
       }
 
       // Verify the card exists
       const existingCard = await cardQueries.getCardById(cardId);
       if (!existingCard) {
-        return NextResponse.json(
-          {
-            message: "Card not found",
-          },
-          { status: 404 }
-        );
+        throw new NotFoundError("Card");
       }
 
       // Parse request body
@@ -76,21 +61,11 @@ export const POST = withAuth(
       try {
         data = await request.json();
       } catch {
-        return NextResponse.json(
-          {
-            message: "No data provided",
-          },
-          { status: 400 }
-        );
+        throw new BadRequestError("No data provided");
       }
 
       if (!data) {
-        return NextResponse.json(
-          {
-            message: "No data provided",
-          },
-          { status: 400 }
-        );
+        throw new BadRequestError("No data provided");
       }
 
       // Validate input data using card modification validation
@@ -104,23 +79,12 @@ export const POST = withAuth(
           errorMessages[error.field]!.push(error.message);
         });
 
-        return NextResponse.json(
-          {
-            message: "Validation failed",
-            errors: errorMessages,
-          },
-          { status: 400 }
-        );
+        throw new ValidationError("Validation failed", errorMessages);
       }
 
       // At this point, validation.data is guaranteed to exist
       if (!validation.data) {
-        return NextResponse.json(
-          {
-            message: "Validation failed - no data",
-          },
-          { status: 400 }
-        );
+        throw new BadRequestError("Validation failed - no data");
       }
 
       // Create modification suggestion in database
@@ -145,16 +109,7 @@ export const POST = withAuth(
       // Return the modification data directly (already in Flask API format from queries.ts)
       return NextResponse.json(modification, { status: 201 });
     } catch (error) {
-      logger.error("Error creating card modification suggestion:", error);
-      return NextResponse.json(
-        {
-          error: {
-            message: "Internal server error",
-            code: 500,
-          },
-        },
-        { status: 500 }
-      );
+      return handleApiError(error, "POST /api/cards/[id]/suggest-edit");
     }
   }
 );

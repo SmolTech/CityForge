@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validateUserRegistration } from "@/lib/auth/validation";
 import { hashPassword } from "@/lib/auth/password";
 import { generateAccessToken, createAuthResponse } from "@/lib/auth/jwt";
 import { logger } from "@/lib/logger";
+import { handleApiError, ValidationError, ConflictError } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,13 +13,7 @@ export async function POST(request: NextRequest) {
     // Validate input data
     const validation = validateUserRegistration(data);
     if (!validation.valid) {
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          errors: validation.errors,
-        },
-        { status: 400 }
-      );
+      throw new ValidationError("Validation failed", validation.errors);
     }
 
     const { email, password, first_name, last_name } = validation.data!;
@@ -29,10 +24,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { message: "Email already registered" },
-        { status: 400 }
-      );
+      throw new ConflictError("Email already registered");
     }
 
     // Hash password
@@ -89,10 +81,6 @@ export async function POST(request: NextRequest) {
     // Return response with token in body (mobile) and httpOnly cookie (web)
     return createAuthResponse({ user: userResponse }, token, 201);
   } catch (error) {
-    logger.error("Registration error:", error);
-    return NextResponse.json(
-      { message: "Registration failed" },
-      { status: 500 }
-    );
+    return handleApiError(error, "POST /api/auth/register");
   }
 }

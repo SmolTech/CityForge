@@ -3,6 +3,13 @@ import { reviewQueries, cardQueries } from "@/lib/db/queries";
 import { validateReview } from "@/lib/validation/reviews";
 import { withAuth } from "@/lib/auth/middleware";
 import { logger } from "@/lib/logger";
+import {
+  handleApiError,
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+} from "@/lib/errors";
 
 interface RouteContext {
   params: Promise<{
@@ -22,15 +29,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Validate card ID
     if (isNaN(cardId) || cardId <= 0) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Invalid card ID",
-            code: 400,
-          },
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError("Invalid card ID");
     }
 
     // Parse query parameters
@@ -41,15 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Check if card exists
     const card = await cardQueries.getCardById(cardId);
     if (!card) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Card not found",
-            code: 404,
-          },
-        },
-        { status: 404 }
-      );
+      throw new NotFoundError("Card");
     }
 
     // Get reviews with pagination
@@ -66,7 +57,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     ]);
 
     // Transform reviews to match expected API format
-    const transformedReviews = reviewsData.reviews.map((review: any) => ({
+    const transformedReviews = reviewsData.reviews.map((review) => ({
       id: review.id,
       rating: review.rating,
       title: review.title,
@@ -104,17 +95,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return response;
   } catch (error) {
-    logger.error("Failed to fetch card reviews:", error);
-
-    return NextResponse.json(
-      {
-        error: {
-          message: "Failed to fetch reviews",
-          code: 500,
-        },
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, "GET /api/cards/[id]/reviews");
   }
 }
 
@@ -131,29 +112,13 @@ export const POST = withAuth(
 
       // Validate card ID
       if (isNaN(cardId) || cardId <= 0) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Invalid card ID",
-              code: 400,
-            },
-          },
-          { status: 400 }
-        );
+        throw new BadRequestError("Invalid card ID");
       }
 
       // Check if card exists
       const card = await cardQueries.getCardById(cardId);
       if (!card) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Card not found",
-              code: 404,
-            },
-          },
-          { status: 404 }
-        );
+        throw new NotFoundError("Card");
       }
 
       // Check if user already has a review for this card
@@ -162,15 +127,8 @@ export const POST = withAuth(
         cardId
       );
       if (existingReview) {
-        return NextResponse.json(
-          {
-            error: {
-              message:
-                "You have already reviewed this business. Use PUT to update your review.",
-              code: 409,
-            },
-          },
-          { status: 409 }
+        throw new ConflictError(
+          "You have already reviewed this business. Use PUT to update your review."
         );
       }
 
@@ -179,16 +137,7 @@ export const POST = withAuth(
       const validation = validateReview(body);
 
       if (!validation.isValid) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Validation failed",
-              code: 422,
-              details: validation.errors,
-            },
-          },
-          { status: 422 }
-        );
+        throw new ValidationError("Validation failed", validation.errors);
       }
 
       // Create the review
@@ -231,17 +180,7 @@ export const POST = withAuth(
 
       return NextResponse.json(responseData, { status: 201 });
     } catch (error) {
-      logger.error("Failed to create review:", error);
-
-      return NextResponse.json(
-        {
-          error: {
-            message: "Failed to create review",
-            code: 500,
-          },
-        },
-        { status: 500 }
-      );
+      return handleApiError(error, "POST /api/cards/[id]/reviews");
     }
   }
 );

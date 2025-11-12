@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { createLogoutResponse } from "@/lib/auth/jwt";
 import { prisma } from "@/lib/db/client";
 import jwt from "jsonwebtoken";
 import { logger } from "@/lib/logger";
+import { handleApiError, BadRequestError } from "@/lib/errors";
 
 export const POST = withAuth(async (request: NextRequest, { user }) => {
   try {
@@ -23,7 +24,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     }
 
     if (!token) {
-      return NextResponse.json({ message: "No token found" }, { status: 400 });
+      throw new BadRequestError("No token found");
     }
 
     // Decode token to get jti and expiration
@@ -32,15 +33,15 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       throw new Error("JWT_SECRET_KEY environment variable is not set");
     }
 
-    const decoded = jwt.verify(token, jwtSecret) as any;
+    const decoded = jwt.verify(token, jwtSecret) as {
+      jti?: string;
+      exp?: number;
+    };
     const jti = decoded.jti;
     const exp = decoded.exp;
 
     if (!jti || !exp) {
-      return NextResponse.json(
-        { message: "Invalid token format" },
-        { status: 400 }
-      );
+      throw new BadRequestError("Invalid token format");
     }
 
     // Add token to blacklist
@@ -61,7 +62,6 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     // Return response that clears the cookie
     return createLogoutResponse({ message: "Successfully logged out" });
   } catch (error) {
-    logger.error("Logout error:", error);
-    return NextResponse.json({ message: "Logout failed" }, { status: 500 });
+    return handleApiError(error, "POST /api/auth/logout");
   }
 });
