@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { validateForumThread, ForumThreadData } from "@/lib/validation/forums";
 import { generateSlug } from "@/lib/utils/slugs";
+import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 
 /**
  * GET /api/forums/categories/[slug]/threads
@@ -18,9 +19,12 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse pagination parameters
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    // Parse pagination parameters with enforced limits
+    const { limit, offset } = paginationUtils.parseFromSearchParams(
+      searchParams,
+      PAGINATION_LIMITS.FORUM_THREADS_MAX_LIMIT,
+      PAGINATION_LIMITS.FORUM_THREADS_DEFAULT_LIMIT
+    );
 
     logger.info(`Getting threads for category: ${slug}`, {
       limit,

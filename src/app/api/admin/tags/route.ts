@@ -2,14 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
+import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 
 /**
  * GET /api/admin/tags - Get list of all tags with usage counts (admin only)
  */
 export const GET = withAuth(
-  async () => {
+  async (request: NextRequest) => {
     try {
-      // Get all tags with card counts
+      const { searchParams } = new URL(request.url);
+
+      // Parse pagination parameters with enforced limits
+      const { limit, offset } = paginationUtils.parseFromSearchParams(
+        searchParams,
+        PAGINATION_LIMITS.TAGS_MAX_LIMIT,
+        PAGINATION_LIMITS.TAGS_DEFAULT_LIMIT
+      );
+
+      // Get total count
+      const totalCount = await prisma.tag.count();
+
+      // Get tags with card counts
       const tags = await prisma.tag.findMany({
         select: {
           id: true,
@@ -22,6 +35,8 @@ export const GET = withAuth(
           },
         },
         orderBy: { name: "asc" },
+        take: limit,
+        skip: offset,
       });
 
       // Format response to match Flask API
@@ -29,12 +44,14 @@ export const GET = withAuth(
         id: tag.id,
         name: tag.name,
         created_date: tag.createdDate,
-        card_count: tag._count.cards,
+        card_count: tag._count.card_tags,
       }));
 
       return NextResponse.json({
         tags: formattedTags,
-        total: tags.length,
+        total: totalCount,
+        limit,
+        offset,
       });
     } catch (error) {
       logger.error("Error fetching admin tags:", error);
