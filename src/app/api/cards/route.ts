@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -204,11 +205,11 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error("Error fetching cards:", error?.message || "Unknown error");
+    logger.error("Error fetching cards:", error?.message || "Unknown error");
 
     // Only log detailed error information in development
     if (process.env.NODE_ENV === "development") {
-      console.error("Error details:", {
+      logger.error("Error details:", {
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
