@@ -10,6 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { apiClient } from "../api/client";
+import { logger } from "../utils/logger";
 import type { ResourceCategory, ResourceItem } from "../types/api";
 
 export default function ResourcesScreen() {
@@ -68,7 +69,7 @@ export default function ResourcesScreen() {
       const itemsData = await apiClient.getResourceItems(categoryId);
       setItems(itemsData);
     } catch (err) {
-      console.error("Error loading items:", err);
+      logger.error("Error loading items:", err);
     }
   };
 
@@ -80,7 +81,7 @@ export default function ResourcesScreen() {
   const handleItemPress = (url?: string) => {
     if (url) {
       Linking.openURL(url).catch((err) =>
-        console.error("Error opening URL:", err)
+        logger.error("Error opening URL:", err)
       );
     }
   };

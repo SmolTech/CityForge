@@ -3,6 +3,11 @@ import { withAuth } from "@/lib/auth/middleware";
 
 // Test route to verify authentication middleware works
 export const GET = withAuth(async (_request: NextRequest, { user }) => {
+  // Only allow in development environment
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   return NextResponse.json({
     message: "Authentication successful",
     user: {
@@ -18,6 +23,11 @@ export const GET = withAuth(async (_request: NextRequest, { user }) => {
 // Admin-only test route
 export const POST = withAuth(
   async (_request: NextRequest, { user }) => {
+    // Only allow in development environment
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     return NextResponse.json({
       message: "Admin access granted",
       user: {

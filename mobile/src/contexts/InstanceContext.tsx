@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { logger } from "../utils/logger";
 import type { Instance } from "../types/instance";
 import {
   loadInstances,
@@ -79,7 +80,7 @@ export function InstanceProvider({ children }: InstanceProviderProps) {
         await switchInstance(loadedInstances[0].id);
       }
     } catch (error) {
-      console.error("Error loading instance data:", error);
+      logger.error("Error loading instance data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +91,7 @@ export function InstanceProvider({ children }: InstanceProviderProps) {
       const loadedInstances = await loadInstances();
       setInstances(loadedInstances);
     } catch (error) {
-      console.error("Error refreshing instances:", error);
+      logger.error("Error refreshing instances:", error);
     }
   }
 

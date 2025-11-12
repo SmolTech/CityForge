@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useInstance } from "../contexts/InstanceContext";
+import { logger } from "../utils/logger";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -81,7 +82,7 @@ export default function AddInstanceScreen({ navigation }: Props) {
         },
       ]);
     } catch (error) {
-      console.error("Error adding instance:", error);
+      logger.error("Error adding instance:", error);
       Alert.alert(
         "Connection Failed",
         "Could not connect to this instance. Please check the URL and try again."

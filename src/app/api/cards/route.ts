@@ -198,12 +198,17 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error("Error fetching cards:", error);
-    console.error("Error details:", {
-      name: error?.name,
-      message: error?.message,
-      stack: error?.stack,
-    });
+    console.error("Error fetching cards:", error?.message || "Unknown error");
+
+    // Only log detailed error information in development
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      });
+    }
+
     return NextResponse.json(
       {
         error: "Internal server error",

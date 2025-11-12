@@ -4,6 +4,16 @@ import { redactDatabaseUrl } from "@/lib/utils/log-redaction";
 import { logger } from "@/lib/logger";
 
 export async function GET() {
+  // Security check: Only allow in development environment
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        error: "This debug endpoint is not available in production",
+      },
+      { status: 404 }
+    );
+  }
+
   try {
     // Log with redacted database URL
     const databaseUrl = process.env["DATABASE_URL"];
