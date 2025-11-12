@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
+import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 
 // GET /api/forums/categories - Get all active forum categories (public)
 export async function GET(request: NextRequest) {
@@ -9,8 +10,17 @@ export async function GET(request: NextRequest) {
     const includeStats =
       searchParams.get("include_stats")?.toLowerCase() === "true";
 
+    // Add pagination support for security
+    const { limit, offset } = paginationUtils.parseFromSearchParams(
+      searchParams,
+      PAGINATION_LIMITS.FORUM_CATEGORIES_MAX_LIMIT,
+      PAGINATION_LIMITS.FORUM_CATEGORIES_DEFAULT_LIMIT
+    );
+
     logger.info("Fetching forum categories", {
       includeStats,
+      limit,
+      offset,
     });
 
     // First, let's try a simple query to get basic categories
@@ -28,6 +38,8 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      take: limit,
+      skip: offset,
     });
 
     // Transform categories to match Flask API format

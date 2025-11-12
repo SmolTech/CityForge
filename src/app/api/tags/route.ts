@@ -1,14 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { tagQueries } from "@/lib/db/queries";
 import { logger } from "@/lib/logger";
 import { checkDatabaseHealth } from "@/lib/db/client";
+import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 
 // Cache for 5 minutes (300 seconds) to match Flask API
 export const revalidate = 300;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     logger.info("Tags API request");
+
+    // Parse pagination parameters for security
+    const { searchParams } = new URL(request.url);
+    const { limit, offset } = paginationUtils.parseFromSearchParams(
+      searchParams,
+      PAGINATION_LIMITS.TAGS_MAX_LIMIT,
+      PAGINATION_LIMITS.TAGS_DEFAULT_LIMIT
+    );
 
     // Check if database is available first (important for Docker builds)
     const dbHealth = await checkDatabaseHealth();
@@ -25,8 +34,8 @@ export async function GET() {
       });
     }
 
-    // Get all tags with card counts
-    const tags = await tagQueries.getAllTags();
+    // Get all tags with card counts (with pagination)
+    const tags = await tagQueries.getAllTags({ limit, offset });
 
     // Transform data to match Flask API format
     const transformedTags = tags.map((tag: any) => ({
