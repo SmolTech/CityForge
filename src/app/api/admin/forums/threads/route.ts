@@ -61,7 +61,7 @@ export const GET = withAuth(
       });
 
       // Transform to match expected response format
-      const transformedThreads = threads.map((thread) => ({
+      const transformedThreads = threads.map((thread: any) => ({
         id: thread.id,
         title: thread.title,
         slug: thread.slug,

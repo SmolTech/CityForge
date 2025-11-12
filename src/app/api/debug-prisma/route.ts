@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { redactDatabaseUrl } from "@/lib/utils/log-redaction";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
-    console.log("API Route DATABASE_URL:", process.env["DATABASE_URL"]);
+    // Log with redacted database URL
+    const databaseUrl = process.env["DATABASE_URL"];
+    logger.debug(
+      "API Route DATABASE_URL:",
+      databaseUrl ? redactDatabaseUrl(databaseUrl) : "NOT SET"
+    );
 
     // Create a fresh Prisma client to test connection
     const prisma = new PrismaClient({
@@ -15,15 +22,17 @@ export async function GET() {
 
     return NextResponse.json({
       status: "success",
-      databaseUrl: process.env["DATABASE_URL"],
+      databaseUrl: databaseUrl ? redactDatabaseUrl(databaseUrl) : "NOT SET", // Return redacted URL
       connectionTest: "success",
       result,
     });
   } catch (error) {
-    console.error("API Route Error:", error);
+    logger.error("API Route Error:", error);
+    const databaseUrl = process.env["DATABASE_URL"];
+
     return NextResponse.json({
       status: "error",
-      databaseUrl: process.env["DATABASE_URL"],
+      databaseUrl: databaseUrl ? redactDatabaseUrl(databaseUrl) : "NOT SET", // Return redacted URL
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

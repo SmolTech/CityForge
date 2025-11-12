@@ -86,7 +86,7 @@ export const POST = withAuth(
       }
 
       // Create the category and update the request in a transaction
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         // Create the forum category
         const category = await tx.forumCategory.create({
           data: {

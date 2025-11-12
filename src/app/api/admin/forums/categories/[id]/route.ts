@@ -335,7 +335,7 @@ export const DELETE = withAuth(
       }
 
       // Use transaction to delete category and all related data
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // First, delete all posts in threads of this category
         await tx.forumPost.deleteMany({
           where: {

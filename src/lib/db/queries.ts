@@ -1,4 +1,5 @@
 import { prisma } from "./client";
+import { logger } from "../logger";
 
 // Card-related queries
 export const cardQueries = {
@@ -194,7 +195,7 @@ export const cardQueries = {
 
       return transformedCard;
     } catch (error) {
-      console.error("Error in getCardById:", error);
+      logger.error("Error in getCardById:", error);
       throw error;
     }
   },
@@ -457,7 +458,7 @@ export const reviewQueries = {
 
     // Convert to array format expected by frontend (5 elements for ratings 1-5)
     const result = Array(5).fill(0);
-    distribution.forEach((item) => {
+    distribution.forEach((item: any) => {
       if (item.rating >= 1 && item.rating <= 5) {
         result[item.rating - 1] = item._count.rating;
       }

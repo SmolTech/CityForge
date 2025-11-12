@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkDatabaseHealth } from "@/lib/db/client";
+import { redactDatabaseUrl } from "@/lib/utils/log-redaction";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/health
@@ -7,19 +9,24 @@ import { checkDatabaseHealth } from "@/lib/db/client";
  */
 export async function GET() {
   try {
-    // Debug environment variables
-    console.log("=== HEALTH CHECK DEBUG ===");
-    console.log("NODE_ENV:", process.env["NODE_ENV"]);
-    console.log("DATABASE_URL from env:", process.env["DATABASE_URL"]);
-    console.log("POSTGRES_USER:", process.env["POSTGRES_USER"]);
-    console.log(
+    // Debug environment variables with secure logging
+    logger.debug("=== HEALTH CHECK DEBUG ===");
+    logger.debug("NODE_ENV:", process.env["NODE_ENV"]);
+    logger.debug(
+      "DATABASE_URL from env:",
+      process.env["DATABASE_URL"]
+        ? redactDatabaseUrl(process.env["DATABASE_URL"])
+        : "NOT SET"
+    );
+    logger.debug("POSTGRES_USER:", process.env["POSTGRES_USER"]);
+    logger.debug(
       "POSTGRES_PASSWORD:",
       process.env["POSTGRES_PASSWORD"] ? "***SET***" : "***NOT SET***"
     );
-    console.log("POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
-    console.log("POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
-    console.log("POSTGRES_DB:", process.env["POSTGRES_DB"]);
-    console.log(
+    logger.debug("POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
+    logger.debug("POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
+    logger.debug("POSTGRES_DB:", process.env["POSTGRES_DB"]);
+    logger.debug(
       "All env keys:",
       Object.keys(process.env).filter(
         (k) => k.includes("DATABASE") || k.includes("POSTGRES")
@@ -31,9 +38,9 @@ export async function GET() {
     const host = process.env["POSTGRES_HOST"] || "cityforge-db";
     const port = process.env["POSTGRES_PORT"] || "5432";
     const database = process.env["POSTGRES_DB"] || "cityforge";
-    const constructedUrl = `postgresql://${user}:***@${host}:${port}/${database}`;
+    const constructedUrl = `postgresql://${user}:***REDACTED***@${host}:${port}/${database}`;
 
-    console.log("Constructed DATABASE_URL:", constructedUrl);
+    logger.debug("Constructed DATABASE_URL:", constructedUrl);
 
     // Use the shared database client with explicit URL configuration
     const healthCheck = await checkDatabaseHealth();
@@ -47,7 +54,7 @@ export async function GET() {
             database: "connected",
             server: "running",
           },
-          databaseUrl: constructedUrl,
+          databaseUrl: constructedUrl, // Already redacted
         },
         {
           status: 200,
@@ -60,6 +67,11 @@ export async function GET() {
       throw new Error(healthCheck.error);
     }
   } catch (error) {
+    // Safely handle potentially sensitive error data
+    const sanitizedDatabaseUrl = process.env["DATABASE_URL"]
+      ? redactDatabaseUrl(process.env["DATABASE_URL"]).substring(0, 50) + "..."
+      : "not_set";
+
     return NextResponse.json(
       {
         status: "error",
@@ -68,8 +80,7 @@ export async function GET() {
           database: "disconnected",
           server: "running",
         },
-        databaseUrl:
-          (process.env["DATABASE_URL"] || "not_set").substring(0, 50) + "...",
+        databaseUrl: sanitizedDatabaseUrl,
         error: error instanceof Error ? error.message : "Unknown error",
       },
       {

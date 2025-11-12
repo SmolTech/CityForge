@@ -166,11 +166,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return response;
   } catch (error: any) {
     logger.error("Failed to fetch card:", error);
-    console.error("Failed to fetch card - detailed error:", {
-      name: error?.name,
-      message: error?.message,
-      stack: error?.stack,
-    });
 
     return NextResponse.json(
       {

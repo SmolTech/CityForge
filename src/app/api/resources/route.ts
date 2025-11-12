@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resourceQueries } from "@/lib/db/queries";
+import { logger } from "@/lib/logger";
 
 /**
  * Get complete resources page data in format expected by frontend
@@ -28,7 +29,7 @@ export async function GET() {
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {
-    console.error("Error getting complete resources data:", error);
+    logger.error("Error getting complete resources data:", error);
     return NextResponse.json(
       { error: "Failed to load resources data" },
       { status: 500 }

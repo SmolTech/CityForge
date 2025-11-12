@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resourceQueries } from "@/lib/db/queries";
+import { logger } from "@/lib/logger";
 
 /**
  * Get resource items, optionally filtered by category
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {
-    console.error("Error getting resource items:", error);
+    logger.error("Error getting resource items:", error);
     return NextResponse.json(
       { error: "Failed to load resource items" },
       { status: 500 }

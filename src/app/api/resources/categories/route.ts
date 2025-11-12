@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resourceQueries } from "@/lib/db/queries";
+import { logger } from "@/lib/logger";
 
 /**
  * Get unique categories from resource items
@@ -14,7 +15,7 @@ export async function GET() {
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {
-    console.error("Error getting resource categories:", error);
+    logger.error("Error getting resource categories:", error);
     return NextResponse.json(
       { error: "Failed to load resource categories" },
       { status: 500 }

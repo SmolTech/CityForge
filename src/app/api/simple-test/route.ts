@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
-    console.log("Simple test endpoint called");
+    logger.info("Simple test endpoint called");
     return NextResponse.json({ status: "ok", message: "Simple test works" });
   } catch (error) {
-    console.error("Simple test error:", error);
+    logger.error("Simple test error:", error);
     return NextResponse.json(
       {
         status: "error",
