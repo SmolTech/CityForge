@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CityForge",
-    "slug": "cityforge-mobile",
+    "slug": "cityforge",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +20,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to upload business photos.",
-        "NSPhotoLibraryUsageDescription": "This app accesses your photos to upload business images."
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to upload business images.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -54,9 +55,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_PROJECT_ID_HERE"
+        "projectId": "b520fd21-48de-405b-8a48-d2a27351beea"
       }
     },
-    "owner": "YOUR_EXPO_USERNAME_HERE"
+    "owner": "smoltechs-organization"
   }
 }
