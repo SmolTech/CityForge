@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,13 @@ export async function GET(request: NextRequest) {
       searchParams.get("share_urls")?.toLowerCase() === "true";
     const includeRatings =
       searchParams.get("ratings")?.toLowerCase() === "true";
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const offset = parseInt(searchParams.get("offset") || "0");
+
+    // Enforce query limits to prevent resource exhaustion
+    const { limit, offset } = paginationUtils.parseFromSearchParams(
+      searchParams,
+      PAGINATION_LIMITS.CARDS_MAX_LIMIT,
+      PAGINATION_LIMITS.CARDS_DEFAULT_LIMIT
+    );
 
     // Build where clause for filtering
     const where: any = {
