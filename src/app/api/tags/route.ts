@@ -3,6 +3,7 @@ import { tagQueries } from "@/lib/db/queries";
 import { logger } from "@/lib/logger";
 import { checkDatabaseHealth } from "@/lib/db/client";
 import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
+import { handleApiError } from "@/lib/errors";
 
 // Cache for 5 minutes (300 seconds) to match Flask API
 export const revalidate = 300;
@@ -53,16 +54,6 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    logger.error("Failed to fetch tags:", error);
-
-    return NextResponse.json(
-      {
-        error: {
-          message: "Failed to fetch tags",
-          code: 500,
-        },
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, "GET /api/tags");
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@opensearch-project/opensearch";
-import { logger } from "@/lib/logger";
+import { handleApiError, BadRequestError } from "@/lib/errors";
 
 // Rate limiting could be added here similar to other endpoints
 // For now, we'll implement the core search functionality
@@ -66,10 +66,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const query = searchParams.get("q")?.trim();
 
     if (!query) {
-      return NextResponse.json(
-        { error: "Query parameter q is required" },
-        { status: 400 }
-      );
+      throw new BadRequestError("Query parameter q is required");
     }
 
     const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
@@ -184,21 +181,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       headers: responseHeaders,
     });
   } catch (error) {
-    logger.error("Search error:", error);
-
-    // Return error response matching Flask format
-    const errorResponse: SearchResponse = {
-      query: "",
-      total: 0,
-      page: 1,
-      size: 20,
-      total_pages: 0,
-      has_next: false,
-      has_prev: false,
-      results: [],
-      error: error instanceof Error ? error.message : "Search failed",
-    };
-
-    return NextResponse.json(errorResponse, { status: 500 });
+    return handleApiError(error, "GET /api/search");
   }
 }
