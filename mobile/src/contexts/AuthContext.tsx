@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { apiClient } from "../api/client";
+import { logger } from "../utils/logger";
 import type { LoginRequest, RegisterRequest } from "../types/api";
 import type { User } from "../types/instance";
 import { useInstance } from "./InstanceContext";
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await updateUser(activeInstance.id, userData);
       }
     } catch (error) {
-      console.error("Auth check error:", error);
+      logger.error("Auth check error:", error);
       await updateToken(activeInstance.id, null);
       await updateUser(activeInstance.id, null);
       setUser(null);
@@ -129,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       await updateUser(activeInstance.id, userData);
     } catch (error) {
-      console.error("Error refreshing user:", error);
+      logger.error("Error refreshing user:", error);
       setUser(null);
       await updateToken(activeInstance.id, null);
       await updateUser(activeInstance.id, null);

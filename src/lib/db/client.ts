@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { redactDatabaseUrl } from "../utils/log-redaction";
+import { logger } from "../logger";
 
 // Global variable to store the Prisma client instance
 // This prevents multiple instances during development hot reloading
@@ -9,18 +11,18 @@ declare global {
 // Build DATABASE_URL from individual components if not provided
 function getDatabaseUrl(): string {
   // Debug: Log when getDatabaseUrl is called and what values it sees
-  console.log("[getDatabaseUrl] Called at:", new Date().toISOString());
-  console.log("[getDatabaseUrl] POSTGRES_USER:", process.env["POSTGRES_USER"]);
-  console.log(
+  logger.debug("[getDatabaseUrl] Called at:", new Date().toISOString());
+  logger.debug("[getDatabaseUrl] POSTGRES_USER:", process.env["POSTGRES_USER"]);
+  logger.debug(
     "[getDatabaseUrl] POSTGRES_PASSWORD:",
     process.env["POSTGRES_PASSWORD"] ? "***SET***" : "***NOT SET***"
   );
-  console.log("[getDatabaseUrl] POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
-  console.log("[getDatabaseUrl] POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
-  console.log("[getDatabaseUrl] POSTGRES_DB:", process.env["POSTGRES_DB"]);
+  logger.debug("[getDatabaseUrl] POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
+  logger.debug("[getDatabaseUrl] POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
+  logger.debug("[getDatabaseUrl] POSTGRES_DB:", process.env["POSTGRES_DB"]);
 
   if (process.env["DATABASE_URL"]) {
-    console.log("[getDatabaseUrl] Using DATABASE_URL from environment");
+    logger.debug("[getDatabaseUrl] Using DATABASE_URL from environment");
     return process.env["DATABASE_URL"];
   }
 
@@ -35,9 +37,9 @@ function getDatabaseUrl(): string {
   const database = process.env["POSTGRES_DB"] || "cityforge";
 
   const url = `postgresql://${user}:${password}@${host}:${port}/${database}`;
-  console.log(
-    `[getDatabaseUrl] Constructed URL: postgresql://${user}:***@${host}:${port}/${database}`
-  );
+
+  // Log the constructed URL with redacted credentials
+  logger.debug("[getDatabaseUrl] Constructed URL:", redactDatabaseUrl(url));
 
   return url;
 }
@@ -74,10 +76,10 @@ export default prisma;
 export async function connectToDatabase() {
   try {
     await prisma.$connect();
-    console.log("✅ Database connected successfully");
+    logger.info("✅ Database connected successfully");
     return true;
   } catch (error) {
-    console.error("❌ Database connection failed:", error);
+    logger.error("❌ Database connection failed:", error);
     return false;
   }
 }

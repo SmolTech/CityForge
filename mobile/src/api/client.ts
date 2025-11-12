@@ -1,4 +1,5 @@
 import { tokenStorage } from "../utils/tokenStorage";
+import { logger } from "../utils/logger";
 import type {
   User,
   Card,
@@ -123,7 +124,7 @@ class ApiClient {
       await this.request("/api/auth/logout", { method: "POST" });
     } catch (error) {
       // Even if logout fails, remove token locally
-      console.error("Logout error:", error);
+      logger.error("Logout error:", error);
     } finally {
       await tokenStorage.removeToken();
     }
