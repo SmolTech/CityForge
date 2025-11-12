@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
@@ -162,7 +163,7 @@ export async function GET(
 
     return response;
   } catch (error) {
-    console.error("Error fetching business:", error);
+    logger.error("Error fetching business:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

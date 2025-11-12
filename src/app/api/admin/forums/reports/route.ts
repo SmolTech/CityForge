@@ -86,7 +86,7 @@ export const GET = withAuth(
       });
 
       // Transform to match expected response format
-      const transformedReports = reports.map((report) => ({
+      const transformedReports = reports.map((report: any) => ({
         id: report.id,
         reason: report.reason,
         details: report.details,

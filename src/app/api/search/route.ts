@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@opensearch-project/opensearch";
+import { logger } from "@/lib/logger";
 
 // Rate limiting could be added here similar to other endpoints
 // For now, we'll implement the core search functionality
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("Search error:", error);
+    logger.error("Search error:", error);
 
     // Return error response matching Flask format
     const errorResponse: SearchResponse = {

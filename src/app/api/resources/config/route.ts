@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resourceQueries } from "@/lib/db/queries";
+import { logger } from "@/lib/logger";
 
 /**
  * Get the resources page configuration including title, description, footer, and site info from database
@@ -14,7 +15,7 @@ export async function GET() {
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {
-    console.error("Error getting resources config:", error);
+    logger.error("Error getting resources config:", error);
     return NextResponse.json(
       { error: "Failed to load resources configuration" },
       { status: 500 }

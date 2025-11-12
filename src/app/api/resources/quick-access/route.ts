@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resourceQueries } from "@/lib/db/queries";
+import { logger } from "@/lib/logger";
 
 /**
  * Get quick access items for resources page
@@ -14,7 +15,7 @@ export async function GET() {
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {
-    console.error("Error getting quick access items:", error);
+    logger.error("Error getting quick access items:", error);
     return NextResponse.json(
       { error: "Failed to load quick access items" },
       { status: 500 }

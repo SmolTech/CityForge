@@ -13,7 +13,7 @@ export const GET = withAuth(
         orderBy: { key: "asc" },
       });
 
-      const formattedConfigs = configs.map((config) => ({
+      const formattedConfigs = configs.map((config: any) => ({
         id: config.id,
         key: config.key,
         value: config.value,

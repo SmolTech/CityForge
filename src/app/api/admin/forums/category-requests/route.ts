@@ -59,7 +59,7 @@ export const GET = withAuth(
       });
 
       // Transform to match expected response format
-      const transformedRequests = requests.map((request) => ({
+      const transformedRequests = requests.map((request: any) => ({
         id: request.id,
         name: request.name,
         description: request.description,
