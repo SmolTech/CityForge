@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import { logger } from "./logger";
 import type { Instance } from "../types/instance";
 
 const INSTANCES_KEY = "cityforge_instances";
@@ -30,7 +31,7 @@ export async function loadInstances(): Promise<Instance[]> {
 
     return instancesWithTokens;
   } catch (error) {
-    console.error("Error loading instances:", error);
+    logger.error("Error loading instances:", error);
     return [];
   }
 }
@@ -68,7 +69,7 @@ export async function saveInstances(instances: Instance[]): Promise<void> {
       })
     );
   } catch (error) {
-    console.error("Error saving instances:", error);
+    logger.error("Error saving instances:", error);
     throw error;
   }
 }
@@ -80,7 +81,7 @@ export async function getActiveInstanceId(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(ACTIVE_INSTANCE_KEY);
   } catch (error) {
-    console.error("Error getting active instance:", error);
+    logger.error("Error getting active instance:", error);
     return null;
   }
 }
@@ -98,7 +99,7 @@ export async function setActiveInstanceId(
       await AsyncStorage.removeItem(ACTIVE_INSTANCE_KEY);
     }
   } catch (error) {
-    console.error("Error setting active instance:", error);
+    logger.error("Error setting active instance:", error);
     throw error;
   }
 }

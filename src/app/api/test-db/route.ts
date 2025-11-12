@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { cardQueries } from "@/lib/db/queries";
 
 export async function GET() {
+  // Security check: Only allow in development environment
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        error: "This test endpoint is not available in production",
+      },
+      { status: 404 }
+    );
+  }
+
   try {
     // Test the cardQueries helper function
     const card = await cardQueries.getCardById(1, false, false);
@@ -17,7 +27,10 @@ export async function GET() {
       {
         success: false,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
+        // Remove stack trace in production-like scenarios
+        ...(process.env.NODE_ENV === "development" && {
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
       },
       { status: 500 }
     );

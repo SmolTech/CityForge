@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { useInstance } from "../contexts/InstanceContext";
+import { logger } from "../utils/logger";
 import type { Instance } from "../types/instance";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../types/navigation";
@@ -23,7 +24,7 @@ export default function InstanceManagerScreen({ navigation }: Props) {
       await switchInstance(instanceId);
       navigation.goBack();
     } catch (error) {
-      console.error("Error switching instance:", error);
+      logger.error("Error switching instance:", error);
       Alert.alert("Error", "Failed to switch instance");
     }
   };
@@ -41,7 +42,7 @@ export default function InstanceManagerScreen({ navigation }: Props) {
             try {
               await removeInstance(instance.id);
             } catch (error) {
-              console.error("Error removing instance:", error);
+              logger.error("Error removing instance:", error);
               Alert.alert("Error", "Failed to remove instance");
             }
           },

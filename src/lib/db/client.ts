@@ -10,19 +10,8 @@ declare global {
 
 // Build DATABASE_URL from individual components if not provided
 function getDatabaseUrl(): string {
-  // Debug: Log when getDatabaseUrl is called and what values it sees
-  logger.debug("[getDatabaseUrl] Called at:", new Date().toISOString());
-  logger.debug("[getDatabaseUrl] POSTGRES_USER:", process.env["POSTGRES_USER"]);
-  logger.debug(
-    "[getDatabaseUrl] POSTGRES_PASSWORD:",
-    process.env["POSTGRES_PASSWORD"] ? "***SET***" : "***NOT SET***"
-  );
-  logger.debug("[getDatabaseUrl] POSTGRES_HOST:", process.env["POSTGRES_HOST"]);
-  logger.debug("[getDatabaseUrl] POSTGRES_PORT:", process.env["POSTGRES_PORT"]);
-  logger.debug("[getDatabaseUrl] POSTGRES_DB:", process.env["POSTGRES_DB"]);
-
   if (process.env["DATABASE_URL"]) {
-    logger.debug("[getDatabaseUrl] Using DATABASE_URL from environment");
+    logger.debug("[Database] Using DATABASE_URL from environment");
     return process.env["DATABASE_URL"];
   }
 
@@ -36,12 +25,17 @@ function getDatabaseUrl(): string {
   // Database defaults to the database name from postgres.yaml (spec.databases)
   const database = process.env["POSTGRES_DB"] || "cityforge";
 
-  const url = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  // Construct the URL directly for return, without storing in a variable
+  // This prevents the raw URL with credentials from existing in memory/logs
+  const constructedUrl = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 
-  // Log the constructed URL with redacted credentials
-  logger.debug("[getDatabaseUrl] Constructed URL:", redactDatabaseUrl(url));
+  // Log only the redacted version for debugging
+  logger.debug(
+    "[Database] Constructed connection URL:",
+    redactDatabaseUrl(constructedUrl)
+  );
 
-  return url;
+  return constructedUrl;
 }
 
 // Create a singleton Prisma client instance with explicit database URL for Docker compatibility

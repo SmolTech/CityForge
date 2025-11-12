@@ -10,6 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { apiClient } from "../api/client";
+import { logger } from "../utils/logger";
 import type { SearchResult } from "../types/api";
 
 export default function SearchScreen() {
@@ -30,7 +31,7 @@ export default function SearchScreen() {
       const searchResults = await apiClient.search(query);
       setResults(searchResults);
     } catch (error) {
-      console.error("Search error:", error);
+      logger.error("Search error:", error);
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -39,7 +40,7 @@ export default function SearchScreen() {
 
   const handleResultPress = (url: string) => {
     Linking.openURL(url).catch((err) =>
-      console.error("Error opening URL:", err)
+      logger.error("Error opening URL:", err)
     );
   };
 

@@ -3,8 +3,19 @@ import { NextResponse } from "next/server";
 /**
  * GET /api/debug-env
  * Debug endpoint to check environment variables in API routes
+ * SECURITY: Only accessible in development environment
  */
 export async function GET() {
+  // Security check: Only allow in development environment
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        error: "This debug endpoint is not available in production",
+      },
+      { status: 404 }
+    );
+  }
+
   // Build DATABASE_URL for display (masking password)
   const user = process.env["POSTGRES_USER"] || "postgres";
   const host = process.env["POSTGRES_HOST"] || "postgres";
