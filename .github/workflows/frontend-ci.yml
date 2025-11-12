@@ -1,0 +1,207 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "next.config.ts"
+      - "tailwind.config.ts"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "next.config.ts"
+      - "tailwind.config.ts"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  quality-checks:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            .next/cache
+            node_modules/.cache
+          key: ${{ runner.os }}-frontend-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint check
+        run: npm run lint
+
+      - name: Prettier formatting check
+        run: npm run format:check
+
+      - name: Security Tests - Log Redaction
+        run: npm run test:run -- src/lib/utils/log-redaction.test.ts
+        env:
+          NODE_ENV: test
+
+      - name: Run all tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test
+
+      - name: Test Next.js build
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: "http://localhost:5000"
+
+      - name: Security scan with Semgrep
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f .venv/bin/semgrep ]; then
+            npm run semgrep:ci
+          else
+            echo "Semgrep not installed, skipping security scan"
+          fi
+
+  security-validation:
+    name: Security Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate log redaction functionality
+        run: |
+          echo "🔍 Testing log redaction with sample sensitive data..."
+          node -e "
+          const { redactSensitiveData } = require('./src/lib/utils/log-redaction.js');
+          const testData = [
+            'postgresql://user:secret@localhost:5432/db',
+            'password: mysecret123',
+            'Bearer eyJhbGciOiJIUzI1NiJ9.test.signature',
+            'api_key: sk-1234567890abcdef'
+          ];
+
+          let allPassed = true;
+          testData.forEach((data, i) => {
+            const redacted = redactSensitiveData(data);
+            const isRedacted = redacted.includes('***REDACTED***') || redacted !== data;
+            console.log(\`Test \${i+1}: \${isRedacted ? '✅ PASS' : '❌ FAIL'} - \${data.substring(0, 30)}...\`);
+            if (!isRedacted) allPassed = false;
+          });
+
+          if (!allPassed) {
+            console.error('❌ Security validation failed - sensitive data not properly redacted');
+            process.exit(1);
+          } else {
+            console.log('✅ All security validations passed');
+          }
+          "
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "🔍 Scanning for potential hardcoded secrets..."
+
+          # Check for common secret patterns
+          if grep -r -E "(password|secret|key|token).*=.*['\"][^'\"]{8,}['\"]" src/ --exclude-dir=node_modules --exclude="*.test.*" --exclude="*.spec.*"; then
+            echo "❌ Potential hardcoded secrets found"
+            exit 1
+          fi
+
+          # Check for database URLs with credentials
+          if grep -r -E "(postgres|mysql|mongodb)://[^:]+:[^@]+@" src/ --exclude-dir=node_modules --exclude="*.test.*" --exclude="*.spec.*"; then
+            echo "❌ Database URLs with credentials found"
+            exit 1
+          fi
+
+          echo "✅ No hardcoded secrets detected"
+
+  dependency-check:
+    name: Dependency Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "🔍 Running npm security audit..."
+          npm audit --audit-level=moderate
+
+      - name: Check for known vulnerabilities
+        continue-on-error: true
+        run: |
+          echo "🔍 Checking for known vulnerabilities..."
+          npm audit --audit-level=high --dry-run
+
+  status-check:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [quality-checks, security-validation, dependency-check]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "Quality Checks: ${{ needs.quality-checks.result }}"
+          echo "Security Validation: ${{ needs.security-validation.result }}"
+          echo "Dependency Check: ${{ needs.dependency-check.result }}"
+
+          if [[ "${{ needs.quality-checks.result }}" == "failure" || "${{ needs.security-validation.result }}" == "failure" ]]; then
+            echo "❌ Critical checks failed"
+            exit 1
+          elif [[ "${{ needs.dependency-check.result }}" == "failure" ]]; then
+            echo "⚠️  Dependency check failed, but allowing CI to continue"
+            echo "Please review dependency vulnerabilities"
+          else
+            echo "✅ All checks passed"
+          fi
