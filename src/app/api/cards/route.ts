@@ -41,11 +41,13 @@ export async function GET(request: NextRequest) {
     if (tags.length > 0) {
       if (tagMode === "or") {
         // OR logic: card must have at least one of the selected tags
-        where.tags = {
+        where.card_tags = {
           some: {
-            name: {
-              in: tags.map((tag) => tag.toLowerCase()),
-              mode: "insensitive",
+            tags: {
+              name: {
+                in: tags.map((tag) => tag.toLowerCase()),
+                mode: "insensitive",
+              },
             },
           },
         };
@@ -128,8 +130,8 @@ export async function GET(request: NextRequest) {
         featured: card.featured,
         image_url: card.imageUrl,
         approved: card.approved,
-        created_date: card.createdDate.toISOString(),
-        updated_date: card.updatedDate.toISOString(),
+        created_date: card.createdDate?.toISOString(),
+        updated_date: card.updatedDate?.toISOString(),
         approved_date: card.approvedDate?.toISOString(),
         tags: card.card_tags.map((ct: any) => ct.tags.name),
       };
@@ -195,10 +197,19 @@ export async function GET(request: NextRequest) {
     response.headers.set("Cache-Control", "public, max-age=60");
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching cards:", error);
+    console.error("Error details:", {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+    });
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
+      },
       { status: 500 }
     );
   }
