@@ -217,10 +217,13 @@ export const cardQueries = {
 // Tag-related queries
 export const tagQueries = {
   /**
-   * Get all tags with card counts
+   * Get all tags with usage counts
    */
-  async getAllTags() {
+  async getAllTags(options: { limit?: number; offset?: number } = {}) {
+    const { limit = 100, offset = 0 } = options;
     return await prisma.tag.findMany({
+      take: limit,
+      skip: offset,
       orderBy: { name: "asc" },
       include: {
         _count: {
@@ -473,7 +476,10 @@ export const resourceQueries = {
   /**
    * Get all resource categories with items
    */
-  async getResourceCategories() {
+  async getResourceCategories(
+    options: { limit?: number; offset?: number } = {}
+  ) {
+    const { limit = 50, offset = 0 } = options;
     return await prisma.resourceCategory.findMany({
       include: {
         resourceItems: {
@@ -482,16 +488,21 @@ export const resourceQueries = {
         },
       },
       orderBy: { displayOrder: "asc" },
+      take: limit,
+      skip: offset,
     });
   },
 
   /**
    * Get quick access items (matches Flask API)
    */
-  async getQuickAccessItems() {
+  async getQuickAccessItems(options: { limit?: number; offset?: number } = {}) {
+    const { limit = 25, offset = 0 } = options;
     const items = await prisma.quickAccessItem.findMany({
       where: { isActive: true },
       orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+      take: limit,
+      skip: offset,
     });
 
     // Transform to match Flask API format (to_dict method)
@@ -512,7 +523,11 @@ export const resourceQueries = {
   /**
    * Get resource items (matches Flask API)
    */
-  async getResourceItems(category?: string) {
+  async getResourceItems(
+    category?: string,
+    options: { limit?: number; offset?: number } = {}
+  ) {
+    const { limit = 200, offset = 0 } = options;
     const where = {
       isActive: true,
       ...(category && { category }),
@@ -521,6 +536,8 @@ export const resourceQueries = {
     const items = await prisma.resourceItem.findMany({
       where,
       orderBy: [{ category: "asc" }, { displayOrder: "asc" }, { title: "asc" }],
+      take: limit,
+      skip: offset,
     });
 
     // Transform to match Flask API format (to_dict method)
@@ -544,12 +561,14 @@ export const resourceQueries = {
   /**
    * Get unique resource categories (matches Flask API)
    */
-  async getResourceCategoryList() {
+  async getResourceCategoryList(options: { limit?: number } = {}) {
+    const { limit = 50 } = options;
     const result = await prisma.resourceItem.findMany({
       where: { isActive: true },
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },
+      take: limit,
     });
 
     return result.map((item: any) => item.category).filter(Boolean);
