@@ -8,7 +8,7 @@
 /**
  * Redact sensitive data patterns from log messages
  */
-function redactValue(value: any): any {
+function redactValue(value: unknown): unknown {
   if (value === null || value === undefined) {
     return value;
   }
@@ -23,7 +23,7 @@ function redactValue(value: any): any {
     }
 
     // Redact object properties
-    const redacted: any = {};
+    const redacted: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
       const lowerKey = key.toLowerCase();
 
@@ -87,24 +87,24 @@ function redactString(str: string): string {
  * Safe logger that redacts sensitive information
  */
 export const logger = {
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (__DEV__) {
       console.info(...args.map(redactValue));
     }
   },
 
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (__DEV__) {
       console.warn(...args.map(redactValue));
     }
   },
 
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     // Always log errors, but redact sensitive data
     console.error(...args.map(redactValue));
   },
 
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (__DEV__) {
       console.debug(...args.map(redactValue));
     }
@@ -114,20 +114,20 @@ export const logger = {
    * Raw logging without redaction (use only when certain no sensitive data is present)
    */
   raw: {
-    info: (...args: any[]) => {
+    info: (...args: unknown[]) => {
       if (__DEV__) {
         console.info(...args);
       }
     },
-    warn: (...args: any[]) => {
+    warn: (...args: unknown[]) => {
       if (__DEV__) {
         console.warn(...args);
       }
     },
-    error: (...args: any[]) => {
+    error: (...args: unknown[]) => {
       console.error(...args);
     },
-    debug: (...args: any[]) => {
+    debug: (...args: unknown[]) => {
       if (__DEV__) {
         console.debug(...args);
       }

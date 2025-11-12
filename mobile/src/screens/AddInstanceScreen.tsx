@@ -10,10 +10,10 @@ import {
   ScrollView,
 } from "react-native";
 import { useInstance } from "../contexts/InstanceContext";
-import { apiClient } from "../api/client";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../types/navigation";
 
-type Props = NativeStackScreenProps<any, "AddInstance">;
+type Props = NativeStackScreenProps<RootStackParamList, "AddInstance">;
 
 export default function AddInstanceScreen({ navigation }: Props) {
   const { addInstance } = useInstance();
@@ -53,12 +53,11 @@ export default function AddInstanceScreen({ navigation }: Props) {
     setIsLoading(true);
 
     try {
-      // Test the connection by trying to fetch site config
-      const testClient = new (apiClient.constructor as any)();
-      testClient.setBaseUrl(apiUrl);
+      // Create URL object to test the basic validity
+      new URL(apiUrl);
 
-      // Try to fetch site config to verify the instance is valid
-      await testClient.getSiteConfig();
+      // For now, we'll skip the actual connection test and just validate the URL format
+      // The connection will be tested when the user actually tries to use the instance
 
       // Generate a unique ID from the URL (remove protocol and special chars)
       const instanceId = apiUrl

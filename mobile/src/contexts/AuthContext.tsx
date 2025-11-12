@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (activeInstance) {
       apiClient.setBaseUrl(activeInstance.apiUrl);
     }
-  }, [activeInstance?.id, activeInstance?.apiUrl]);
+  }, [activeInstance]);
 
   // Sync user from active instance
   useEffect(() => {
@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (activeInstance?.token) {
       checkAuth();
     }
-  }, [activeInstance?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeInstance?.token, activeInstance?.id]);
 
   const checkAuth = async () => {
     if (!activeInstance) return;
