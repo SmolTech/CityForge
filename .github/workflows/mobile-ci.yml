@@ -50,7 +50,7 @@ jobs:
 
       - name: Lint check
         working-directory: mobile
-        run: npx expo lint
+        run: npx eslint . --config .eslintrc.json --ext .js,.jsx,.ts,.tsx
 
   # Uncomment if you set up Expo EAS builds
   # build-preview:
