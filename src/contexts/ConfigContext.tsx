@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AppConfig } from "@/lib/resources";
 import { logger } from "@/lib/logger";
+import { fetchWithTimeout } from "@/lib/utils/fetch-timeout";
 
 const ConfigContext = createContext<AppConfig | null>(null);
 
@@ -13,7 +14,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     // Load config once on mount
     async function loadConfig() {
       try {
-        const response = await fetch("/api/config");
+        const response = await fetchWithTimeout("/api/config");
         if (!response.ok) {
           throw new Error(`Failed to fetch config: ${response.status}`);
         }

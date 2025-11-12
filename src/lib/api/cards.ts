@@ -6,6 +6,7 @@ import {
   CardModification,
   Tag,
 } from "./types";
+import { fetchWithTimeout, TIMEOUT_CONFIGS } from "@/lib/utils/fetch-timeout";
 
 export class CardsApi extends ApiClient {
   async getCards(params?: {
@@ -87,11 +88,15 @@ export class CardsApi extends ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${this.baseUrl}/api/upload`, {
-      method: "POST",
-      credentials: "include", // Include cookies for authentication
-      body: formData,
-    });
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/api/upload`,
+      {
+        method: "POST",
+        credentials: "include", // Include cookies for authentication
+        body: formData,
+      },
+      TIMEOUT_CONFIGS.upload // 60 seconds for file uploads
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
