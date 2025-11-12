@@ -49,6 +49,7 @@ function validateEmail(email: string): string[] {
 
 /**
  * Validate password strength
+ * Follows OWASP recommendations for secure passwords
  */
 function validatePassword(password: string): string[] {
   const errors: string[] = [];
@@ -58,8 +59,9 @@ function validatePassword(password: string): string[] {
     return errors;
   }
 
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters long");
+  // Minimum length increased from 8 to 12 characters (OWASP recommendation)
+  if (password.length < 12) {
+    errors.push("Password must be at least 12 characters long");
   }
 
   if (password.length > 128) {
@@ -76,6 +78,11 @@ function validatePassword(password: string): string[] {
 
   if (!/\d/.test(password)) {
     errors.push("Password must contain at least one number");
+  }
+
+  // Added special character requirement for stronger passwords
+  if (!/[^a-zA-Z0-9]/.test(password)) {
+    errors.push("Password must contain at least one special character");
   }
 
   return errors;
