@@ -46,13 +46,13 @@ async function initializeDatabase() {
         console.log(
           "Schema appears to be up-to-date with email verification fields"
         );
-      } catch (error) {
+      } catch {
         console.log(
           "Schema is outdated - missing email verification fields, need to recreate"
         );
         tablesExist = false; // Force recreation
       }
-    } catch (error) {
+    } catch {
       // Tables don't exist, we need to create them
       console.log("Database schema missing, need to create tables...");
     }
