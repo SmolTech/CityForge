@@ -10,6 +10,9 @@ CREATE TABLE "users" (
     "created_date" TIMESTAMP(6),
     "last_login" TIMESTAMP(6),
     "is_supporter_flag" BOOLEAN NOT NULL DEFAULT false,
+    "email_verified" BOOLEAN DEFAULT false,
+    "email_verification_token" VARCHAR(255),
+    "email_verification_sent_at" TIMESTAMP(6),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -384,6 +387,15 @@ CREATE UNIQUE INDEX "ix_tags_name" ON "tags"("name");
 CREATE INDEX "ix_cards_name" ON "cards"("name");
 
 -- CreateIndex
+CREATE INDEX "ix_cards_approved" ON "cards"("approved");
+
+-- CreateIndex
+CREATE INDEX "ix_cards_created_date" ON "cards"("created_date");
+
+-- CreateIndex
+CREATE INDEX "ix_cards_approved_created_date" ON "cards"("approved", "created_date");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ix_resource_categories_name" ON "resource_categories"("name");
 
 -- CreateIndex
@@ -435,6 +447,15 @@ CREATE INDEX "ix_forum_threads_title" ON "forum_threads"("title");
 CREATE INDEX "ix_forum_threads_updated_date" ON "forum_threads"("updated_date");
 
 -- CreateIndex
+CREATE INDEX "ix_forum_threads_category_pinned_updated" ON "forum_threads"("category_id", "is_pinned", "updated_date");
+
+-- CreateIndex
+CREATE INDEX "ix_forum_posts_thread_created" ON "forum_posts"("thread_id", "created_date");
+
+-- CreateIndex
+CREATE INDEX "ix_forum_posts_created_by" ON "forum_posts"("created_by");
+
+-- CreateIndex
 CREATE INDEX "ix_help_wanted_posts_category" ON "help_wanted_posts"("category");
 
 -- CreateIndex
@@ -466,6 +487,9 @@ CREATE INDEX "ix_indexing_jobs_status" ON "indexing_jobs"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ix_token_blacklist_jti" ON "token_blacklist"("jti");
+
+-- CreateIndex
+CREATE INDEX "ix_card_tags_tag_id" ON "card_tags"("tag_id");
 
 -- AddForeignKey
 ALTER TABLE "cards" ADD CONSTRAINT "cards_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -583,4 +607,3 @@ ALTER TABLE "card_tags" ADD CONSTRAINT "card_tags_card_id_fkey" FOREIGN KEY ("ca
 
 -- AddForeignKey
 ALTER TABLE "card_tags" ADD CONSTRAINT "card_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "tags"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-

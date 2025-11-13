@@ -42,7 +42,12 @@ class ResourceIndexer:
         self.namespace = os.getenv('NAMESPACE', 'default')
 
         # Use Next.js API endpoint instead of Flask backend
-        self.api_url = os.getenv('API_URL', 'http://cityforge-service/api')
+        # Use Next.js API endpoint - check BACKEND_URL first, then API_URL for backward compatibility
+        backend_url = os.getenv('BACKEND_URL', os.getenv('API_URL', 'http://frontend:3000'))
+        # Ensure we have the /api path for the API endpoints
+        if not backend_url.endswith('/api'):
+            backend_url = f"{backend_url}/api"
+        self.api_url = backend_url
 
         # Initialize OpenSearch client
         self.client = OpenSearch(
