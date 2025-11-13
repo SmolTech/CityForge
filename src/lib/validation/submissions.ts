@@ -13,7 +13,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Helper type for validation input that allows dot notation access
-type ValidationInput = Record<string, any>;
+// Using any here is intentional for validation input where structure is unknown
+// and will be validated at runtime
+type ValidationInput = any;
 
 export interface ValidationError {
   field: string;

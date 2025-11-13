@@ -5,11 +5,12 @@
  */
 
 // Validation functions accept dynamic input data that may have any structure
-// We use bracket notation to safely access properties from Record<string, unknown>
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Helper type for validation input that allows dot notation access
-type ValidationInput = Record<string, any>;
+// Using any here is intentional for validation input where structure is unknown
+// and will be validated at runtime
+type ValidationInput = any;
 
 export interface ValidationError {
   field: string;
