@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiClient, User, CardSubmission, HelpWantedPost } from "@/lib/api";
-import { Navigation } from "@/components/shared";
+import { apiClient, CardSubmission, HelpWantedPost } from "@/lib/api";
+import { Navigation, EmailVerificationBanner } from "@/components/shared";
 import { useConfig } from "@/contexts/ConfigContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
 export default function DashboardPage() {
   const config = useConfig();
   const siteConfig = config.site;
-  const [, setUser] = useState<User | null>(null);
+  const { loading: authLoading, isAuthenticated } = useAuth();
   const [submissions, setSubmissions] = useState<CardSubmission[]>([]);
   const [helpWantedPosts, setHelpWantedPosts] = useState<HelpWantedPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,15 +25,11 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [userResponse, submissionsData, helpWantedData] = await Promise.all(
-        [
-          apiClient.getCurrentUser(),
-          apiClient.getUserSubmissions(),
-          apiClient.getMyHelpWantedPosts(),
-        ]
-      );
+      const [submissionsData, helpWantedData] = await Promise.all([
+        apiClient.getUserSubmissions(),
+        apiClient.getMyHelpWantedPosts(),
+      ]);
 
-      setUser(userResponse.user);
       setSubmissions(submissionsData);
       setHelpWantedPosts(helpWantedData);
     } catch (error) {
@@ -72,7 +69,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -80,11 +77,20 @@ export default function DashboardPage() {
     );
   }
 
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    router.push("/login?redirect=/dashboard");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation currentPage="Dashboard" siteTitle={siteConfig.title} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner className="mb-6" />
+
         {error && (
           <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <div className="flex">

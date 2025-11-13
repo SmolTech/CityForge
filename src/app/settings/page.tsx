@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient, User } from "@/lib/api";
-import { Navigation } from "@/components/shared";
+import { apiClient } from "@/lib/api";
+import { Navigation, EmailVerificationBanner } from "@/components/shared";
+import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
 export default function SettingsPage() {
-  const [, setUser] = useState<User | null>(null);
+  const {
+    user,
+    loading: authLoading,
+    isAuthenticated,
+    refreshUser,
+  } = useAuth();
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<
     "profile" | "email" | "password"
@@ -41,30 +47,20 @@ export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    loadUserData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadUserData = async () => {
-    try {
-      const response = await apiClient.getCurrentUser();
-      setUser(response.user);
+    if (user) {
       setProfileData({
-        first_name: response.user.first_name,
-        last_name: response.user.last_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
       });
       setEmailData((prev) => ({
         ...prev,
-        email: response.user.email,
+        email: user.email,
       }));
-    } catch (error) {
-      logger.error("Failed to load user data:", error);
-      if ((error as Error & { status?: number }).status === 401) {
-        router.push("/login");
-      }
-    } finally {
       setLoading(false);
+    } else if (!authLoading && !isAuthenticated) {
+      router.push("/login?redirect=/settings");
     }
-  };
+  }, [user, authLoading, isAuthenticated, router]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,11 +68,11 @@ export default function SettingsPage() {
     setProfileMessage("");
 
     try {
-      const response = await apiClient.updateProfile(
+      await apiClient.updateProfile(
         profileData.first_name,
         profileData.last_name
       );
-      setUser(response.user);
+      await refreshUser(); // Refresh user data from context
       setProfileMessage("Profile updated successfully!");
     } catch (error) {
       logger.error("Failed to update profile:", error);
@@ -98,11 +94,8 @@ export default function SettingsPage() {
     }
 
     try {
-      const response = await apiClient.updateEmail(
-        emailData.email,
-        emailData.current_password
-      );
-      setUser(response.user);
+      await apiClient.updateEmail(emailData.email, emailData.current_password);
+      await refreshUser(); // Refresh user data from context
       setEmailMessage("Email updated successfully!");
       setEmailData((prev) => ({ ...prev, current_password: "" }));
     } catch (error: unknown) {
@@ -157,7 +150,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -165,11 +158,20 @@ export default function SettingsPage() {
     );
   }
 
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    router.push("/login?redirect=/settings");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation currentPage="Settings" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner className="mb-6" />
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Account Settings

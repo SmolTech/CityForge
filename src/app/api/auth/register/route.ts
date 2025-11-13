@@ -3,6 +3,10 @@ import { prisma } from "@/lib/db/client";
 import { validateUserRegistration } from "@/lib/auth/validation";
 import { hashPassword } from "@/lib/auth/password";
 import { generateAccessToken, createAuthResponse } from "@/lib/auth/jwt";
+import {
+  createEmailVerificationToken,
+  sendVerificationEmail,
+} from "@/lib/auth/email-verification";
 import { logger } from "@/lib/logger";
 import { handleApiError, ValidationError, ConflictError } from "@/lib/errors";
 
@@ -39,6 +43,7 @@ export async function POST(request: NextRequest) {
         lastName: last_name,
         role: "user",
         isActive: true,
+        emailVerified: false, // New users need email verification
         createdDate: new Date(),
       },
       select: {
@@ -48,6 +53,7 @@ export async function POST(request: NextRequest) {
         lastName: true,
         role: true,
         isActive: true,
+        emailVerified: true,
         createdDate: true,
         lastLogin: true,
       },
@@ -55,9 +61,13 @@ export async function POST(request: NextRequest) {
 
     // Generate access token
     const token = generateAccessToken({
-      ...user,
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role as "admin" | "supporter" | "user",
       isActive: user.isActive ?? true,
+      emailVerified: user.emailVerified ?? false,
     });
 
     // Convert user to the format expected by frontend
@@ -78,8 +88,29 @@ export async function POST(request: NextRequest) {
 
     logger.info(`New user registered: ${user.email}`);
 
+    // Generate and send email verification token
+    try {
+      const verificationToken = await createEmailVerificationToken(user.id);
+      await sendVerificationEmail(user.email, verificationToken);
+      logger.info(`Email verification sent to: ${user.email}`);
+    } catch (emailError) {
+      logger.error("Failed to send verification email", {
+        email: user.email,
+        error: emailError,
+      });
+      // Don't fail registration if email sending fails
+    }
+
     // Return response with token in body (mobile) and httpOnly cookie (web)
-    return createAuthResponse({ user: userResponse }, token, 201);
+    return createAuthResponse(
+      {
+        user: userResponse,
+        message:
+          "Registration successful. Please check your email to verify your account.",
+      },
+      token,
+      201
+    );
   } catch (error) {
     return handleApiError(error, "POST /api/auth/register");
   }

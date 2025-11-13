@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   lastName: string;
   role: "admin" | "supporter" | "user";
   isActive: boolean;
+  emailVerified: boolean;
 }
 
 export interface AuthMiddlewareOptions {
@@ -103,6 +104,7 @@ async function loadUser(userId: number): Promise<AuthenticatedUser | null> {
       lastName: true,
       role: true,
       isActive: true,
+      emailVerified: true,
     },
   });
 

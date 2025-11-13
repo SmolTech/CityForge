@@ -75,4 +75,11 @@ export class AuthApi extends ApiClient {
       body: JSON.stringify({ first_name: firstName, last_name: lastName }),
     });
   }
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    return this.request("/api/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
 }
