@@ -1,0 +1,328 @@
+// nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import jwt from "jsonwebtoken";
+import {
+  generateAccessToken,
+  createAuthResponse,
+  createLogoutResponse,
+  JWTPayload,
+} from "./jwt";
+import { AuthenticatedUser } from "./middleware";
+
+describe("JWT Utilities", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  describe("generateAccessToken", () => {
+    it("should generate a valid JWT token", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 123,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      const token = generateAccessToken(user);
+
+      expect(token).toBeDefined();
+      expect(typeof token).toBe("string");
+      expect(token.split(".")).toHaveLength(3); // JWT has 3 parts
+    });
+
+    it("should include correct payload data", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 456,
+        email: "user@example.com",
+        role: "admin",
+      };
+
+      const token = generateAccessToken(user);
+      const decoded = jwt.verify(
+        token,
+        "test-secret-key"
+      ) as unknown as JWTPayload;
+
+      expect(decoded.sub).toBe("456");
+      expect(decoded.type).toBe("access");
+      expect(decoded.jti).toBeDefined();
+      expect(decoded.iat).toBeDefined();
+      expect(decoded.exp).toBeDefined();
+    });
+
+    it("should set token expiration to 24 hours", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 789,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      const beforeGeneration = Math.floor(Date.now() / 1000);
+      const token = generateAccessToken(user);
+      const afterGeneration = Math.floor(Date.now() / 1000);
+
+      const decoded = jwt.verify(
+        token,
+        "test-secret-key"
+      ) as unknown as JWTPayload;
+
+      const expectedExpiration = 24 * 60 * 60; // 24 hours in seconds
+      const actualExpiration = decoded.exp - decoded.iat;
+
+      expect(actualExpiration).toBe(expectedExpiration);
+      expect(decoded.iat).toBeGreaterThanOrEqual(beforeGeneration);
+      expect(decoded.iat).toBeLessThanOrEqual(afterGeneration);
+    });
+
+    it("should include unique JWT ID (jti) for each token", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 1,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      const token1 = generateAccessToken(user);
+      const token2 = generateAccessToken(user);
+
+      const decoded1 = jwt.verify(
+        token1,
+        "test-secret-key"
+      ) as unknown as JWTPayload;
+      const decoded2 = jwt.verify(
+        token2,
+        "test-secret-key"
+      ) as unknown as JWTPayload;
+
+      expect(decoded1.jti).not.toBe(decoded2.jti);
+      expect(decoded1.jti).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      ); // UUID v4 format
+    });
+
+    it("should throw error if JWT_SECRET_KEY is not set", () => {
+      delete process.env.JWT_SECRET_KEY;
+
+      const user: AuthenticatedUser = {
+        id: 1,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      expect(() => generateAccessToken(user)).toThrow(
+        "JWT_SECRET_KEY environment variable is not set"
+      );
+    });
+
+    it("should use HS256 algorithm", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 1,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      const token = generateAccessToken(user);
+      const decoded = jwt.decode(token, { complete: true });
+
+      expect(decoded?.header.alg).toBe("HS256");
+    });
+
+    it("should convert user ID to string in payload", () => {
+      process.env.JWT_SECRET_KEY = "test-secret-key";
+
+      const user: AuthenticatedUser = {
+        id: 999,
+        email: "test@example.com",
+        role: "user",
+      };
+
+      const token = generateAccessToken(user);
+      const decoded = jwt.verify(
+        token,
+        "test-secret-key"
+      ) as unknown as JWTPayload;
+
+      expect(decoded.sub).toBe("999");
+      expect(typeof decoded.sub).toBe("string");
+    });
+  });
+
+  describe("createAuthResponse", () => {
+    it("should create response with token in body", async () => {
+      const data = { message: "Login successful" };
+      const token = "test-token-123";
+
+      const response = createAuthResponse(data, token);
+      const responseData = await response.json();
+
+      // Check that response includes both data and token
+      expect(responseData).toMatchObject({
+        message: "Login successful",
+        access_token: "test-token-123",
+      });
+    });
+
+    it("should set httpOnly cookie with token", () => {
+      const data = { user: { id: 1 } };
+      const token = "test-token-456";
+
+      const response = createAuthResponse(data, token);
+      const cookies = response.cookies;
+
+      const accessTokenCookie = cookies.get("access_token_cookie");
+      expect(accessTokenCookie).toBeDefined();
+      expect(accessTokenCookie?.value).toBe("test-token-456");
+    });
+
+    it("should set correct cookie attributes", () => {
+      process.env.NODE_ENV = "development";
+
+      const data = {};
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token);
+      const cookie = response.cookies.get("access_token_cookie");
+
+      expect(cookie?.httpOnly).toBe(true);
+      expect(cookie?.path).toBe("/");
+      expect(cookie?.maxAge).toBe(24 * 60 * 60); // 24 hours
+      expect(cookie?.sameSite).toBe("lax");
+    });
+
+    it("should set secure flag in production", () => {
+      process.env.NODE_ENV = "production";
+
+      const data = {};
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token);
+      const cookie = response.cookies.get("access_token_cookie");
+
+      expect(cookie?.secure).toBe(true);
+    });
+
+    it("should not set secure flag in development", () => {
+      process.env.NODE_ENV = "development";
+
+      const data = {};
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token);
+      const cookie = response.cookies.get("access_token_cookie");
+
+      expect(cookie?.secure).toBe(false);
+    });
+
+    it("should use default status 200", () => {
+      const data = {};
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token);
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should allow custom status code", () => {
+      const data = { message: "Created" };
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token, 201);
+
+      expect(response.status).toBe(201);
+    });
+
+    it("should preserve all data fields in response", async () => {
+      const data = {
+        user: {
+          id: 1,
+          email: "test@example.com",
+          role: "admin",
+        },
+        message: "Success",
+      };
+      const token = "test-token";
+
+      const response = createAuthResponse(data, token);
+      const responseData = await response.json();
+
+      expect(responseData.user).toEqual(data.user);
+      expect(responseData.message).toBe("Success");
+      expect(responseData.access_token).toBe("test-token");
+    });
+  });
+
+  describe("createLogoutResponse", () => {
+    it("should create response with provided data", async () => {
+      const data = { message: "Logged out successfully" };
+
+      const response = createLogoutResponse(data);
+      const responseData = await response.json();
+
+      expect(responseData).toEqual({ message: "Logged out successfully" });
+    });
+
+    it("should clear the access token cookie", () => {
+      const data = {};
+
+      const response = createLogoutResponse(data);
+      const cookie = response.cookies.get("access_token_cookie");
+
+      expect(cookie).toBeDefined();
+      expect(cookie?.value).toBe("");
+      expect(cookie?.maxAge).toBe(0);
+    });
+
+    it("should set correct cookie attributes for clearing", () => {
+      const data = {};
+
+      const response = createLogoutResponse(data);
+      const cookie = response.cookies.get("access_token_cookie");
+
+      expect(cookie?.httpOnly).toBe(true);
+      expect(cookie?.path).toBe("/");
+      expect(cookie?.sameSite).toBe("lax");
+      expect(cookie?.maxAge).toBe(0);
+    });
+
+    it("should use default status 200", () => {
+      const data = {};
+
+      const response = createLogoutResponse(data);
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should allow custom status code", async () => {
+      const data = { message: "Session terminated" };
+
+      const response = createLogoutResponse(data, 202);
+
+      expect(response.status).toBe(202);
+    });
+
+    it("should not include access_token in response body", async () => {
+      const data = { message: "Goodbye" };
+
+      const response = createLogoutResponse(data);
+      const responseData = await response.json();
+
+      expect(responseData).not.toHaveProperty("access_token");
+      expect(responseData.message).toBe("Goodbye");
+    });
+  });
+});
