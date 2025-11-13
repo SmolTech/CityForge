@@ -20,13 +20,97 @@ if (!process.env.DATABASE_URL) {
 }
 
 import { PrismaClient } from "@prisma/client";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 async function initializeDatabase() {
+  console.log("Starting database initialization...");
+
   const prisma = new PrismaClient();
 
   try {
+    // Connect to database
     await prisma.$connect();
     console.log("Connected to database");
+
+    // Check if tables exist by trying a simple query
+    let tablesExist = false;
+    try {
+      await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
+      tablesExist = true;
+      console.log("Database schema appears to exist");
+
+      // Check if the schema is up-to-date by looking for email_verified field
+      try {
+        await prisma.$queryRaw`SELECT email_verified FROM users LIMIT 1`;
+        console.log(
+          "Schema appears to be up-to-date with email verification fields"
+        );
+      } catch (error) {
+        console.log(
+          "Schema is outdated - missing email verification fields, need to recreate"
+        );
+        tablesExist = false; // Force recreation
+      }
+    } catch (error) {
+      // Tables don't exist, we need to create them
+      console.log("Database schema missing, need to create tables...");
+    }
+
+    if (!tablesExist) {
+      console.log("Creating database schema from migration files...");
+
+      // Read the migration SQL file and execute it
+      // We'll use the 0_init migration which should have all the table definitions
+      const migrationPath = join(
+        process.cwd(),
+        "prisma",
+        "migrations",
+        "0_init",
+        "migration.sql"
+      );
+
+      try {
+        const migrationSQL = readFileSync(migrationPath, "utf8");
+        console.log(`Read migration file: ${migrationPath}`);
+
+        // Parse SQL statements - split by semicolon and clean up
+        const statements = migrationSQL
+          .split(";")
+          .map((statement) => {
+            // Remove comment lines but preserve SQL content
+            const lines = statement.split("\n");
+            const sqlLines = lines.filter((line) => {
+              const trimmed = line.trim();
+              // Keep line if it's not empty and not a comment line
+              return trimmed && !trimmed.startsWith("--");
+            });
+            return sqlLines.join("\n").trim();
+          })
+          .filter((statement) => statement.length > 0); // Filter out empty statements
+
+        console.log(`Found ${statements.length} SQL statements to execute`);
+
+        // Execute each statement
+        for (const statement of statements) {
+          if (statement.trim()) {
+            await prisma.$executeRawUnsafe(statement);
+          }
+        }
+
+        console.log(
+          "Database schema created successfully from migration files"
+        );
+      } catch (sqlError) {
+        console.error(
+          "Failed to create schema from migration SQL:",
+          sqlError.message
+        );
+        throw sqlError;
+      }
+
+      console.log("Database schema created successfully");
+    }
 
     // Check if database is already initialized by looking for users table data
     const userCount = await prisma.user.count();
@@ -118,6 +202,54 @@ async function initializeDatabase() {
       console.log("Database initialization completed successfully");
     } else {
       console.log("Database already contains data, skipping initialization");
+    }
+
+    // Create admin user if environment variables are provided
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (adminEmail && adminPassword) {
+      console.log(`Checking for admin user: ${adminEmail}`);
+
+      const existingAdmin = await prisma.user.findUnique({
+        where: { email: adminEmail },
+      });
+
+      if (existingAdmin) {
+        if (existingAdmin.role === "admin") {
+          console.log("Admin user already exists with admin role");
+        } else {
+          // Promote existing user to admin
+          await prisma.user.update({
+            where: { id: existingAdmin.id },
+            data: { role: "admin" },
+          });
+          console.log("✅ Promoted existing user to admin role");
+        }
+      } else {
+        // Create new admin user
+        const bcrypt = await import("bcrypt");
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+        const adminUser = await prisma.user.create({
+          data: {
+            email: adminEmail,
+            passwordHash: hashedPassword,
+            firstName: "Admin",
+            lastName: "User",
+            role: "admin",
+            isActive: true,
+            createdDate: new Date(),
+          },
+        });
+        console.log(
+          `✅ Created admin user: ${adminEmail} (ID: ${adminUser.id})`
+        );
+      }
+    } else {
+      console.log(
+        "No admin credentials provided (ADMIN_EMAIL/ADMIN_PASSWORD not set)"
+      );
     }
 
     // Test database functionality with a simple query
