@@ -35,6 +35,7 @@ class CombinedApiClient extends ApiClient {
   updateEmail!: AuthApi["updateEmail"];
   updatePassword!: AuthApi["updatePassword"];
   updateProfile!: AuthApi["updateProfile"];
+  resendVerification!: AuthApi["resendVerification"];
 
   // Card methods
   getCards!: CardsApi["getCards"];
@@ -171,6 +172,9 @@ class CombinedApiClient extends ApiClient {
     this.updateEmail = this.authApi.updateEmail.bind(this.authApi);
     this.updatePassword = this.authApi.updatePassword.bind(this.authApi);
     this.updateProfile = this.authApi.updateProfile.bind(this.authApi);
+    this.resendVerification = this.authApi.resendVerification.bind(
+      this.authApi
+    );
 
     // Bind card methods
     this.getCards = this.cardsApi.getCards.bind(this.cardsApi);

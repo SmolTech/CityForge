@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         lastName: true,
         role: true,
         isActive: true,
+        emailVerified: true,
         createdDate: true,
         lastLogin: true,
       },
@@ -45,6 +46,11 @@ export async function POST(request: NextRequest) {
       !(await verifyPassword(password, user.passwordHash))
     ) {
       throw new UnauthorizedError("Invalid credentials");
+    }
+
+    // Log unverified email login attempt (but don't block it)
+    if (!user.emailVerified) {
+      logger.warn(`Login with unverified email: ${user.email}`);
     }
 
     // Update last login timestamp
@@ -61,6 +67,7 @@ export async function POST(request: NextRequest) {
       lastName: user.lastName,
       role: user.role as "admin" | "supporter" | "user",
       isActive: user.isActive ?? true,
+      emailVerified: user.emailVerified ?? false,
     });
 
     // Convert user to the format expected by frontend
@@ -75,6 +82,7 @@ export async function POST(request: NextRequest) {
       is_supporter: user.role === "supporter" || user.role === "admin",
       is_supporter_flag: false, // Not implemented in this schema yet
       is_active: user.isActive,
+      email_verified: user.emailVerified,
       created_date: user.createdDate?.toISOString() ?? new Date().toISOString(),
       last_login: new Date().toISOString(), // Use current time since we just updated it
     };

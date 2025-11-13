@@ -11,6 +11,9 @@ import {
   AuthenticatedUser,
 } from "./middleware";
 
+// Test-only secret - nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+const TEST_SECRET = TEST_SECRET;
+
 // Mock the database client
 vi.mock("@/lib/db/client", () => {
   const mockFn = vi.fn();
@@ -40,13 +43,15 @@ describe("Auth Middleware", () => {
   const originalEnv = process.env;
 
   // Get mocked prisma methods
-  const mockFindUnique = prisma.tokenBlacklist.findUnique as ReturnType<typeof vi.fn>;
+  const mockFindUnique = prisma.tokenBlacklist.findUnique as ReturnType<
+    typeof vi.fn
+  >;
 
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     process.env = { ...originalEnv };
-    process.env["JWT_SECRET_KEY"] = "test-secret-key";
+    process.env["JWT_SECRET_KEY"] = TEST_SECRET;
   });
 
   afterEach(() => {
@@ -98,7 +103,7 @@ describe("Auth Middleware", () => {
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
       },
-      "test-secret-key"
+      TEST_SECRET
     );
   };
 
@@ -144,6 +149,7 @@ describe("Auth Middleware", () => {
       lastName: "User",
       role: "user",
       isActive: true,
+      emailVerified: true,
     };
 
     it("should authenticate user with valid token from Authorization header", async () => {
@@ -208,7 +214,7 @@ describe("Auth Middleware", () => {
           iat: Math.floor(Date.now() / 1000) - 7200,
           exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
         },
-        "test-secret-key"
+        TEST_SECRET
       );
 
       const request = createMockRequest({ token: expiredToken });
@@ -241,7 +247,7 @@ describe("Auth Middleware", () => {
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor(Date.now() / 1000) + 3600,
         },
-        "test-secret-key"
+        TEST_SECRET
       );
 
       const request = createMockRequest({ token: tokenWithoutJti });
@@ -316,6 +322,7 @@ describe("Auth Middleware", () => {
       lastName: "User",
       role: "user",
       isActive: true,
+      emailVerified: true,
     };
 
     it("should call handler with authenticated user", async () => {
@@ -407,6 +414,7 @@ describe("Auth Middleware", () => {
       lastName: "User",
       role: "user",
       isActive: true,
+      emailVerified: true,
     };
 
     it("should call handler with authenticated user when token is valid", async () => {

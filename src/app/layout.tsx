@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/shared";
 import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleAnalytics } from "@/components/analytics";
 
 const geistSans = Geist({
@@ -37,8 +38,10 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ConfigProvider>
-            <GoogleAnalytics />
-            <ToastProvider>{children}</ToastProvider>
+            <AuthProvider>
+              <GoogleAnalytics />
+              <ToastProvider>{children}</ToastProvider>
+            </AuthProvider>
           </ConfigProvider>
         </ErrorBoundary>
       </body>

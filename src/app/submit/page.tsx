@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { apiClient, User } from "@/lib/api";
-import { Navigation } from "@/components/shared";
+import { apiClient } from "@/lib/api";
+import { Navigation, EmailVerificationBanner } from "@/components/shared";
 import { TagInput } from "@/components/filters";
+import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
 export default function SubmitPage() {
-  const [, setUser] = useState<User | null>(null);
+  const { loading: authLoading, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,25 +34,17 @@ export default function SubmitPage() {
   const router = useRouter();
 
   useEffect(() => {
-    loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadData = async () => {
-    try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/login");
-        return;
+    // Authentication is handled by AuthContext, just mark loading as complete
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push("/login?redirect=/submit");
+      } else {
+        setLoading(false);
       }
-
-      const userResponse = await apiClient.getCurrentUser();
-      setUser(userResponse.user);
-    } catch (error) {
-      logger.error("Failed to load data:", error);
-      router.push("/login");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [authLoading, isAuthenticated, router]);
+
+  // Remove the old loadData function since we're using AuthContext
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +218,7 @@ export default function SubmitPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -233,11 +226,20 @@ export default function SubmitPage() {
     );
   }
 
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    router.push("/login?redirect=/submit");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation currentPage="Submit" />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner className="mb-6" />
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Submit Community Content

@@ -26,7 +26,7 @@ describe("JWT Utilities", () => {
 
   describe("generateAccessToken", () => {
     it("should generate a valid JWT token", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 123,
@@ -46,7 +46,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should include correct payload data", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 456,
@@ -59,7 +59,7 @@ describe("JWT Utilities", () => {
       };
 
       const token = generateAccessToken(user);
-      const decoded = jwt.verify(token, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+      const decoded = jwt.verify(token, "TEST_SECRET") as unknown as JWTPayload;
 
       expect(decoded.sub).toBe("456");
       expect(decoded.type).toBe("access");
@@ -69,7 +69,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should set token expiration to 24 hours", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 789,
@@ -85,7 +85,7 @@ describe("JWT Utilities", () => {
       const token = generateAccessToken(user);
       const afterGeneration = Math.floor(Date.now() / 1000);
 
-      const decoded = jwt.verify(token, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+      const decoded = jwt.verify(token, "TEST_SECRET") as unknown as JWTPayload;
 
       const expectedExpiration = 24 * 60 * 60; // 24 hours in seconds
       const actualExpiration = decoded.exp - decoded.iat;
@@ -96,7 +96,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should include unique JWT ID (jti) for each token", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 1,
@@ -111,8 +111,14 @@ describe("JWT Utilities", () => {
       const token1 = generateAccessToken(user);
       const token2 = generateAccessToken(user);
 
-      const decoded1 = jwt.verify(token1, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
-      const decoded2 = jwt.verify(token2, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+      const decoded1 = jwt.verify(
+        token1,
+        "TEST_SECRET"
+      ) as unknown as JWTPayload;
+      const decoded2 = jwt.verify(
+        token2,
+        "TEST_SECRET"
+      ) as unknown as JWTPayload;
 
       expect(decoded1.jti).not.toBe(decoded2.jti);
       expect(decoded1.jti).toMatch(
@@ -139,7 +145,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should use HS256 algorithm", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 1,
@@ -158,7 +164,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should convert user ID to string in payload", () => {
-      process.env["JWT_SECRET_KEY"] = TEST_SECRET;
+      process.env["JWT_SECRET_KEY"] = "TEST_SECRET";
 
       const user: AuthenticatedUser = {
         id: 999,
@@ -171,7 +177,7 @@ describe("JWT Utilities", () => {
       };
 
       const token = generateAccessToken(user);
-      const decoded = jwt.verify(token, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+      const decoded = jwt.verify(token, "TEST_SECRET") as unknown as JWTPayload;
 
       expect(decoded.sub).toBe("999");
       expect(typeof decoded.sub).toBe("string");
