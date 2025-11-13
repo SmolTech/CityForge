@@ -87,7 +87,15 @@ export default function DataManagementPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Export failed");
+        let errorMessage = "Export failed";
+        try {
+          const errorData = await response.json();
+          errorMessage =
+            errorData.error?.message || errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use default message
+        }
+        throw new Error(errorMessage);
       }
 
       // Download the file
@@ -146,7 +154,7 @@ export default function DataManagementPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Import failed");
+        throw new Error(data.error?.message || data.error || "Import failed");
       }
 
       setSuccess(data.message || "Import completed successfully!");
