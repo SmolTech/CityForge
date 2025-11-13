@@ -74,7 +74,7 @@ export const POST = withAuth(
       }
 
       // Perform the action in a transaction
-      const result = await prisma.$transaction(async (tx: any) => {
+      const result = await prisma.$transaction(async (tx) => {
         // Update the report status
         const updatedReport = await tx.forumReport.update({
           where: { id: reportId },

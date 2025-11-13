@@ -50,7 +50,7 @@ export const GET = withAuth(
       ]);
 
       // Format response to match Flask API
-      const formattedUsers = users.map((user: any) => ({
+      const formattedUsers = users.map((user) => ({
         id: user.id,
         email: user.email,
         first_name: user.firstName,

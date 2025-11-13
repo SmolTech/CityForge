@@ -40,7 +40,7 @@ export function generateAccessToken(user: AuthenticatedUser): string {
  * Create a response with httpOnly cookie (for web) and token in body (for mobile)
  */
 export function createAuthResponse(
-  data: any,
+  data: Record<string, unknown>,
   token: string,
   status: number = 200
 ): NextResponse {
@@ -67,7 +67,7 @@ export function createAuthResponse(
  * Create a response that clears the authentication cookie
  */
 export function createLogoutResponse(
-  data: any,
+  data: Record<string, unknown>,
   status: number = 200
 ): NextResponse {
   const response = NextResponse.json(data, { status });

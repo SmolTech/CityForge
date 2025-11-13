@@ -82,7 +82,7 @@ export const GET = withAuth(
       }
 
       // Transform posts to match Flask API format
-      const transformedPosts = thread.posts.map((post: any) => ({
+      const transformedPosts = thread.posts.map((post) => ({
         id: post.id,
         thread_id: post.threadId,
         content: post.content,

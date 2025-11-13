@@ -86,7 +86,7 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       const totalPages = Math.ceil(totalThreads / limit);
 
       // Transform threads to match Flask API format
-      const transformedThreads = threads.map((thread: any) => ({
+      const transformedThreads = threads.map((thread) => ({
         id: thread.id,
         category_id: thread.categoryId,
         title: thread.title,
@@ -182,7 +182,7 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       const totalPages = Math.ceil(totalPosts / limit);
 
       // Transform posts to match Flask API format
-      const transformedPosts = posts.map((post: any) => ({
+      const transformedPosts = posts.map((post) => ({
         id: post.id,
         thread_id: post.threadId,
         content: post.content,

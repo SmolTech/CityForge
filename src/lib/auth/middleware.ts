@@ -58,10 +58,18 @@ function extractToken(request: NextRequest): string | null {
   return null;
 }
 
+interface JWTPayload {
+  sub: string;
+  jti: string;
+  type: string;
+  iat: number;
+  exp: number;
+}
+
 /**
  * Verify JWT token and extract payload
  */
-function verifyToken(token: string): any {
+function verifyToken(token: string): JWTPayload {
   const jwtSecret = process.env["JWT_SECRET_KEY"];
   if (!jwtSecret) {
     throw new Error("JWT_SECRET_KEY environment variable is not set");
@@ -193,7 +201,7 @@ export async function authenticate(
  *   // Handle authenticated request
  * }, { requireAdmin: true });
  */
-export function withAuth<T extends any[]>(
+export function withAuth<T extends unknown[]>(
   handler: (
     request: NextRequest,
     context: { user: AuthenticatedUser },
@@ -272,7 +280,7 @@ export function withAuth<T extends any[]>(
  *   }
  * });
  */
-export function withOptionalAuth<T extends any[]>(
+export function withOptionalAuth<T extends unknown[]>(
   handler: (
     request: NextRequest,
     context: { user: AuthenticatedUser | null },

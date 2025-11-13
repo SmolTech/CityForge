@@ -159,7 +159,7 @@ export const POST = withAuth(
       }
 
       // Export data
-      const exportData: Record<string, any> = {};
+      const exportData: Record<string, unknown[]> = {};
 
       for (const modelName of modelsToExport) {
         try {

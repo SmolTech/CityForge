@@ -12,7 +12,7 @@ export const GET = withAuth(
       const offset = parseInt(searchParams.get("offset") || "0");
 
       // Build where clause conditionally
-      const whereClause: any = {};
+      const whereClause: { categoryId?: number } = {};
       if (categoryId) {
         whereClause.categoryId = parseInt(categoryId);
       }
@@ -61,7 +61,7 @@ export const GET = withAuth(
       });
 
       // Transform to match expected response format
-      const transformedThreads = threads.map((thread: any) => ({
+      const transformedThreads = threads.map((thread) => ({
         id: thread.id,
         title: thread.title,
         slug: thread.slug,

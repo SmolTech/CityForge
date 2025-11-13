@@ -124,30 +124,36 @@ function validateName(name: string, fieldName: string): string[] {
  * Validate user registration data
  */
 export function validateUserRegistration(
-  data: any
+  data: Record<string, unknown>
 ): ValidationResult<UserRegistrationData> {
   const errors: Record<string, string[]> = {};
 
   // Validate email
-  const emailErrors = validateEmail(data["email"]);
+  const emailErrors = validateEmail(String(data["email"] ?? ""));
   if (emailErrors.length > 0) {
     errors["email"] = emailErrors;
   }
 
   // Validate password
-  const passwordErrors = validatePassword(data["password"]);
+  const passwordErrors = validatePassword(String(data["password"] ?? ""));
   if (passwordErrors.length > 0) {
     errors["password"] = passwordErrors;
   }
 
   // Validate first name
-  const firstNameErrors = validateName(data["first_name"], "First name");
+  const firstNameErrors = validateName(
+    String(data["first_name"] ?? ""),
+    "First name"
+  );
   if (firstNameErrors.length > 0) {
     errors["first_name"] = firstNameErrors;
   }
 
   // Validate last name
-  const lastNameErrors = validateName(data["last_name"], "Last name");
+  const lastNameErrors = validateName(
+    String(data["last_name"] ?? ""),
+    "Last name"
+  );
   if (lastNameErrors.length > 0) {
     errors["last_name"] = lastNameErrors;
   }
@@ -160,10 +166,10 @@ export function validateUserRegistration(
   return {
     valid: true,
     data: {
-      email: data["email"].toLowerCase().trim(),
-      password: data["password"],
-      first_name: sanitizeString(data["first_name"]),
-      last_name: sanitizeString(data["last_name"]),
+      email: String(data["email"]).toLowerCase().trim(),
+      password: String(data["password"]),
+      first_name: sanitizeString(String(data["first_name"])),
+      last_name: sanitizeString(String(data["last_name"])),
     },
   };
 }
@@ -171,11 +177,13 @@ export function validateUserRegistration(
 /**
  * Validate user login data
  */
-export function validateUserLogin(data: any): ValidationResult<UserLoginData> {
+export function validateUserLogin(
+  data: Record<string, unknown>
+): ValidationResult<UserLoginData> {
   const errors: Record<string, string[]> = {};
 
   // Validate email
-  const emailErrors = validateEmail(data["email"]);
+  const emailErrors = validateEmail(String(data["email"] ?? ""));
   if (emailErrors.length > 0) {
     errors["email"] = emailErrors;
   }
@@ -193,8 +201,8 @@ export function validateUserLogin(data: any): ValidationResult<UserLoginData> {
   return {
     valid: true,
     data: {
-      email: data["email"].toLowerCase().trim(),
-      password: data["password"],
+      email: String(data["email"]).toLowerCase().trim(),
+      password: String(data["password"]),
     },
   };
 }

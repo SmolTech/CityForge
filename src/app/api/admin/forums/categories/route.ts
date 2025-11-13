@@ -32,7 +32,7 @@ export const GET = withAuth(
 
       // For each category, calculate post count by summing posts across all threads
       const categoriesWithStats = await Promise.all(
-        categories.map(async (category: any) => {
+        categories.map(async (category) => {
           const postCount = await prisma.forumPost.count({
             where: {
               thread: {

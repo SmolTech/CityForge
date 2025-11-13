@@ -213,11 +213,10 @@ export function handleApiError(
  *   // Your route logic
  * }, 'GET /api/cards');
  */
-export function withErrorHandler<T extends (...args: any[]) => Promise<any>>(
-  handler: T,
-  context?: string
-): T {
-  return (async (...args: any[]) => {
+export function withErrorHandler<
+  T extends (...args: unknown[]) => Promise<NextResponse>,
+>(handler: T, context?: string): T {
+  return (async (...args: unknown[]) => {
     try {
       return await handler(...args);
     } catch (error) {
@@ -242,7 +241,7 @@ export function successResponse<T>(
     hasPrev?: boolean;
   }
 ): NextResponse {
-  const response: any = { data };
+  const response: Record<string, unknown> = { data };
 
   if (meta) {
     response.meta = meta;

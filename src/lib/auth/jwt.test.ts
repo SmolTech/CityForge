@@ -206,7 +206,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should set correct cookie attributes", () => {
-      (process.env as any)["NODE_ENV"] = "development";
+      process.env["NODE_ENV"] = "development";
 
       const data = {};
       const token = "test-token";
@@ -221,7 +221,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should set secure flag in production", () => {
-      (process.env as any)["NODE_ENV"] = "production";
+      process.env["NODE_ENV"] = "production";
 
       const data = {};
       const token = "test-token";
@@ -233,7 +233,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should not set secure flag in development", () => {
-      (process.env as any)["NODE_ENV"] = "development";
+      process.env["NODE_ENV"] = "development";
 
       const data = {};
       const token = "test-token";
