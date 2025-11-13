@@ -4,39 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-CityForge is a full-stack community platform with web and mobile interfaces built with Next.js 15, React Native/Expo, and a Python Flask backend. The application features a business directory, resource directory, community submissions, and search functionality. Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
+CityForge is a full-stack community platform with web and mobile interfaces built with Next.js 15 and React Native/Expo. The application features a business directory, resource directory, community submissions, and search functionality. **IMPORTANT: The Flask backend has been replaced by Next.js API routes.** Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
 
 ## Architecture
 
-The project is structured as a four-component application:
+**CRITICAL CHANGE: Flask Backend Replaced by Next.js**
 
-- **Web Frontend**: Next.js 15 with TypeScript, Tailwind CSS v4, and app router
+The project is now structured as a three-component application:
+
+- **Full-Stack Next.js App**: Next.js 15 with TypeScript, Tailwind CSS v4, app router, and API routes (replaces separate Flask backend)
 - **Mobile App**: React Native with Expo for iOS and Android
-- **Backend**: Python Flask API with SQLAlchemy ORM and PostgreSQL database
 - **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
 - **Infrastructure**: Docker containers with automated builds via GitHub Actions
 
+**Migration Status**: Currently migrating existing Flask-based deployments to the new Next.js architecture without database re-initialization.
+
 ### Key Components
 
-- **Web Frontend** (`src/app/`): Next.js pages for business directory, resources, admin dashboard, authentication, and search
+- **Full-Stack Next.js App** (`src/app/`): Next.js pages and API routes for business directory, resources, admin dashboard, authentication, and search
 - **Mobile App** (`mobile/`): React Native/Expo mobile application with native navigation and secure token storage
-- **Backend API** (`backend/`): Flask application providing REST APIs for cards, resources, auth, admin, and search
 - **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
-- **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources
+- **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources (managed via Prisma ORM in Next.js)
 - **GitHub Actions** (`.github/workflows/`): Automated Docker image builds for all components
+
+**Migration Note**: The Flask backend and its SQLAlchemy models have been replaced by Next.js API routes with Prisma ORM. Database schema and data remain compatible.
 
 ## Development Commands
 
-### Web Frontend Development
+### Full-Stack Next.js Development
 
 ```bash
-# Development server with Turbopack
+# Development server with Turbopack (includes API routes)
 npm run dev
 
-# Production build
+# Production build (includes frontend and API routes)
 npm run build
 
-# Start production server
+# Start production server (serves both frontend and API)
 npm start
 
 # Code quality
@@ -45,6 +49,12 @@ npm run lint:fix      # ESLint with auto-fix
 npm run format        # Prettier formatting
 npm run format:check  # Prettier check only
 npm run typecheck     # TypeScript validation
+
+# Database operations (via Prisma)
+npx prisma generate   # Generate Prisma client
+npx prisma db push    # Push schema changes to database
+npx prisma migrate    # Create and apply migrations
+npx prisma studio     # Open Prisma Studio (database GUI)
 ```
 
 ### Mobile App Development
