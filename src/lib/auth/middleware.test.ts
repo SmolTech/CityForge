@@ -13,19 +13,15 @@ import {
 
 // Mock the database client
 vi.mock("@/lib/db/client", () => {
-  const mockFindUnique = vi.fn();
-
+  const mockFn = vi.fn();
   return {
     prisma: {
       tokenBlacklist: {
-        findUnique: mockFindUnique,
+        findUnique: mockFn,
       },
       user: {
-        findUnique: mockFindUnique,
+        findUnique: mockFn,
       },
-    },
-    __mocks: {
-      mockFindUnique,
     },
   };
 });
@@ -38,17 +34,19 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { __mocks } from "@/lib/db/client";
-const { mockFindUnique } = __mocks;
+import { prisma } from "@/lib/db/client";
 
 describe("Auth Middleware", () => {
   const originalEnv = process.env;
+
+  // Get mocked prisma methods
+  const mockFindUnique = prisma.tokenBlacklist.findUnique as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     process.env = { ...originalEnv };
-    process.env.JWT_SECRET_KEY = "test-secret-key";
+    process.env["JWT_SECRET_KEY"] = "test-secret-key";
   });
 
   afterEach(() => {
@@ -192,7 +190,7 @@ describe("Auth Middleware", () => {
     });
 
     it("should throw error when JWT_SECRET_KEY is not set", async () => {
-      delete process.env.JWT_SECRET_KEY;
+      delete process.env["JWT_SECRET_KEY"];
       const token = createValidToken(1);
       const request = createMockRequest({ token });
 

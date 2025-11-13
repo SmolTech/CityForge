@@ -23,11 +23,14 @@ describe("JWT Utilities", () => {
 
   describe("generateAccessToken", () => {
     it("should generate a valid JWT token", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 123,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -39,11 +42,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should include correct payload data", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 456,
         email: "user@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "admin",
       };
 
@@ -61,11 +67,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should set token expiration to 24 hours", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 789,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -87,11 +96,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should include unique JWT ID (jti) for each token", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 1,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -114,11 +126,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should throw error if JWT_SECRET_KEY is not set", () => {
-      delete process.env.JWT_SECRET_KEY;
+      delete process.env["JWT_SECRET_KEY"];
 
       const user: AuthenticatedUser = {
         id: 1,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -128,11 +143,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should use HS256 algorithm", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 1,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -143,11 +161,14 @@ describe("JWT Utilities", () => {
     });
 
     it("should convert user ID to string in payload", () => {
-      process.env.JWT_SECRET_KEY = "test-secret-key";
+      process.env["JWT_SECRET_KEY"] = "test-secret-key";
 
       const user: AuthenticatedUser = {
         id: 999,
         email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
         role: "user",
       };
 
@@ -190,7 +211,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should set correct cookie attributes", () => {
-      process.env.NODE_ENV = "development";
+      (process.env as any)["NODE_ENV"] = "development";
 
       const data = {};
       const token = "test-token";
@@ -205,7 +226,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should set secure flag in production", () => {
-      process.env.NODE_ENV = "production";
+      (process.env as any)["NODE_ENV"] = "production";
 
       const data = {};
       const token = "test-token";
@@ -217,7 +238,7 @@ describe("JWT Utilities", () => {
     });
 
     it("should not set secure flag in development", () => {
-      process.env.NODE_ENV = "development";
+      (process.env as any)["NODE_ENV"] = "development";
 
       const data = {};
       const token = "test-token";
@@ -251,6 +272,9 @@ describe("JWT Utilities", () => {
         user: {
           id: 1,
           email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        isActive: true,
           role: "admin",
         },
         message: "Success",
