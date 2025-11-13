@@ -404,9 +404,10 @@ describe("Database Queries", () => {
       it("should create a new user", async () => {
         const userData = {
           email: "newuser@example.com",
-          password: "hashedpassword",
+          passwordHash: "hashedpassword",
           firstName: "Jane",
           lastName: "Doe",
+          role: "user" as const,
         };
 
         const mockUser = { id: 1, ...userData };
@@ -442,6 +443,7 @@ describe("Database Queries", () => {
           userId: 1,
           rating: 5,
           comment: "Great service!",
+          hidden: false,
         };
 
         const mockReview = { id: 1, ...reviewData };

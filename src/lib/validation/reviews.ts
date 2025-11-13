@@ -17,10 +17,10 @@ export interface ValidationError {
   message: string;
 }
 
-export interface ValidationResult {
+export interface ValidationResult<T = unknown> {
   isValid: boolean;
   errors: ValidationError[];
-  data?: unknown;
+  data: T | undefined;
 }
 
 /**
@@ -47,7 +47,9 @@ export interface ReviewData {
   comment?: string;
 }
 
-export function validateReview(data: ValidationInput): ValidationResult {
+export function validateReview(
+  data: ValidationInput
+): ValidationResult<ReviewData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ReviewData> = {};
 
@@ -104,7 +106,9 @@ export function validateReview(data: ValidationInput): ValidationResult {
 }
 
 // Review update validation (same as create but all fields optional except rating)
-export function validateReviewUpdate(data: ValidationInput): ValidationResult {
+export function validateReviewUpdate(
+  data: ValidationInput
+): ValidationResult<ReviewData> {
   return validateReview(data);
 }
 
@@ -114,7 +118,9 @@ export interface ReviewReportData {
   details?: string;
 }
 
-export function validateReviewReport(data: ValidationInput): ValidationResult {
+export function validateReviewReport(
+  data: ValidationInput
+): ValidationResult<ReviewReportData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ReviewReportData> = {};
 

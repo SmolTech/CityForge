@@ -206,7 +206,11 @@ describe("JWT Utilities", () => {
     });
 
     it("should set correct cookie attributes", () => {
-      process.env["NODE_ENV"] = "development";
+      const originalNodeEnv = process.env.NODE_ENV;
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: "development",
+        writable: true,
+      });
 
       const data = {};
       const token = "test-token";
@@ -218,10 +222,19 @@ describe("JWT Utilities", () => {
       expect(cookie?.path).toBe("/");
       expect(cookie?.maxAge).toBe(24 * 60 * 60); // 24 hours
       expect(cookie?.sameSite).toBe("lax");
+
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: originalNodeEnv,
+        writable: true,
+      });
     });
 
     it("should set secure flag in production", () => {
-      process.env["NODE_ENV"] = "production";
+      const originalNodeEnv = process.env.NODE_ENV;
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: "production",
+        writable: true,
+      });
 
       const data = {};
       const token = "test-token";
@@ -230,10 +243,19 @@ describe("JWT Utilities", () => {
       const cookie = response.cookies.get("access_token_cookie");
 
       expect(cookie?.secure).toBe(true);
+
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: originalNodeEnv,
+        writable: true,
+      });
     });
 
     it("should not set secure flag in development", () => {
-      process.env["NODE_ENV"] = "development";
+      const originalNodeEnv = process.env.NODE_ENV;
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: "development",
+        writable: true,
+      });
 
       const data = {};
       const token = "test-token";
@@ -242,6 +264,11 @@ describe("JWT Utilities", () => {
       const cookie = response.cookies.get("access_token_cookie");
 
       expect(cookie?.secure).toBe(false);
+
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: originalNodeEnv,
+        writable: true,
+      });
     });
 
     it("should use default status 200", () => {

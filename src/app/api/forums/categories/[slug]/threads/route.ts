@@ -259,6 +259,7 @@ export const POST = withAuth(
             title: validatedData.title,
             slug: threadSlug,
             createdBy: user.id,
+            reportCount: 0,
           },
           include: {
             creator: {
@@ -285,6 +286,7 @@ export const POST = withAuth(
             content: validatedData.content,
             isFirstPost: true,
             createdBy: user.id,
+            reportCount: 0,
           },
           include: {
             creator: {
