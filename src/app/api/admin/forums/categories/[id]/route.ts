@@ -162,7 +162,14 @@ export const PUT = withAuth(
       }
 
       // Build update data
-      const updateData: any = {
+      const updateData: {
+        updatedDate: Date;
+        name?: string;
+        slug?: string;
+        description?: string;
+        displayOrder?: number;
+        isActive?: boolean;
+      } = {
         updatedDate: new Date(),
       };
 
@@ -335,7 +342,7 @@ export const DELETE = withAuth(
       }
 
       // Use transaction to delete category and all related data
-      await prisma.$transaction(async (tx: any) => {
+      await prisma.$transaction(async (tx) => {
         // First, delete all posts in threads of this category
         await tx.forumPost.deleteMany({
           where: {

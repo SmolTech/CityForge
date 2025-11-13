@@ -1,5 +1,6 @@
 import { prisma } from "./client";
 import { logger } from "../logger";
+import type { Prisma } from "@prisma/client";
 
 // Card-related queries
 export const cardQueries = {
@@ -26,7 +27,7 @@ export const cardQueries = {
     includeShareUrls?: boolean;
     includeRatings?: boolean;
   } = {}) {
-    const where: any = {
+    const where: Prisma.CardWhereInput = {
       approved: true,
       ...(featured !== undefined && { featured }),
       ...(search && {
@@ -97,7 +98,7 @@ export const cardQueries = {
     ]);
 
     // Transform data to match Flask API format
-    const transformedCards = cards.map((card: any) => {
+    const transformedCards = cards.map((card) => {
       const baseCard = {
         ...card,
         // Generate slug if includeShareUrls
@@ -119,10 +120,8 @@ export const cardQueries = {
           ...baseCard,
           averageRating:
             card.reviews.length > 0
-              ? card.reviews.reduce(
-                  (sum: any, review: any) => sum + review.rating,
-                  0
-                ) / card.reviews.length
+              ? card.reviews.reduce((sum, review) => sum + review.rating, 0) /
+                card.reviews.length
               : null,
           reviewCount: card.reviews.length,
         };
@@ -184,10 +183,8 @@ export const cardQueries = {
         ...(includeRatings && {
           averageRating:
             card.reviews.length > 0
-              ? card.reviews.reduce(
-                  (sum: any, review: any) => sum + review.rating,
-                  0
-                ) / card.reviews.length
+              ? card.reviews.reduce((sum, review) => sum + review.rating, 0) /
+                card.reviews.length
               : null,
           reviewCount: card.reviews.length,
         }),
@@ -203,7 +200,7 @@ export const cardQueries = {
   /**
    * Create a new card
    */
-  async createCard(data: any) {
+  async createCard(data: Prisma.CardCreateInput) {
     return await prisma.card.create({
       data,
       include: {
@@ -261,7 +258,7 @@ export const userQueries = {
   /**
    * Create a new user
    */
-  async createUser(data: any) {
+  async createUser(data: Prisma.UserCreateInput) {
     return await prisma.user.create({
       data,
       select: {
@@ -279,7 +276,7 @@ export const userQueries = {
   /**
    * Update user profile
    */
-  async updateUser(id: number, data: any) {
+  async updateUser(id: number, data: Prisma.UserUpdateInput) {
     return await prisma.user.update({
       where: { id },
       data,
@@ -302,7 +299,7 @@ export const reviewQueries = {
   /**
    * Create a new review
    */
-  async createReview(data: any) {
+  async createReview(data: Prisma.ReviewCreateInput) {
     return await prisma.review.create({
       data,
       include: {
@@ -360,7 +357,7 @@ export const reviewQueries = {
   /**
    * Update a review
    */
-  async updateReview(reviewId: number, data: any) {
+  async updateReview(reviewId: number, data: Prisma.ReviewUpdateInput) {
     return await prisma.review.update({
       where: { id: reviewId },
       data,
@@ -461,7 +458,7 @@ export const reviewQueries = {
 
     // Convert to array format expected by frontend (5 elements for ratings 1-5)
     const result = Array(5).fill(0);
-    distribution.forEach((item: any) => {
+    distribution.forEach((item) => {
       if (item.rating >= 1 && item.rating <= 5) {
         result[item.rating - 1] = item._count.rating;
       }
@@ -506,7 +503,7 @@ export const resourceQueries = {
     });
 
     // Transform to match Flask API format (to_dict method)
-    return items.map((item: any) => ({
+    return items.map((item) => ({
       id: item.id,
       identifier: item.identifier,
       title: item.title,
@@ -541,7 +538,7 @@ export const resourceQueries = {
     });
 
     // Transform to match Flask API format (to_dict method)
-    return items.map((item: any) => ({
+    return items.map((item) => ({
       id: item.id,
       title: item.title,
       url: item.url,
@@ -571,7 +568,7 @@ export const resourceQueries = {
       take: limit,
     });
 
-    return result.map((item: any) => item.category).filter(Boolean);
+    return result.map((item) => item.category).filter(Boolean);
   },
 
   /**
@@ -582,7 +579,7 @@ export const resourceQueries = {
 
     // Convert to key-value object
     return configs.reduce(
-      (acc: any, config: any) => {
+      (acc, config) => {
         acc[config.key] = config.value;
         return acc;
       },
@@ -758,7 +755,7 @@ export const submissionQueries = {
     });
 
     // Transform to match Flask API format (to_dict method)
-    return submissions.map((submission: any) => ({
+    return submissions.map((submission) => ({
       id: submission.id,
       name: submission.name,
       description: submission.description,

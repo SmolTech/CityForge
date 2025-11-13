@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const tags = await tagQueries.getAllTags({ limit, offset });
 
     // Transform data to match Flask API format
-    const transformedTags = tags.map((tag: any) => ({
+    const transformedTags = tags.map((tag) => ({
       name: tag.name,
       count: tag._count.cards,
     }));

@@ -85,7 +85,7 @@ export async function GET(
     });
 
     // Transform threads to match Flask API format
-    const transformedThreads = threads.map((thread: any) => ({
+    const transformedThreads = threads.map((thread) => ({
       id: thread.id,
       category_id: thread.categoryId,
       title: thread.title,
@@ -251,7 +251,7 @@ export const POST = withAuth(
       });
 
       // Use transaction to create thread and first post
-      const result = await prisma.$transaction(async (tx: any) => {
+      const result = await prisma.$transaction(async (tx) => {
         // Create thread
         const thread = await tx.forumThread.create({
           data: {

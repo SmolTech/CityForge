@@ -13,7 +13,7 @@ export const GET = withAuth(
         orderBy: { key: "asc" },
       });
 
-      const formattedConfigs = configs.map((config: any) => ({
+      const formattedConfigs = configs.map((config) => ({
         id: config.id,
         key: config.key,
         value: config.value,
@@ -100,11 +100,22 @@ export const POST = withAuth(
         },
         { status: 201 }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error creating config:", error);
 
       // Handle unique constraint violation
-      if (error.code === "P2002" && error.meta?.target?.includes("key")) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2002" &&
+        "meta" in error &&
+        error.meta &&
+        typeof error.meta === "object" &&
+        "target" in error.meta &&
+        Array.isArray(error.meta.target) &&
+        error.meta.target.includes("key")
+      ) {
         return NextResponse.json(
           {
             error: {

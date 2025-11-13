@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform categories to match Flask API format
-    const transformedCategories = categories.map((category: any) => ({
+    const transformedCategories = categories.map((category) => ({
       id: category.id,
       name: category.name,
       description: category.description,

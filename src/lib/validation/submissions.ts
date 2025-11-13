@@ -17,7 +17,7 @@ export interface ValidationError {
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -160,7 +160,9 @@ export interface CardSubmissionData {
  * Validate card submission data
  * Returns validation result with sanitized data if valid
  */
-export function validateCardSubmission(data: any): ValidationResult {
+export function validateCardSubmission(
+  data: Record<string, unknown>
+): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardSubmissionData> = {};
 
@@ -293,7 +295,9 @@ export function validateCardSubmission(data: any): ValidationResult {
  * Validate card modification data
  * Same validation as submission but allows all fields to be optional
  */
-export function validateCardModification(data: any): ValidationResult {
+export function validateCardModification(
+  data: Record<string, unknown>
+): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardSubmissionData> = {};
 

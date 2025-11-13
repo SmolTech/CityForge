@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
 import { logger } from "@/lib/logger";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Build where clause for filtering
-    const where: any = {
+    const where: Prisma.CardWhereInput = {
       approved: true,
     };
 
@@ -123,8 +124,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform cards to match API format
-    const transformedCards = cards.map((card: any) => {
-      const baseCard: any = {
+    const transformedCards = cards.map((card) => {
+      const baseCard: Record<string, unknown> = {
         id: card.id,
         name: card.name,
         description: card.description,
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
         created_date: card.createdDate?.toISOString(),
         updated_date: card.updatedDate?.toISOString(),
         approved_date: card.approvedDate?.toISOString(),
-        tags: card.card_tags.map((ct: any) => ct.tags.name),
+        tags: card.card_tags.map((ct) => ct.tags.name),
       };
 
       // Add optional fields
@@ -175,13 +176,10 @@ export async function GET(request: NextRequest) {
 
       if (includeRatings && card.reviews) {
         const ratings = card.reviews
-          .map((review: any) => review.rating)
-          .filter((rating: any) => rating !== null);
+          .map((review) => review.rating)
+          .filter((rating): rating is number => rating !== null);
         if (ratings.length > 0) {
-          const sum = ratings.reduce(
-            (acc: any, rating: any) => acc + rating,
-            0
-          );
+          const sum = ratings.reduce((acc, rating) => acc + rating, 0);
           baseCard.average_rating = sum / ratings.length;
           baseCard.review_count = ratings.length;
         } else {
@@ -204,15 +202,17 @@ export async function GET(request: NextRequest) {
     response.headers.set("Cache-Control", "public, max-age=60");
 
     return response;
-  } catch (error: any) {
-    logger.error("Error fetching cards:", error?.message || "Unknown error");
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    logger.error("Error fetching cards:", errorMessage);
 
     // Only log detailed error information in development
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && error instanceof Error) {
       logger.error("Error details:", {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
       });
     }
 

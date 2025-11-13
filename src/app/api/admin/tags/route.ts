@@ -40,7 +40,7 @@ export const GET = withAuth(
       });
 
       // Format response to match Flask API
-      const formattedTags = tags.map((tag: any) => ({
+      const formattedTags = tags.map((tag) => ({
         id: tag.id,
         name: tag.name,
         created_date: tag.createdDate,
@@ -123,11 +123,22 @@ export const POST = withAuth(
         },
         message: "Tag created successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error creating tag:", error);
 
       // Handle unique constraint violation (duplicate tag name)
-      if (error.code === "P2002" && error.meta?.target?.includes("name")) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2002" &&
+        "meta" in error &&
+        error.meta &&
+        typeof error.meta === "object" &&
+        "target" in error.meta &&
+        Array.isArray(error.meta.target) &&
+        error.meta.target.includes("name")
+      ) {
         return NextResponse.json(
           {
             error: {

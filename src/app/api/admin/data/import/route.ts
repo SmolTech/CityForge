@@ -55,7 +55,7 @@ export const POST = withAuth(
 
       // Parse uploaded file
       const fileContent = await file.text();
-      let importData: Record<string, any>;
+      let importData: Record<string, unknown>;
 
       try {
         importData = JSON.parse(fileContent);
@@ -250,26 +250,28 @@ export const POST = withAuth(
               let addedCount = 0;
 
               // Clean records by removing nested objects/relations for import
-              const cleanRecords = records.map((record: any) => {
-                const cleanRecord = { ...record };
-                // Remove relations and computed fields that would cause issues during import
-                Object.keys(cleanRecord).forEach((key) => {
-                  if (
-                    Array.isArray(cleanRecord[key]) &&
-                    typeof cleanRecord[key][0] === "object"
-                  ) {
-                    delete cleanRecord[key]; // Remove relation arrays
-                  }
-                  if (
-                    typeof cleanRecord[key] === "object" &&
-                    cleanRecord[key] !== null &&
-                    !cleanRecord[key].getTime
-                  ) {
-                    delete cleanRecord[key]; // Remove relation objects (except dates)
-                  }
-                });
-                return cleanRecord;
-              });
+              const cleanRecords = records.map(
+                (record: Record<string, unknown>) => {
+                  const cleanRecord = { ...record };
+                  // Remove relations and computed fields that would cause issues during import
+                  Object.keys(cleanRecord).forEach((key) => {
+                    if (
+                      Array.isArray(cleanRecord[key]) &&
+                      typeof cleanRecord[key][0] === "object"
+                    ) {
+                      delete cleanRecord[key]; // Remove relation arrays
+                    }
+                    if (
+                      typeof cleanRecord[key] === "object" &&
+                      cleanRecord[key] !== null &&
+                      !(cleanRecord[key] as Date).getTime
+                    ) {
+                      delete cleanRecord[key]; // Remove relation objects (except dates)
+                    }
+                  });
+                  return cleanRecord;
+                }
+              );
 
               switch (modelName) {
                 case "User":

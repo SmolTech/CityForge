@@ -188,7 +188,7 @@ export const GET = withAuth(async (_request: NextRequest, { user }) => {
     });
 
     // Transform to match Flask API format
-    const transformedRequests = requests.map((request: any) => ({
+    const transformedRequests = requests.map((request) => ({
       id: request.id,
       name: request.name,
       description: request.description,

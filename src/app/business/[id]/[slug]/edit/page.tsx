@@ -44,9 +44,12 @@ export default function EditBusinessPage() {
       let userResponse;
       try {
         userResponse = await apiClient.getCurrentUser();
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If getCurrentUser fails, user is not authenticated
-        logger.error("User not authenticated:", error);
+        logger.error(
+          "User not authenticated:",
+          error instanceof Error ? error.message : "Unknown error"
+        );
         router.push("/login");
         return;
       }
@@ -134,13 +137,17 @@ export default function EditBusinessPage() {
         ...formData,
         image_url: response.url,
       });
-    } catch (error: any) {
-      logger.error("Image upload failed:", error);
+    } catch (error: unknown) {
+      logger.error(
+        "Image upload failed:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
 
       // Check if it's an authentication error
       if (
-        error.message?.includes("401") ||
-        error.message?.includes("Unauthorized")
+        error instanceof Error &&
+        (error.message?.includes("401") ||
+          error.message?.includes("Unauthorized"))
       ) {
         setError(
           "Authentication expired. Please log in again to upload images."

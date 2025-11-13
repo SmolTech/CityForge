@@ -275,7 +275,7 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     const totalPages = Math.ceil(totalReports / limit);
 
     // Transform reports to match Flask API format
-    const transformedReports = reports.map((report: any) => ({
+    const transformedReports = reports.map((report) => ({
       id: report.id,
       thread_id: report.threadId,
       post_id: report.postId,

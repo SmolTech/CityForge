@@ -50,7 +50,7 @@ export const DELETE = withAuth(
       }
 
       // Use transaction to delete thread and all related data
-      await prisma.$transaction(async (tx: any) => {
+      await prisma.$transaction(async (tx) => {
         // First, delete all reports related to posts in this thread
         await tx.forumReport.deleteMany({
           where: {

@@ -114,7 +114,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (response.body?.hits?.hits) {
       for (const hit of response.body.hits.hits) {
-        const source = hit._source as any;
+        const source = hit._source as Record<string, unknown>;
 
         // Create content excerpt
         let contentExcerpt = "";
@@ -147,7 +147,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
         // Add highlights if available
         if (hit.highlight) {
-          result.highlights = hit.highlight as any;
+          result.highlights = hit.highlight as Record<
+            string,
+            string[] | undefined
+          >;
         }
 
         results.push(result);
@@ -159,7 +162,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const totalHits =
       typeof totalHitsObj === "number"
         ? totalHitsObj
-        : (totalHitsObj as any)?.value || 0;
+        : totalHitsObj &&
+            typeof totalHitsObj === "object" &&
+            "value" in totalHitsObj &&
+            typeof totalHitsObj.value === "number"
+          ? totalHitsObj.value
+          : 0;
     const totalPages = Math.ceil(totalHits / size);
 
     const searchResponse: SearchResponse = {

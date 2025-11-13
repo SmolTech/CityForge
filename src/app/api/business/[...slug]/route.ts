@@ -103,7 +103,30 @@ export async function GET(
     }
 
     // Transform card to match API format
-    const transformedCard: any = {
+    const transformedCard: {
+      id: number;
+      name: string;
+      description: string | null;
+      website_url: string | null;
+      phone_number: string | null;
+      email: string | null;
+      address: string | null;
+      address_override_url: string | null;
+      contact_name: string | null;
+      featured: boolean;
+      image_url: string | null;
+      approved: boolean;
+      created_date?: string;
+      updated_date?: string;
+      approved_date?: string;
+      tags: string[];
+      slug: string;
+      share_url: string;
+      creator?: { id: number; first_name: string; last_name: string };
+      approver?: { id: number; first_name: string; last_name: string };
+      average_rating?: number;
+      rating_count?: number;
+    } = {
       id: card.id,
       name: card.name,
       description: card.description,
@@ -119,7 +142,7 @@ export async function GET(
       created_date: card.createdDate?.toISOString(),
       updated_date: card.updatedDate?.toISOString(),
       approved_date: card.approvedDate?.toISOString(),
-      tags: card.card_tags.map((ct: any) => ct.tags.name),
+      tags: card.card_tags.map((ct) => ct.tags.name),
       slug: actualSlug,
       share_url: `/business/${card.id}/${actualSlug}`,
     };
@@ -144,10 +167,10 @@ export async function GET(
     // Add ratings if requested
     if (includeRatings && card.reviews) {
       const ratings = card.reviews
-        .map((review: any) => review.rating)
-        .filter((rating: any) => rating !== null);
+        .map((review) => review.rating)
+        .filter((rating): rating is number => rating !== null);
       if (ratings.length > 0) {
-        const sum = ratings.reduce((acc: any, rating: any) => acc + rating, 0);
+        const sum = ratings.reduce((acc, rating) => acc + rating, 0);
         transformedCard.average_rating = sum / ratings.length;
         transformedCard.review_count = ratings.length;
       } else {
