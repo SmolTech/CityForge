@@ -275,103 +275,141 @@ export const POST = withAuth(
 
               switch (modelName) {
                 case "User":
-                  await tx.user.createMany({ data: cleanRecords });
+                  await tx.user.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "Tag":
-                  await tx.tag.createMany({ data: cleanRecords });
+                  await tx.tag.createMany({ data: cleanRecords as never[] });
                   addedCount = cleanRecords.length;
                   break;
                 case "Card":
-                  await tx.card.createMany({ data: cleanRecords });
+                  await tx.card.createMany({ data: cleanRecords as never[] });
                   addedCount = cleanRecords.length;
                   break;
                 case "CardSubmission":
-                  await tx.cardSubmission.createMany({ data: cleanRecords });
+                  await tx.cardSubmission.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "CardModification":
-                  await tx.cardModification.createMany({ data: cleanRecords });
+                  await tx.cardModification.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ResourceCategory":
-                  await tx.resourceCategory.createMany({ data: cleanRecords });
+                  await tx.resourceCategory.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "QuickAccessItem":
-                  await tx.quickAccessItem.createMany({ data: cleanRecords });
+                  await tx.quickAccessItem.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ResourceItem":
-                  await tx.resourceItem.createMany({ data: cleanRecords });
+                  await tx.resourceItem.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ResourceConfig":
-                  await tx.resourceConfig.createMany({ data: cleanRecords });
+                  await tx.resourceConfig.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "Review":
-                  await tx.review.createMany({ data: cleanRecords });
+                  await tx.review.createMany({ data: cleanRecords as never[] });
                   addedCount = cleanRecords.length;
                   break;
                 case "ForumCategory":
-                  await tx.forumCategory.createMany({ data: cleanRecords });
+                  await tx.forumCategory.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ForumCategoryRequest":
                   await tx.forumCategoryRequest.createMany({
-                    data: cleanRecords,
+                    data: cleanRecords as never[],
                   });
                   addedCount = cleanRecords.length;
                   break;
                 case "ForumThread":
-                  await tx.forumThread.createMany({ data: cleanRecords });
+                  await tx.forumThread.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ForumPost":
-                  await tx.forumPost.createMany({ data: cleanRecords });
+                  await tx.forumPost.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "ForumReport":
-                  await tx.forumReport.createMany({ data: cleanRecords });
+                  await tx.forumReport.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "HelpWantedPost":
-                  await tx.helpWantedPost.createMany({ data: cleanRecords });
+                  await tx.helpWantedPost.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "HelpWantedComment":
-                  await tx.helpWantedComment.createMany({ data: cleanRecords });
+                  await tx.helpWantedComment.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "HelpWantedReport":
-                  await tx.helpWantedReport.createMany({ data: cleanRecords });
+                  await tx.helpWantedReport.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "SupportTicket":
-                  await tx.supportTicket.createMany({ data: cleanRecords });
+                  await tx.supportTicket.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "SupportTicketMessage":
                   await tx.supportTicketMessage.createMany({
-                    data: cleanRecords,
+                    data: cleanRecords as never[],
                   });
                   addedCount = cleanRecords.length;
                   break;
                 case "IndexingJob":
-                  await tx.indexingJob.createMany({ data: cleanRecords });
+                  await tx.indexingJob.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "TokenBlacklist":
-                  await tx.tokenBlacklist.createMany({ data: cleanRecords });
+                  await tx.tokenBlacklist.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "card_tags":
-                  await tx.card_tags.createMany({ data: cleanRecords });
+                  await tx.card_tags.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
                 case "alembic_version":
-                  await tx.alembic_version.createMany({ data: cleanRecords });
+                  await tx.alembic_version.createMany({
+                    data: cleanRecords as never[],
+                  });
                   addedCount = cleanRecords.length;
                   break;
               }

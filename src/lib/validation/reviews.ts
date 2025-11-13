@@ -4,6 +4,12 @@
  * This module provides comprehensive validation for review operations.
  */
 
+// Validation functions accept dynamic input data that may have any structure
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Helper type for validation input that allows dot notation access
+type ValidationInput = Record<string, any>;
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -39,9 +45,7 @@ export interface ReviewData {
   comment?: string;
 }
 
-export function validateReview(
-  data: Record<string, unknown>
-): ValidationResult {
+export function validateReview(data: ValidationInput): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ReviewData> = {};
 
@@ -98,9 +102,7 @@ export function validateReview(
 }
 
 // Review update validation (same as create but all fields optional except rating)
-export function validateReviewUpdate(
-  data: Record<string, unknown>
-): ValidationResult {
+export function validateReviewUpdate(data: ValidationInput): ValidationResult {
   return validateReview(data);
 }
 
@@ -110,9 +112,7 @@ export interface ReviewReportData {
   details?: string;
 }
 
-export function validateReviewReport(
-  data: Record<string, unknown>
-): ValidationResult {
+export function validateReviewReport(data: ValidationInput): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ReviewReportData> = {};
 
