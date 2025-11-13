@@ -9,6 +9,12 @@
  * - Tags (format and length)
  */
 
+// Validation functions accept dynamic input data that may have any structure
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Helper type for validation input that allows dot notation access
+type ValidationInput = Record<string, any>;
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -161,7 +167,7 @@ export interface CardSubmissionData {
  * Returns validation result with sanitized data if valid
  */
 export function validateCardSubmission(
-  data: Record<string, unknown>
+  data: ValidationInput
 ): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardSubmissionData> = {};
@@ -296,7 +302,7 @@ export function validateCardSubmission(
  * Same validation as submission but allows all fields to be optional
  */
 export function validateCardModification(
-  data: Record<string, unknown>
+  data: ValidationInput
 ): ValidationResult {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardSubmissionData> = {};
