@@ -12,7 +12,7 @@ import {
 } from "./middleware";
 
 // Test-only secret - nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
-const TEST_SECRET = TEST_SECRET;
+const TEST_SECRET = "test-secret-key";
 
 // Mock the database client
 vi.mock("@/lib/db/client", () => {
@@ -103,7 +103,7 @@ describe("Auth Middleware", () => {
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 3600,
       },
-      TEST_SECRET
+      TEST_SECRET // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
     );
   };
 
@@ -214,7 +214,7 @@ describe("Auth Middleware", () => {
           iat: Math.floor(Date.now() / 1000) - 7200,
           exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
         },
-        TEST_SECRET
+        TEST_SECRET // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
       );
 
       const request = createMockRequest({ token: expiredToken });
@@ -247,7 +247,7 @@ describe("Auth Middleware", () => {
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor(Date.now() / 1000) + 3600,
         },
-        TEST_SECRET
+        TEST_SECRET // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
       );
 
       const request = createMockRequest({ token: tokenWithoutJti });
