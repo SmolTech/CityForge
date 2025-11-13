@@ -76,7 +76,11 @@ function verifyToken(token: string): JWTPayload {
   }
 
   try {
-    return jwt.verify(token, jwtSecret);
+    const decoded = jwt.verify(token, jwtSecret);
+    if (typeof decoded === "string") {
+      throw new AuthenticationError("Invalid token format", 401);
+    }
+    return decoded as JWTPayload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new AuthenticationError("Token has expired", 401);

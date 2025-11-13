@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     // Transform data to match Flask API format
     const transformedTags = tags.map((tag) => ({
       name: tag.name,
-      count: tag._count.cards,
+      count: tag._count?.card_tags ?? 0,
     }));
 
     logger.info(`Returning ${transformedTags.length} tags`);

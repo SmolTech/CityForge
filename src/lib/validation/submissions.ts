@@ -22,10 +22,10 @@ export interface ValidationError {
   message: string;
 }
 
-export interface ValidationResult {
+export interface ValidationResult<T = CardSubmissionData> {
   isValid: boolean;
   errors: ValidationError[];
-  data?: unknown;
+  data: T | undefined;
 }
 
 /**
@@ -164,13 +164,26 @@ export interface CardSubmissionData {
   tagsText?: string;
 }
 
+export interface CardModificationData {
+  name?: string;
+  description?: string;
+  websiteUrl?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  addressOverrideUrl?: string;
+  contactName?: string;
+  imageUrl?: string;
+  tagsText?: string;
+}
+
 /**
  * Validate card submission data
  * Returns validation result with sanitized data if valid
  */
 export function validateCardSubmission(
   data: ValidationInput
-): ValidationResult {
+): ValidationResult<CardSubmissionData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardSubmissionData> = {};
 
@@ -305,9 +318,9 @@ export function validateCardSubmission(
  */
 export function validateCardModification(
   data: ValidationInput
-): ValidationResult {
+): ValidationResult<CardModificationData> {
   const errors: ValidationError[] = [];
-  const sanitizedData: Partial<CardSubmissionData> = {};
+  const sanitizedData: Partial<CardModificationData> = {};
 
   // Optional field: name
   if (data.name !== undefined) {
@@ -326,26 +339,110 @@ export function validateCardModification(
     }
   }
 
-  // Use the same validation logic for other fields but skip name requirement
-  const tempData = { ...data, name: data.name || "temp" }; // Provide temp name for validation
-  const result = validateCardSubmission(tempData);
-
-  // If name wasn't provided originally, remove it from result
-  if (data.name === undefined && result.data) {
-    delete result.data.name;
+  // Optional field: description
+  if (data.description && typeof data.description === "string") {
+    const description = sanitizeString(data.description);
+    if (description.length > 5000) {
+      errors.push({
+        field: "description",
+        message: "Description must not exceed 5000 characters",
+      });
+    } else if (description) {
+      sanitizedData.description = description;
+    }
   }
 
-  // Filter out name errors if name wasn't provided
-  const filteredErrors = result.errors.filter(
-    (error) => !(error.field === "name" && data.name === undefined)
-  );
+  // Optional field: websiteUrl
+  if (data.websiteUrl && typeof data.websiteUrl === "string") {
+    const urlError = validateUrl(data.websiteUrl.trim());
+    if (urlError) {
+      errors.push({ field: "websiteUrl", message: urlError });
+    } else {
+      sanitizedData.websiteUrl = data.websiteUrl.trim();
+    }
+  }
 
-  // Add our own name validation errors if any
-  filteredErrors.push(...errors);
+  // Optional field: phoneNumber
+  if (data.phoneNumber && typeof data.phoneNumber === "string") {
+    const phoneError = validatePhoneNumber(data.phoneNumber.trim());
+    if (phoneError) {
+      errors.push({ field: "phoneNumber", message: phoneError });
+    } else {
+      sanitizedData.phoneNumber = data.phoneNumber.trim();
+    }
+  }
+
+  // Optional field: email
+  if (data.email && typeof data.email === "string") {
+    const emailError = validateEmail(data.email.trim());
+    if (emailError) {
+      errors.push({ field: "email", message: emailError });
+    } else {
+      sanitizedData.email = data.email.trim();
+    }
+  }
+
+  // Optional field: address
+  if (data.address && typeof data.address === "string") {
+    const address = sanitizeString(data.address);
+    if (address.length > 500) {
+      errors.push({
+        field: "address",
+        message: "Address must not exceed 500 characters",
+      });
+    } else if (address) {
+      sanitizedData.address = address;
+    }
+  }
+
+  // Optional field: addressOverrideUrl
+  if (data.addressOverrideUrl && typeof data.addressOverrideUrl === "string") {
+    const urlError = validateUrl(data.addressOverrideUrl.trim());
+    if (urlError) {
+      errors.push({ field: "addressOverrideUrl", message: urlError });
+    } else {
+      sanitizedData.addressOverrideUrl = data.addressOverrideUrl.trim();
+    }
+  }
+
+  // Optional field: contactName
+  if (data.contactName && typeof data.contactName === "string") {
+    const contactName = sanitizeString(data.contactName);
+    if (contactName.length > 100) {
+      errors.push({
+        field: "contactName",
+        message: "Contact name must not exceed 100 characters",
+      });
+    } else if (contactName) {
+      sanitizedData.contactName = contactName;
+    }
+  }
+
+  // Optional field: imageUrl
+  if (data.imageUrl && typeof data.imageUrl === "string") {
+    const urlError = validateUrl(data.imageUrl.trim());
+    if (urlError) {
+      errors.push({ field: "imageUrl", message: urlError });
+    } else {
+      sanitizedData.imageUrl = data.imageUrl.trim();
+    }
+  }
+
+  // Optional field: tagsText
+  if (data.tagsText && typeof data.tagsText === "string") {
+    const tagsText = sanitizeString(data.tagsText);
+    const tagsError = validateTagsText(tagsText);
+    if (tagsError) {
+      errors.push({ field: "tagsText", message: tagsError });
+    } else if (tagsText) {
+      sanitizedData.tagsText = tagsText;
+    }
+  }
 
   return {
-    isValid: filteredErrors.length === 0,
-    errors: filteredErrors,
-    data: filteredErrors.length === 0 ? result.data : undefined,
+    isValid: errors.length === 0,
+    errors,
+    data:
+      errors.length === 0 ? (sanitizedData as CardModificationData) : undefined,
   };
 }

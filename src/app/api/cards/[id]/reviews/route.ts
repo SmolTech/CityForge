@@ -136,17 +136,28 @@ export const POST = withAuth(
       const body = await request.json();
       const validation = validateReview(body);
 
-      if (!validation.isValid) {
+      if (!validation.isValid || !validation.data) {
         throw new ValidationError("Validation failed", validation.errors);
       }
 
       // Create the review
-      const reviewData = {
-        ...validation.data,
+      const reviewData: {
+        cardId: number;
+        userId: number;
+        hidden: boolean;
+        rating: number;
+        title?: string;
+        comment?: string;
+      } = {
         cardId,
         userId: user.id,
         hidden: false, // Explicitly set to false to ensure visibility
+        rating: validation.data.rating,
       };
+
+      // Only add optional fields if they are defined
+      if (validation.data.title) reviewData.title = validation.data.title;
+      if (validation.data.comment) reviewData.comment = validation.data.comment;
 
       const review = await reviewQueries.createReview(reviewData);
 

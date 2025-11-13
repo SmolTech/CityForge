@@ -241,7 +241,8 @@ export function successResponse<T>(
     hasPrev?: boolean;
   }
 ): NextResponse {
-  const response: Record<string, unknown> = { data };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response: any = { data }; // Using any for dynamic property assignment
 
   if (meta) {
     response.meta = meta;

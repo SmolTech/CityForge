@@ -118,7 +118,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
         // Create content excerpt
         let contentExcerpt = "";
-        if (source?.["content"]) {
+        if (source?.["content"] && typeof source["content"] === "string") {
           const contentText = source["content"];
           if (contentText.length > 800) {
             contentExcerpt = contentText.substring(0, 800) + "...";
@@ -128,19 +128,36 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         }
 
         const displayDescription =
-          source?.["page_description"] || source?.["description"] || "";
+          (typeof source?.["page_description"] === "string"
+            ? source["page_description"]
+            : "") ||
+          (typeof source?.["description"] === "string"
+            ? source["description"]
+            : "") ||
+          "";
 
         const result: SearchResult = {
-          id: source?.["resource_id"] || 0,
-          title: source?.["title"] || "",
+          id:
+            typeof source?.["resource_id"] === "number"
+              ? source["resource_id"]
+              : 0,
+          title: typeof source?.["title"] === "string" ? source["title"] : "",
           description: displayDescription,
           content_excerpt: contentExcerpt,
-          url: source?.["url"] || "",
-          page_url: source?.["page_url"] || source?.["url"] || "",
-          category: source?.["category"] || "",
-          phone: source?.["phone"] || "",
-          address: source?.["address"] || "",
-          domain: source?.["domain"] || "",
+          url: typeof source?.["url"] === "string" ? source["url"] : "",
+          page_url:
+            (typeof source?.["page_url"] === "string"
+              ? source["page_url"]
+              : "") ||
+            (typeof source?.["url"] === "string" ? source["url"] : "") ||
+            "",
+          category:
+            typeof source?.["category"] === "string" ? source["category"] : "",
+          phone: typeof source?.["phone"] === "string" ? source["phone"] : "",
+          address:
+            typeof source?.["address"] === "string" ? source["address"] : "",
+          domain:
+            typeof source?.["domain"] === "string" ? source["domain"] : "",
           score: (hit._score as number) || 0,
           is_homepage: source?.["is_homepage"] !== false, // Default to true
         };

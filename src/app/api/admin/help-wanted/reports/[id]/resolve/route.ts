@@ -8,8 +8,15 @@ import {
 } from "@/lib/errors";
 import { prisma } from "@/lib/db/client";
 
+interface ReportResolutionData {
+  action: string;
+  notes: string | null;
+}
+
 // Validation helper for report resolution
-function validateReportResolution(data: Record<string, unknown>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateReportResolution(data: any) {
+  // Using any for runtime validation
   const errors: string[] = [];
 
   const validActions = ["dismiss", "delete_post"];
@@ -26,10 +33,10 @@ function validateReportResolution(data: Record<string, unknown>) {
     errors,
     data:
       errors.length === 0
-        ? {
+        ? ({
             action: data.action,
             notes: data.notes?.trim() || null,
-          }
+          } as ReportResolutionData)
         : null,
   };
 }

@@ -74,19 +74,41 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     }
 
     // Create submission in database
-    const submissionData = {
+    const submissionData: {
+      name: string;
+      description?: string;
+      website_url?: string;
+      phone_number?: string;
+      email?: string;
+      address?: string;
+      address_override_url?: string;
+      contact_name?: string;
+      image_url?: string;
+      tags_text?: string;
+      submitted_by: number;
+    } = {
       name: validation.data.name,
-      description: validation.data.description || "",
-      website_url: validation.data.websiteUrl || null,
-      phone_number: validation.data.phoneNumber || null,
-      email: validation.data.email || null,
-      address: validation.data.address || null,
-      address_override_url: validation.data.addressOverrideUrl || null,
-      contact_name: validation.data.contactName || null,
-      image_url: validation.data.imageUrl || null,
-      tags_text: validation.data.tagsText || "",
       submitted_by: user.id,
     };
+
+    // Only add optional fields if they are defined
+    if (validation.data.description)
+      submissionData.description = validation.data.description;
+    if (validation.data.websiteUrl)
+      submissionData.website_url = validation.data.websiteUrl;
+    if (validation.data.phoneNumber)
+      submissionData.phone_number = validation.data.phoneNumber;
+    if (validation.data.email) submissionData.email = validation.data.email;
+    if (validation.data.address)
+      submissionData.address = validation.data.address;
+    if (validation.data.addressOverrideUrl)
+      submissionData.address_override_url = validation.data.addressOverrideUrl;
+    if (validation.data.contactName)
+      submissionData.contact_name = validation.data.contactName;
+    if (validation.data.imageUrl)
+      submissionData.image_url = validation.data.imageUrl;
+    if (validation.data.tagsText)
+      submissionData.tags_text = validation.data.tagsText;
 
     const submission = await submissionQueries.createSubmission(submissionData);
 

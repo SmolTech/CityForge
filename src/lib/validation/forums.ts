@@ -17,10 +17,10 @@ export interface ValidationError {
   message: string;
 }
 
-export interface ValidationResult {
+export interface ValidationResult<T = unknown> {
   isValid: boolean;
   errors: ValidationError[];
-  data?: unknown;
+  data: T | undefined;
 }
 
 /**
@@ -45,7 +45,9 @@ export interface ForumPostData {
   content: string;
 }
 
-export function validateForumPost(data: ValidationInput): ValidationResult {
+export function validateForumPost(
+  data: ValidationInput
+): ValidationResult<ForumPostData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ForumPostData> = {};
 
@@ -79,7 +81,9 @@ export interface ForumThreadData {
   content: string;
 }
 
-export function validateForumThread(data: ValidationInput): ValidationResult {
+export function validateForumThread(
+  data: ValidationInput
+): ValidationResult<ForumThreadData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ForumThreadData> = {};
 
@@ -131,7 +135,7 @@ export interface ForumThreadUpdateData {
 
 export function validateForumThreadUpdate(
   data: ValidationInput
-): ValidationResult {
+): ValidationResult<ForumThreadUpdateData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ForumThreadUpdateData> = {};
 
@@ -171,7 +175,7 @@ export interface ForumCategoryRequestData {
 
 export function validateForumCategoryRequest(
   data: ValidationInput
-): ValidationResult {
+): ValidationResult<ForumCategoryRequestData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ForumCategoryRequestData> = {};
 
@@ -254,7 +258,9 @@ export interface ForumReportData {
   details?: string;
 }
 
-export function validateForumReport(data: ValidationInput): ValidationResult {
+export function validateForumReport(
+  data: ValidationInput
+): ValidationResult<ForumReportData> {
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<ForumReportData> = {};
 

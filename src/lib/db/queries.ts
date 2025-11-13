@@ -44,22 +44,26 @@ export const cardQueries = {
     if (tags.length > 0) {
       if (tagMode === "or") {
         // OR logic: card must have at least one of the selected tags
-        where.tags = {
+        where.card_tags = {
           some: {
-            name: {
-              in: tags,
-              mode: "insensitive",
+            tags: {
+              name: {
+                in: tags,
+                mode: "insensitive",
+              },
             },
           },
         };
       } else {
         // AND logic (default): card must have all selected tags
         where.AND = tags.map((tag) => ({
-          tags: {
+          card_tags: {
             some: {
-              name: {
-                equals: tag,
-                mode: "insensitive",
+              tags: {
+                name: {
+                  equals: tag,
+                  mode: "insensitive",
+                },
               },
             },
           },
@@ -299,9 +303,34 @@ export const reviewQueries = {
   /**
    * Create a new review
    */
-  async createReview(data: Prisma.ReviewCreateInput) {
+  async createReview(data: {
+    cardId: number;
+    userId: number;
+    rating: number;
+    title?: string;
+    comment?: string;
+    hidden: boolean;
+  }) {
+    const reviewData: {
+      cardId: number;
+      userId: number;
+      rating: number;
+      hidden: boolean;
+      title?: string;
+      comment?: string;
+    } = {
+      cardId: data.cardId,
+      userId: data.userId,
+      rating: data.rating,
+      hidden: data.hidden,
+    };
+
+    // Only add optional fields if defined
+    if (data.title) reviewData.title = data.title;
+    if (data.comment) reviewData.comment = data.comment;
+
     return await prisma.review.create({
-      data,
+      data: reviewData,
       include: {
         user: { select: { firstName: true, lastName: true } },
         card: { select: { name: true } },

@@ -37,7 +37,11 @@ function checkRateLimit(userId: number, limitPerHour: number): boolean {
 
 // POST /api/cards/[id]/suggest-edit - Suggest edits to an existing card
 export const POST = withAuth(
-  async (request: NextRequest, { user }, context) => {
+  async (
+    request: NextRequest,
+    { user },
+    context: { params: Promise<{ id: string }> }
+  ) => {
     try {
       // Rate limiting: 10 requests per hour per user
       if (!checkRateLimit(user.id, 10)) {
@@ -45,7 +49,8 @@ export const POST = withAuth(
       }
 
       // Get card ID from URL parameters
-      const cardId = parseInt(context?.params?.id as string);
+      const { id } = await context.params;
+      const cardId = parseInt(id);
       if (isNaN(cardId)) {
         throw new BadRequestError("Invalid card ID");
       }
@@ -88,20 +93,44 @@ export const POST = withAuth(
       }
 
       // Create modification suggestion in database
-      const modificationData = {
+      const modificationData: {
+        card_id: number;
+        name: string;
+        description?: string;
+        website_url?: string;
+        phone_number?: string;
+        email?: string;
+        address?: string;
+        address_override_url?: string;
+        contact_name?: string;
+        image_url?: string;
+        tags_text?: string;
+        submitted_by: number;
+      } = {
         card_id: cardId,
-        name: validation.data.name,
-        description: validation.data.description || null,
-        website_url: validation.data.websiteUrl || null,
-        phone_number: validation.data.phoneNumber || null,
-        email: validation.data.email || null,
-        address: validation.data.address || null,
-        address_override_url: validation.data.addressOverrideUrl || null,
-        contact_name: validation.data.contactName || null,
-        image_url: validation.data.imageUrl || null,
-        tags_text: validation.data.tagsText || null,
+        name: validation.data.name ?? "", // Default to empty string if not provided
         submitted_by: user.id,
       };
+
+      // Only add optional fields if they are defined
+      if (validation.data.description)
+        modificationData.description = validation.data.description;
+      if (validation.data.websiteUrl)
+        modificationData.website_url = validation.data.websiteUrl;
+      if (validation.data.phoneNumber)
+        modificationData.phone_number = validation.data.phoneNumber;
+      if (validation.data.email) modificationData.email = validation.data.email;
+      if (validation.data.address)
+        modificationData.address = validation.data.address;
+      if (validation.data.addressOverrideUrl)
+        modificationData.address_override_url =
+          validation.data.addressOverrideUrl;
+      if (validation.data.contactName)
+        modificationData.contact_name = validation.data.contactName;
+      if (validation.data.imageUrl)
+        modificationData.image_url = validation.data.imageUrl;
+      if (validation.data.tagsText)
+        modificationData.tags_text = validation.data.tagsText;
 
       const modification =
         await submissionQueries.createModification(modificationData);

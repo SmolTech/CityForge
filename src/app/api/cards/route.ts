@@ -125,7 +125,9 @@ export async function GET(request: NextRequest) {
 
     // Transform cards to match API format
     const transformedCards = cards.map((card) => {
-      const baseCard: Record<string, unknown> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const baseCard: any = {
+        // Using any for dynamic property assignment during transformation
         id: card.id,
         name: card.name,
         description: card.description,
@@ -220,7 +222,9 @@ export async function GET(request: NextRequest) {
       {
         error: "Internal server error",
         details:
-          process.env.NODE_ENV === "development" ? error?.message : undefined,
+          process.env.NODE_ENV === "development" && error instanceof Error
+            ? error.message
+            : undefined,
       },
       { status: 500 }
     );

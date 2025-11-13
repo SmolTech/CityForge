@@ -103,30 +103,9 @@ export async function GET(
     }
 
     // Transform card to match API format
-    const transformedCard: {
-      id: number;
-      name: string;
-      description: string | null;
-      website_url: string | null;
-      phone_number: string | null;
-      email: string | null;
-      address: string | null;
-      address_override_url: string | null;
-      contact_name: string | null;
-      featured: boolean;
-      image_url: string | null;
-      approved: boolean;
-      created_date?: string;
-      updated_date?: string;
-      approved_date?: string;
-      tags: string[];
-      slug: string;
-      share_url: string;
-      creator?: { id: number; first_name: string; last_name: string };
-      approver?: { id: number; first_name: string; last_name: string };
-      average_rating?: number;
-      rating_count?: number;
-    } = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transformedCard: any = {
+      // Using any for dynamic optional property assignment
       id: card.id,
       name: card.name,
       description: card.description,
@@ -136,16 +115,21 @@ export async function GET(
       address: card.address,
       address_override_url: card.addressOverrideUrl,
       contact_name: card.contactName,
-      featured: card.featured,
+      featured: card.featured ?? false,
       image_url: card.imageUrl,
-      approved: card.approved,
-      created_date: card.createdDate?.toISOString(),
-      updated_date: card.updatedDate?.toISOString(),
-      approved_date: card.approvedDate?.toISOString(),
+      approved: card.approved ?? false,
       tags: card.card_tags.map((ct) => ct.tags.name),
       slug: actualSlug,
       share_url: `/business/${card.id}/${actualSlug}`,
     };
+
+    // Add optional date fields only if defined
+    if (card.createdDate)
+      transformedCard.created_date = card.createdDate.toISOString();
+    if (card.updatedDate)
+      transformedCard.updated_date = card.updatedDate.toISOString();
+    if (card.approvedDate)
+      transformedCard.approved_date = card.approvedDate.toISOString();
 
     // Add creator and approver info
     if (card.creator) {

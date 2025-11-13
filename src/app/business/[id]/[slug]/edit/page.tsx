@@ -158,7 +158,7 @@ export default function EditBusinessPage() {
         }, 2000);
       } else {
         setError(
-          `Failed to upload image: ${error.message || "Please try again."}`
+          `Failed to upload image: ${error instanceof Error ? error.message : "Please try again."}`
         );
       }
     } finally {

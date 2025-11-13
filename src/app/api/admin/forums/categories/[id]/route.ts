@@ -184,23 +184,25 @@ export const PUT = withAuth(
           .trim();
 
         // Check if new slug conflicts with another category
-        const conflictingCategory = await prisma.forumCategory.findFirst({
-          where: {
-            slug: updateData.slug,
-            id: { not: categoryId },
-          },
-        });
-
-        if (conflictingCategory) {
-          return NextResponse.json(
-            {
-              error: {
-                message: "A category with this name already exists",
-                code: 400,
-              },
+        if (updateData.slug) {
+          const conflictingCategory = await prisma.forumCategory.findFirst({
+            where: {
+              slug: updateData.slug,
+              id: { not: categoryId },
             },
-            { status: 400 }
-          );
+          });
+
+          if (conflictingCategory) {
+            return NextResponse.json(
+              {
+                error: {
+                  message: "A category with this name already exists",
+                  code: 400,
+                },
+              },
+              { status: 400 }
+            );
+          }
         }
       }
 
