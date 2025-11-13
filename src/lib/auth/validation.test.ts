@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  validateUserRegistration,
-  validateUserLogin,
-  ValidationResult,
-  UserRegistrationData,
-  UserLoginData,
-} from "./validation";
+import { validateUserRegistration, validateUserLogin } from "./validation";
 
 describe("Auth Validation", () => {
   describe("validateUserRegistration", () => {
@@ -81,7 +75,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toContainEqual("Email is required");
+        expect(result.errors?.["email"]).toContainEqual("Email is required");
       });
 
       it("should reject invalid email format", () => {
@@ -95,7 +89,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toContainEqual("Invalid email format");
+        expect(result.errors?.["email"]).toContainEqual("Invalid email format");
       });
 
       it("should reject email without domain", () => {
@@ -109,7 +103,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toContainEqual("Invalid email format");
+        expect(result.errors?.["email"]).toContainEqual("Invalid email format");
       });
 
       it("should reject email without @", () => {
@@ -123,7 +117,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toContainEqual("Invalid email format");
+        expect(result.errors?.["email"]).toContainEqual("Invalid email format");
       });
 
       it("should reject email that is too long", () => {
@@ -137,7 +131,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toContainEqual(
+        expect(result.errors?.["email"]).toContainEqual(
           "Email must not exceed 255 characters"
         );
       });
@@ -176,7 +170,9 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual("Password is required");
+        expect(result.errors?.["password"]).toContainEqual(
+          "Password is required"
+        );
       });
 
       it("should reject password shorter than 12 characters", () => {
@@ -190,7 +186,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must be at least 12 characters long"
         );
       });
@@ -206,7 +202,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must not exceed 128 characters"
         );
       });
@@ -222,7 +218,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must contain at least one lowercase letter"
         );
       });
@@ -238,7 +234,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must contain at least one uppercase letter"
         );
       });
@@ -254,7 +250,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must contain at least one number"
         );
       });
@@ -270,7 +266,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.password).toContainEqual(
+        expect(result.errors?.["password"]).toContainEqual(
           "Password must contain at least one special character"
         );
       });
@@ -317,7 +313,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.first_name).toContainEqual(
+        expect(result.errors?.["first_name"]).toContainEqual(
           "First name is required"
         );
       });
@@ -332,7 +328,9 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.last_name).toContainEqual("Last name is required");
+        expect(result.errors?.["last_name"]).toContainEqual(
+          "Last name is required"
+        );
       });
 
       it("should reject empty first name after sanitization", () => {
@@ -346,7 +344,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.first_name).toContainEqual(
+        expect(result.errors?.["first_name"]).toContainEqual(
           "First name must not be empty"
         );
       });
@@ -362,7 +360,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.last_name).toContainEqual(
+        expect(result.errors?.["last_name"]).toContainEqual(
           "Last name must not be empty"
         );
       });
@@ -378,7 +376,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.first_name).toContainEqual(
+        expect(result.errors?.["first_name"]).toContainEqual(
           "First name must not exceed 50 characters"
         );
       });
@@ -394,7 +392,7 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.last_name).toContainEqual(
+        expect(result.errors?.["last_name"]).toContainEqual(
           "Last name must not exceed 50 characters"
         );
       });
@@ -425,10 +423,10 @@ describe("Auth Validation", () => {
         const result = validateUserRegistration(data);
 
         expect(result.valid).toBe(false);
-        expect(result.errors?.email).toBeDefined();
-        expect(result.errors?.password).toBeDefined();
-        expect(result.errors?.first_name).toBeDefined();
-        expect(result.errors?.last_name).toBeDefined();
+        expect(result.errors?.["email"]).toBeDefined();
+        expect(result.errors?.["password"]).toBeDefined();
+        expect(result.errors?.["first_name"]).toBeDefined();
+        expect(result.errors?.["last_name"]).toBeDefined();
       });
     });
   });
@@ -468,7 +466,7 @@ describe("Auth Validation", () => {
       const result = validateUserLogin(data);
 
       expect(result.valid).toBe(false);
-      expect(result.errors?.email).toContainEqual("Email is required");
+      expect(result.errors?.["email"]).toContainEqual("Email is required");
     });
 
     it("should reject invalid email format", () => {
@@ -480,7 +478,7 @@ describe("Auth Validation", () => {
       const result = validateUserLogin(data);
 
       expect(result.valid).toBe(false);
-      expect(result.errors?.email).toContainEqual("Invalid email format");
+      expect(result.errors?.["email"]).toContainEqual("Invalid email format");
     });
 
     it("should reject missing password", () => {
@@ -491,7 +489,9 @@ describe("Auth Validation", () => {
       const result = validateUserLogin(data);
 
       expect(result.valid).toBe(false);
-      expect(result.errors?.password).toContainEqual("Password is required");
+      expect(result.errors?.["password"]).toContainEqual(
+        "Password is required"
+      );
     });
 
     it("should not validate password strength for login", () => {
@@ -513,8 +513,8 @@ describe("Auth Validation", () => {
       const result = validateUserLogin(data);
 
       expect(result.valid).toBe(false);
-      expect(result.errors?.email).toBeDefined();
-      expect(result.errors?.password).toBeDefined();
+      expect(result.errors?.["email"]).toBeDefined();
+      expect(result.errors?.["password"]).toBeDefined();
     });
 
     it("should accept empty string password but require it", () => {
@@ -526,7 +526,9 @@ describe("Auth Validation", () => {
       const result = validateUserLogin(data);
 
       expect(result.valid).toBe(false);
-      expect(result.errors?.password).toContainEqual("Password is required");
+      expect(result.errors?.["password"]).toContainEqual(
+        "Password is required"
+      );
     });
   });
 });

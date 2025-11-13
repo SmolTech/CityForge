@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   validateCardSubmission,
   validateCardModification,
-  ValidationResult,
-  CardSubmissionData,
 } from "./submissions";
 
 describe("Submission Validation", () => {
