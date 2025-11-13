@@ -173,10 +173,12 @@ describe("Database Queries", () => {
         expect(mockFindMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              tags: expect.objectContaining({
+              card_tags: expect.objectContaining({
                 some: expect.objectContaining({
-                  name: expect.objectContaining({
-                    in: ["Restaurant", "Cafe"],
+                  tags: expect.objectContaining({
+                    name: expect.objectContaining({
+                      in: ["Restaurant", "Cafe"],
+                    }),
                   }),
                 }),
               }),
@@ -199,7 +201,7 @@ describe("Database Queries", () => {
             where: expect.objectContaining({
               AND: expect.arrayContaining([
                 expect.objectContaining({
-                  tags: expect.objectContaining({
+                  card_tags: expect.objectContaining({
                     some: expect.any(Object),
                   }),
                 }),
