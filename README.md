@@ -1,5 +1,10 @@
 # CityForge
 
+## Warning
+
+Don't run latest at the moment. It's absolutely broken (work in progress)
+Note to self, next time branch.
+
 ## warning
 
 Most of my technical knowledge is around the infrastucture for running
