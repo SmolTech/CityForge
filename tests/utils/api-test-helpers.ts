@@ -61,6 +61,7 @@ export function createTestToken(user: {
   role: "admin" | "supporter" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
+  isSupporterFlag?: boolean;
 }): string {
   return generateAccessToken({
     id: user.id,
@@ -70,6 +71,7 @@ export function createTestToken(user: {
     role: user.role,
     isActive: user.isActive ?? true,
     emailVerified: user.emailVerified ?? true,
+    isSupporterFlag: user.isSupporterFlag ?? false,
   });
 }
 
@@ -86,6 +88,7 @@ export function createAuthenticatedRequest(
     role: "admin" | "supporter" | "user";
     isActive?: boolean;
     emailVerified?: boolean;
+    isSupporterFlag?: boolean;
   },
   options: {
     method?: string;

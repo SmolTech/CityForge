@@ -23,6 +23,7 @@ class IndexerConfig:
 
     # Timeouts
     REQUEST_TIMEOUT = 10  # Seconds to wait for HTTP requests
+    SCRAPE_TIMEOUT = 10   # Seconds to wait for web page scraping
     SITEMAP_HEAD_TIMEOUT = 5  # Seconds to wait for HEAD requests to sitemaps
     ROBOTS_TXT_TIMEOUT = 5  # Seconds to wait for robots.txt requests
 
