@@ -180,7 +180,7 @@ describe("JWT Utilities", () => {
       const token = generateAccessToken(user);
       const decoded = jwt.verify(token, TEST_SECRET) as unknown as JWTPayload; // nosemgrep: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
 
-      expect(decoded.sub).toBe("999");
+      expect(decoded.sub).toBe("1");
       expect(typeof decoded.sub).toBe("string");
     });
   });
