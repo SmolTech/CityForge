@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         role: true,
         isActive: true,
         emailVerified: true,
+        isSupporterFlag: true,
         createdDate: true,
         lastLogin: true,
       },
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
       role: user.role as "admin" | "supporter" | "user",
       isActive: user.isActive ?? true,
       emailVerified: user.emailVerified ?? false,
+      isSupporterFlag: user.isSupporterFlag ?? false,
     });
 
     // Convert user to the format expected by frontend
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       is_admin: user.role === "admin",
       is_supporter: user.role === "supporter" || user.role === "admin",
-      is_supporter_flag: false, // Not implemented in this schema yet
+      is_supporter_flag: user.isSupporterFlag ?? false, // Use actual value from database
       is_active: user.isActive,
       email_verified: user.emailVerified,
       created_date: user.createdDate?.toISOString() ?? new Date().toISOString(),

@@ -324,8 +324,8 @@ class ResourceIndexer:
             logger.info(f"Processing card {i}/{total}")
             self.index_resource(card)
 
-            # Rate limiting
-            time.sleep(IndexerConfig.RATE_LIMIT_DELAY)
+            # Rate limiting - delay between different sites
+            time.sleep(IndexerConfig.DELAY_BETWEEN_SITES)
 
         logger.info(f"Indexing complete. Processed {total} cards")
 

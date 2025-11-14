@@ -11,6 +11,7 @@ export interface AuthenticatedUser {
   role: "admin" | "supporter" | "user";
   isActive: boolean;
   emailVerified: boolean;
+  isSupporterFlag: boolean;
 }
 
 export interface AuthMiddlewareOptions {
@@ -117,6 +118,7 @@ async function loadUser(userId: number): Promise<AuthenticatedUser | null> {
       role: true,
       isActive: true,
       emailVerified: true,
+      isSupporterFlag: true,
     },
   });
 

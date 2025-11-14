@@ -31,15 +31,7 @@ const nextConfig: NextConfig = {
 
     return [
       // Proxy non-migrated endpoints to Flask backend
-      // Cards API, Tags API, Site Config API, Resources API, Submissions API, Search API, Upload API, and Help-wanted API have been migrated to Next.js
-      {
-        source: "/api/forums/:path*",
-        destination: `${backendUrl}/api/forums/:path*`,
-      },
-      {
-        source: "/api/support-tickets/:path*",
-        destination: `${backendUrl}/api/support-tickets/:path*`,
-      },
+      // Cards API, Tags API, Site Config API, Resources API, Submissions API, Search API, Upload API, Forums API, Support tickets API, and Help-wanted API have been migrated to Next.js
       // Admin endpoints that haven't been migrated yet
       {
         source: "/api/admin/cards/:path*",
