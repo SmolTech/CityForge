@@ -60,7 +60,7 @@ function formatDate(dateString) {
       return null;
     }
     return date.toISOString();
-  } catch (error) {
+  } catch {
     console.warn(`Failed to parse date: ${dateString}`);
     return null;
   }

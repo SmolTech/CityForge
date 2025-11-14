@@ -225,7 +225,7 @@ async function convertFlaskExportToAdminFormat(inputDir, outputFile) {
     const metadataContent = await fs.readFile(metadataPath, "utf-8");
     metadata = JSON.parse(metadataContent);
     console.log(`📋 Export metadata found from ${metadata.exportDate}`);
-  } catch (error) {
+  } catch {
     console.log("⚠️  No export metadata found, proceeding without it");
   }
 
