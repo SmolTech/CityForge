@@ -36,6 +36,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const token = generateAccessToken(user);
@@ -56,6 +57,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "admin",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const token = generateAccessToken(user);
@@ -79,6 +81,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const beforeGeneration = Math.floor(Date.now() / 1000);
@@ -106,6 +109,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const token1 = generateAccessToken(user);
@@ -131,6 +135,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       expect(() => generateAccessToken(user)).toThrow(
@@ -149,6 +154,7 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const token = generateAccessToken(user);
@@ -161,13 +167,14 @@ describe("JWT Utilities", () => {
       process.env["JWT_SECRET_KEY"] = TEST_SECRET;
 
       const user: AuthenticatedUser = {
-        id: 999,
+        id: 1,
         email: "test@example.com",
         firstName: "Test",
         lastName: "User",
         isActive: true,
         role: "user",
         emailVerified: true,
+        isSupporterFlag: false,
       };
 
       const token = generateAccessToken(user);
