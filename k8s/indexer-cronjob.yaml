@@ -61,8 +61,8 @@ spec:
                     configMapKeyRef:
                       name: postgres-config
                       key: POSTGRES_DB
-                # Next.js API endpoint for fetching cards
-                - name: API_URL
+                # Updated to use Next.js API endpoint instead of Flask backend
+                - name: BACKEND_URL
                   value: "http://cityforge-service/api"
               resources:
                 requests:
