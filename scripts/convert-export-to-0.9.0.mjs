@@ -7,7 +7,7 @@
  * into the format expected by the admin data import API.
  *
  * Usage:
- *   node convert-single-json-to-admin-format.mjs --input ./cityforge_export.json --output ./admin-import-data.json
+ *   node convert-export-to-0.9.0.mjs --input ./cityforge_export.json --output ./admin-import-data.json
  */
 
 import { promises as fs } from "fs";
@@ -229,10 +229,10 @@ async function main() {
 
   if (!options.input || !options.output) {
     console.error(
-      "Usage: node convert-single-json-to-admin-format.mjs --input <input-file> --output <output-file>"
+      "Usage: node convert-export-to-0.9.0.mjs --input <input-file> --output <output-file>"
     );
     console.error(
-      "Example: node convert-single-json-to-admin-format.mjs --input ./cityforge_export.json --output ./admin-import-data.json"
+      "Example: node convert-export-to-0.9.0.mjs --input ./cityforge_export.json --output ./admin-import-data.json"
     );
     process.exit(1);
   }
