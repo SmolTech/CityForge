@@ -1,9 +1,17 @@
 # CityForge
 
-## Warning
+## Migrating from before 0.9.0
 
-Don't run latest at the moment. It's absolutely broken (work in progress)
-Note to self, next time branch.
+0.9.0 merged the flask backend functionality into the core, which was
+very disruptive.
+
+The best way to move from 0.8.x to 0.9.0 is to export your data from
+https://WEBSITE/admin/data
+
+Convert the json to the new format with:
+`node scripts/convert-export-to-0.9.0.mjs --input old.json --output ~/new.json`
+
+Delete the namespace, and then recreate everything, and finally reimport
 
 ## warning
 

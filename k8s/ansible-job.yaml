@@ -1,0 +1,188 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ansible-tunnel-deploy
+  namespace: cityforge
+  labels:
+    app: ansible-runner
+    component: job
+    job-type: tunnel-deploy
+spec:
+  ttlSecondsAfterFinished: 3600 # Clean up job after 1 hour
+  backoffLimit: 2 # Retry up to 2 times on failure
+  template:
+    metadata:
+      labels:
+        app: ansible-runner
+        component: job
+    spec:
+      serviceAccountName: ansible-runner
+      restartPolicy: Never
+      containers:
+        - name: ansible
+          image: ghcr.io/smoltech/cityforge/ansible-runner:latest
+          env:
+            - name: PLAYBOOK
+              value: "cloudflare-tunnel.yml"
+            - name: ENVIRONMENT
+              value: "production" # Change as needed
+            - name: CHECK_MODE
+              value: "false"
+            - name: EXTRA_VARS
+              value: ""
+          command: ["/bin/bash"]
+          args: ["/ansible/scripts/run-playbook.sh"]
+
+          volumeMounts:
+            # Ansible configuration
+            - name: ansible-config
+              mountPath: /ansible/ansible.cfg
+              subPath: ansible.cfg
+            - name: ansible-config
+              mountPath: /ansible/inventory/inventory.ini
+              subPath: inventory.ini
+            - name: ansible-config
+              mountPath: /ansible/scripts/run-playbook.sh
+              subPath: run-playbook.sh
+
+            # Group variables
+            - name: ansible-group-vars-all
+              mountPath: /ansible/group_vars/all.yml
+              subPath: all.yml
+            - name: ansible-group-vars-production
+              mountPath: /ansible/group_vars/production.yml
+              subPath: production.yml
+
+            # SSH key
+            - name: ansible-ssh-key
+              mountPath: /ansible/secrets/ssh-key
+              subPath: ssh-key
+              readOnly: true
+
+            # Vault password
+            - name: ansible-vault-password
+              mountPath: /ansible/secrets/vault-password
+              subPath: vault-password
+              readOnly: true
+
+            # Vault file
+            - name: ansible-vault
+              mountPath: /ansible/vault.yml
+              subPath: vault.yml
+              readOnly: true
+
+            # Logs
+            - name: ansible-logs
+              mountPath: /ansible/logs
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          securityContext:
+            runAsUser: 1000 # ansible user
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        # ConfigMaps
+        - name: ansible-config
+          configMap:
+            name: ansible-config
+            defaultMode: 0755
+        - name: ansible-group-vars-all
+          configMap:
+            name: ansible-group-vars-all
+        - name: ansible-group-vars-production
+          configMap:
+            name: ansible-group-vars-production
+
+        # Secrets
+        - name: ansible-ssh-key
+          secret:
+            secretName: ansible-ssh-key
+            defaultMode: 0600
+        - name: ansible-vault-password
+          secret:
+            secretName: ansible-vault-password
+            defaultMode: 0600
+        - name: ansible-vault
+          secret:
+            secretName: ansible-vault
+            defaultMode: 0600
+
+        # Temporary storage for logs
+        - name: ansible-logs
+          emptyDir: {}
+
+---
+# Job for checking tunnel status
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ansible-tunnel-status
+  namespace: cityforge
+  labels:
+    app: ansible-runner
+    component: job
+    job-type: tunnel-status
+spec:
+  ttlSecondsAfterFinished: 1800
+  template:
+    metadata:
+      labels:
+        app: ansible-runner
+        component: job
+    spec:
+      serviceAccountName: ansible-runner
+      restartPolicy: Never
+      containers:
+        - name: ansible
+          image: ghcr.io/smoltech/cityforge/ansible-runner:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              cd /ansible
+              echo "Checking tunnel status..."
+              ansible all -m shell -a "systemctl is-active cloudflared && systemctl status cloudflared --no-pager -l" || true
+              echo "Checking tunnel connectivity..."
+              ansible all -m shell -a "cloudflared tunnel info \${tunnel_name} || echo 'Tunnel info not available'" || true
+
+          volumeMounts:
+            - name: ansible-config
+              mountPath: /ansible/ansible.cfg
+              subPath: ansible.cfg
+            - name: ansible-config
+              mountPath: /ansible/inventory/inventory.ini
+              subPath: inventory.ini
+            - name: ansible-ssh-key
+              mountPath: /ansible/secrets/ssh-key
+              subPath: ssh-key
+              readOnly: true
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+      volumes:
+        - name: ansible-config
+          configMap:
+            name: ansible-config
+        - name: ansible-ssh-key
+          secret:
+            secretName: ansible-ssh-key
+            defaultMode: 0600

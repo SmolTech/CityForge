@@ -3,8 +3,8 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - postgres-config.yaml
   - secrets.yaml
+  - config.yaml
   - deployment.yaml
   - service.yaml
   - postgres.yaml
@@ -20,4 +20,4 @@ images:
   - name: ghcr.io/smoltech/cityforge-indexer
     newTag: latest
 
-namespace: community
+namespace: cityforge

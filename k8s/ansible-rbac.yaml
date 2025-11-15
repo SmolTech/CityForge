@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ansible-runner
+  namespace: cityforge
+  labels:
+    app: ansible-runner
+    component: rbac
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ansible-runner-role
+  namespace: cityforge
+  labels:
+    app: ansible-runner
+    component: rbac
+rules:
+  # Allow reading and managing jobs
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Allow reading configmaps and secrets (for configuration access)
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Allow reading pods (for debugging and status checking)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+
+  # Allow creating events (for logging purposes)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ansible-runner-binding
+  namespace: cityforge
+  labels:
+    app: ansible-runner
+    component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: ansible-runner
+    namespace: cityforge
+roleRef:
+  kind: Role
+  name: ansible-runner-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Optional: ClusterRole for cross-namespace operations (if needed)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ansible-runner-cluster-role
+  labels:
+    app: ansible-runner
+    component: rbac
+rules:
+  # Allow reading nodes for inventory purposes (optional)
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+  # Allow reading namespaces
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+
+---
+# Bind cluster role (uncomment if cross-namespace access is needed)
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: ansible-runner-cluster-binding
+#   labels:
+#     app: ansible-runner
+#     component: rbac
+# subjects:
+# - kind: ServiceAccount
+#   name: ansible-runner
+#   namespace: cityforge
+# roleRef:
+#   kind: ClusterRole
+#   name: ansible-runner-cluster-role
+#   apiGroup: rbac.authorization.k8s.io

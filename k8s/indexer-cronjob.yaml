@@ -49,17 +49,17 @@ spec:
                 - name: POSTGRES_HOST
                   valueFrom:
                     configMapKeyRef:
-                      name: postgres-config
+                      name: cityforge-config
                       key: POSTGRES_HOST
                 - name: POSTGRES_PORT
                   valueFrom:
                     configMapKeyRef:
-                      name: postgres-config
+                      name: cityforge-config
                       key: POSTGRES_PORT
                 - name: POSTGRES_DB
                   valueFrom:
                     configMapKeyRef:
-                      name: postgres-config
+                      name: cityforge-config
                       key: POSTGRES_DB
                 # Updated to use Next.js API endpoint instead of Flask backend
                 - name: BACKEND_URL
