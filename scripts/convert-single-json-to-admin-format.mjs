@@ -54,6 +54,34 @@ function formatDate(dateString) {
   }
 
   try {
+    // If the date string already has timezone info (Z or +/-offset), use it as-is
+    if (
+      typeof dateString === "string" &&
+      (dateString.endsWith("Z") ||
+        dateString.match(/[+-]\d{2}:\d{2}$/) ||
+        dateString.includes("+00:00"))
+    ) {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.toISOString();
+    }
+
+    // If the date string is missing timezone info, assume UTC and add 'Z'
+    if (
+      typeof dateString === "string" &&
+      dateString.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+    ) {
+      // Add 'Z' to treat as UTC
+      const dateWithTz = dateString + "Z";
+      const date = new Date(dateWithTz);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.toISOString();
+    }
+
     // Parse the date and ensure it's in proper ISO format
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
@@ -98,11 +126,14 @@ function convertFieldTypes(obj, modelName) {
       QuickAccessItem: ["createdDate"],
       ResourceConfig: ["createdDate", "updatedDate"],
       ForumCategory: ["createdDate", "updatedDate"],
+      ForumCategoryRequest: ["createdDate", "reviewedDate"],
       ForumThread: ["createdDate", "updatedDate"],
       ForumPost: ["createdDate", "updatedDate", "editedDate"],
+      ForumReport: ["createdDate", "resolvedDate"],
       HelpWantedPost: ["createdDate", "updatedDate"],
-      HelpWantedComment: ["createdDate"],
-      IndexingJob: ["startedAt", "completedAt"],
+      HelpWantedComment: ["createdDate", "updatedDate"],
+      HelpWantedReport: ["createdDate", "resolvedDate"],
+      IndexingJob: ["startedAt", "completedAt", "createdDate", "updatedDate"],
     };
 
     const booleanFieldsToConvert = booleanFields[modelName] || [];
