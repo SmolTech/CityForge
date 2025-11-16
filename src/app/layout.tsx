@@ -18,8 +18,27 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Use static defaults during build time to avoid database dependency
-  // Dynamic configuration will be handled by the ConfigProvider at runtime
+  try {
+    // Fetch configuration from our API endpoint
+    const response = await fetch(
+      `${process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000"}/api/config`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+      }
+    );
+
+    if (response.ok) {
+      const config = await response.json();
+      return {
+        title: config.site.title,
+        description: config.site.description,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch metadata config:", error);
+  }
+
+  // Fallback to static defaults if API fetch fails
   return {
     title: "Community Website",
     description: "Helping connect people to the resources available to them.",
