@@ -1,0 +1,40 @@
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+User={{ cloudflared_user }}
+Group={{ cloudflared_user }}
+ExecStart=/usr/local/bin/cloudflared tunnel --config {{ tunnel_config_file }} run
+Restart=always
+RestartSec=5s
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ cloudflared_config_dir }} /var/log/cloudflared
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Environment variables
+Environment="HOME={{ cloudflared_home }}"
+Environment="USER={{ cloudflared_user }}"
+
+# Standard output and error logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudflared
+
+# Process limits
+LimitNOFILE=65536
+TasksMax=infinity
+
+# Working directory
+WorkingDirectory={{ cloudflared_home }}
+
+[Install]
+WantedBy=multi-user.target
