@@ -3,7 +3,8 @@ import { logger } from "@/lib/logger";
 import { resourceQueries } from "@/lib/db/queries";
 import { checkDatabaseHealth } from "@/lib/db/client";
 
-// This route will be statically generated at build time and revalidated every 5 minutes
+// This route will be dynamically generated to ensure fresh database connections
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export async function GET() {
