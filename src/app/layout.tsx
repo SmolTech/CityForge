@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleAnalytics } from "@/components/analytics";
+import { resourceQueries } from "@/lib/db/queries";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,30 +20,27 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    // Fetch configuration from our API endpoint
-    const response = await fetch(
-      `${process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000"}/api/config`,
-      {
-        next: { revalidate: 300 }, // Cache for 5 minutes
-      }
-    );
+    // Get configuration directly from database
+    const configDict = await resourceQueries.getSiteConfig();
 
-    if (response.ok) {
-      const config = await response.json();
-      return {
-        title: config.site.title,
-        description: config.site.description,
-      };
-    }
+    const title = configDict["site_title"] || "Community Website";
+    const description =
+      configDict["site_description"] ||
+      "Helping connect people to the resources available to them.";
+
+    return {
+      title,
+      description,
+    };
   } catch (error) {
-    console.error("Failed to fetch metadata config:", error);
-  }
+    console.error("Failed to fetch metadata config from database:", error);
 
-  // Fallback to static defaults if API fetch fails
-  return {
-    title: "Community Website",
-    description: "Helping connect people to the resources available to them.",
-  };
+    // Fallback to static defaults if database query fails
+    return {
+      title: "Community Website",
+      description: "Helping connect people to the resources available to them.",
+    };
+  }
 }
 
 export default function RootLayout({
