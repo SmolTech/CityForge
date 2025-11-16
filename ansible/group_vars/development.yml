@@ -1,0 +1,24 @@
+---
+# Development-specific configuration
+tunnel_name: "cityforge-dev-tunnel"
+tunnel_uuid: "dev-tunnel-uuid-here"
+
+# Development ingress rules
+tunnel_ingress:
+  - hostname: "dev.cityforge.local"
+    service: "http://localhost:3000"
+  - hostname: "dev-api.cityforge.local"
+    service: "http://localhost:5000"
+  - service: "http_status:404"
+
+# Development logging
+cloudflared_log_level: "debug"
+
+# Development tunnel options
+tunnel_options:
+  grace_period: "10s"
+  hello_world: false
+  protocol: "http2"
+  retries: 3
+  heartbeat_interval: "15s"
+  max_heartbeats: 5

@@ -28,9 +28,13 @@ spec:
         spec:
           serviceAccountName: ansible-runner
           restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
           containers:
             - name: ansible
               image: ghcr.io/smoltech/cityforge/ansible-runner:latest
+              securityContext:
+                allowPrivilegeEscalation: false
               env:
                 - name: PLAYBOOK
                   value: "cloudflare-tunnel.yml"
@@ -137,9 +141,13 @@ spec:
         spec:
           serviceAccountName: ansible-runner
           restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
           containers:
             - name: ansible
               image: ghcr.io/smoltech/cityforge/ansible-runner:latest
+              securityContext:
+                allowPrivilegeEscalation: false
               command: ["/bin/bash", "-c"]
               args:
                 - |
