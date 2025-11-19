@@ -6,7 +6,7 @@ describe("Auth Validation", () => {
     it("should accept valid registration data", () => {
       const data = {
         email: "test@example.com",
-        password: "ValidPass123!",
+        password: "ValidPass123",
         first_name: "John",
         last_name: "Doe",
       };
@@ -23,7 +23,7 @@ describe("Auth Validation", () => {
     it("should normalize email to lowercase and trim", () => {
       const data = {
         email: "TEST@EXAMPLE.COM",
-        password: "ValidPass123!",
+        password: "ValidPass123",
         first_name: "John",
         last_name: "Doe",
       };
@@ -37,7 +37,7 @@ describe("Auth Validation", () => {
     it("should sanitize name fields by removing HTML", () => {
       const data = {
         email: "test@example.com",
-        password: "ValidPass123!",
+        password: "ValidPass123",
         first_name: "<b>John</b>",
         last_name: "<i>Doe</i>",
       };
@@ -52,7 +52,7 @@ describe("Auth Validation", () => {
     it("should trim whitespace from name fields", () => {
       const data = {
         email: "test@example.com",
-        password: "ValidPass123!",
+        password: "ValidPass123",
         first_name: "  John  ",
         last_name: "  Doe  ",
       };
@@ -67,7 +67,7 @@ describe("Auth Validation", () => {
     describe("email validation", () => {
       it("should reject missing email", () => {
         const data = {
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -81,7 +81,7 @@ describe("Auth Validation", () => {
       it("should reject invalid email format", () => {
         const data = {
           email: "invalid-email",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -95,7 +95,7 @@ describe("Auth Validation", () => {
       it("should reject email without domain", () => {
         const data = {
           email: "test@",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -109,7 +109,7 @@ describe("Auth Validation", () => {
       it("should reject email without @", () => {
         const data = {
           email: "testexample.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -123,7 +123,7 @@ describe("Auth Validation", () => {
       it("should reject email that is too long", () => {
         const data = {
           email: "a".repeat(250) + "@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -147,7 +147,7 @@ describe("Auth Validation", () => {
         validEmails.forEach((email) => {
           const data = {
             email,
-            password: "ValidPass123!",
+            password: "ValidPass123",
             first_name: "John",
             last_name: "Doe",
           };
@@ -175,10 +175,10 @@ describe("Auth Validation", () => {
         );
       });
 
-      it("should reject password shorter than 12 characters", () => {
+      it("should reject password shorter than 8 characters", () => {
         const data = {
           email: "test@example.com",
-          password: "Short1!",
+          password: "Short1",
           first_name: "John",
           last_name: "Doe",
         };
@@ -187,30 +187,14 @@ describe("Auth Validation", () => {
 
         expect(result.valid).toBe(false);
         expect(result.errors?.["password"]).toContainEqual(
-          "Password must be at least 12 characters long"
-        );
-      });
-
-      it("should reject password longer than 128 characters", () => {
-        const data = {
-          email: "test@example.com",
-          password: "A1!" + "a".repeat(126),
-          first_name: "John",
-          last_name: "Doe",
-        };
-
-        const result = validateUserRegistration(data);
-
-        expect(result.valid).toBe(false);
-        expect(result.errors?.["password"]).toContainEqual(
-          "Password must not exceed 128 characters"
+          "Password must be at least 8 characters long"
         );
       });
 
       it("should reject password without lowercase letter", () => {
         const data = {
           email: "test@example.com",
-          password: "UPPERCASE123!",
+          password: "UPPERCASE123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -226,7 +210,7 @@ describe("Auth Validation", () => {
       it("should reject password without uppercase letter", () => {
         const data = {
           email: "test@example.com",
-          password: "lowercase123!",
+          password: "lowercase123",
           first_name: "John",
           last_name: "Doe",
         };
@@ -242,7 +226,7 @@ describe("Auth Validation", () => {
       it("should reject password without number", () => {
         const data = {
           email: "test@example.com",
-          password: "NoNumbersHere!",
+          password: "NoNumbersHere",
           first_name: "John",
           last_name: "Doe",
         };
@@ -255,26 +239,10 @@ describe("Auth Validation", () => {
         );
       });
 
-      it("should reject password without special character", () => {
-        const data = {
-          email: "test@example.com",
-          password: "NoSpecialChar123",
-          first_name: "John",
-          last_name: "Doe",
-        };
-
-        const result = validateUserRegistration(data);
-
-        expect(result.valid).toBe(false);
-        expect(result.errors?.["password"]).toContainEqual(
-          "Password must contain at least one special character"
-        );
-      });
-
       it("should accept minimum valid password", () => {
         const data = {
           email: "test@example.com",
-          password: "Aa1!aaaaaaaa", // 12 chars, has all required types
+          password: "Pass1234", // 8 chars, has all required types
           first_name: "John",
           last_name: "Doe",
         };
@@ -284,21 +252,17 @@ describe("Auth Validation", () => {
         expect(result.valid).toBe(true);
       });
 
-      it("should accept password with various special characters", () => {
-        const specialChars = ["!", "@", "#", "$", "%", "^", "&", "*"];
+      it("should accept password without special characters", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: "John",
+          last_name: "Doe",
+        };
 
-        specialChars.forEach((char) => {
-          const data = {
-            email: "test@example.com",
-            password: `ValidPass123${char}`,
-            first_name: "John",
-            last_name: "Doe",
-          };
+        const result = validateUserRegistration(data);
 
-          const result = validateUserRegistration(data);
-
-          expect(result.valid).toBe(true);
-        });
+        expect(result.valid).toBe(true);
       });
     });
 
@@ -306,7 +270,7 @@ describe("Auth Validation", () => {
       it("should reject missing first name", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           last_name: "Doe",
         };
 
@@ -321,7 +285,7 @@ describe("Auth Validation", () => {
       it("should reject missing last name", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
         };
 
@@ -336,7 +300,7 @@ describe("Auth Validation", () => {
       it("should reject empty first name after sanitization", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "   ",
           last_name: "Doe",
         };
@@ -352,7 +316,7 @@ describe("Auth Validation", () => {
       it("should reject empty last name after sanitization", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "   ",
         };
@@ -368,7 +332,7 @@ describe("Auth Validation", () => {
       it("should reject first name longer than 50 characters", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "a".repeat(51),
           last_name: "Doe",
         };
@@ -384,7 +348,7 @@ describe("Auth Validation", () => {
       it("should reject last name longer than 50 characters", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "John",
           last_name: "a".repeat(51),
         };
@@ -400,7 +364,7 @@ describe("Auth Validation", () => {
       it("should accept names with 50 characters", () => {
         const data = {
           email: "test@example.com",
-          password: "ValidPass123!",
+          password: "ValidPass123",
           first_name: "a".repeat(50),
           last_name: "b".repeat(50),
         };
