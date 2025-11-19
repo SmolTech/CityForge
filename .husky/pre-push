@@ -1,5 +1,6 @@
 npm run typecheck
 npm run lint
 npm run semgrep:ci
+npm audit
 npm run test
 npm run build
