@@ -1,6 +1,6 @@
 # Password Reset Feature
 
-This document describes the password reset functionality and how to configure email delivery via Cloudflare.
+This document describes the password reset functionality and how to configure email delivery via Mailgun.
 
 ## Overview
 
@@ -106,40 +106,48 @@ Response:
 
 ## Email Configuration
 
-### Cloudflare Email Routing Setup
+### Mailgun Email Setup
 
-The application uses Cloudflare Email Routing with MailChannels for sending password reset emails.
+The application uses Mailgun for sending password reset and email verification emails.
 
-#### Step 1: Set up Cloudflare Email Routing
+#### Step 1: Sign Up for Mailgun
 
-1. Go to your Cloudflare dashboard
-2. Select your domain
-3. Navigate to **Email** → **Email Routing**
-4. Follow the setup wizard to configure email routing
-5. Verify your domain's DNS records
+1. Go to https://www.mailgun.com/
+2. Create a free account (includes 5,000 free emails/month for first 3 months)
+3. Verify your email address
 
-#### Step 2: Create API Token
+#### Step 2: Add and Verify Your Domain
 
-1. Go to **Profile** → **API Tokens**
-2. Click **Create Token**
-3. Use "Email Routing Send" template or create custom with:
-   - Permissions: `Email Routing Send`
-   - Zone Resources: Include your domain
-4. Copy the API token
+1. Go to **Sending** → **Domains** in the Mailgun dashboard
+2. Click **Add New Domain**
+3. Enter your domain (e.g., `mg.yourdomain.com` or `yourdomain.com`)
+4. Configure DNS records (SPF, DKIM, CNAME) as shown in the dashboard
+5. Wait for DNS verification (can take up to 48 hours)
 
-#### Step 3: Find Account ID
+#### Step 3: Get Your API Key
 
-1. Go to your Cloudflare dashboard home
-2. Find your Account ID in the right sidebar
+1. Go to **Settings** → **API Security**
+2. Find your **Private API key** (starts with `key-`)
+3. Copy the API key
 
-#### Step 4: Configure Environment Variables
+#### Step 4: Note Your Region
+
+Mailgun has two regions:
+
+- **US** (default): `api.mailgun.net` - for US-based accounts
+- **EU**: `api.eu.mailgun.net` - for EU-based accounts (GDPR compliance)
+
+Check your region in the Mailgun dashboard.
+
+#### Step 5: Configure Environment Variables
 
 **For Local Development (.env.local):**
 
 ```bash
-CLOUDFLARE_EMAIL_API_TOKEN=your_api_token_here
-CLOUDFLARE_ACCOUNT_ID=your_account_id_here
-EMAIL_FROM=noreply@yourdomain.com
+MAILGUN_API_KEY=key-your_api_key_here
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_REGION=us  # or "eu" for European region
+EMAIL_FROM=noreply@mg.yourdomain.com
 EMAIL_FROM_NAME=YourSiteName
 ```
 
@@ -147,17 +155,18 @@ EMAIL_FROM_NAME=YourSiteName
 
 ```bash
 # Create the secret
-kubectl create secret generic cloudflare-email \
-  --from-literal=CLOUDFLARE_EMAIL_API_TOKEN="your_token" \
-  --from-literal=CLOUDFLARE_ACCOUNT_ID="your_account_id" \
-  --from-literal=EMAIL_FROM="noreply@yourdomain.com" \
+kubectl create secret generic mailgun-email \
+  --from-literal=MAILGUN_API_KEY="key-your_api_key" \
+  --from-literal=MAILGUN_DOMAIN="mg.yourdomain.com" \
+  --from-literal=MAILGUN_REGION="us" \
+  --from-literal=EMAIL_FROM="noreply@mg.yourdomain.com" \
   --from-literal=EMAIL_FROM_NAME="YourSiteName" \
   -n cityforge
 
 # Or use the template file
-cp k8s/cloudflare-email-secret.yaml.example k8s/cloudflare-email-secret.yaml
+cp k8s/mailgun-email-secret.yaml.example k8s/mailgun-email-secret.yaml
 # Edit with your values
-kubectl apply -f k8s/cloudflare-email-secret.yaml
+kubectl apply -f k8s/mailgun-email-secret.yaml
 ```
 
 The deployment automatically mounts these secrets as environment variables.
