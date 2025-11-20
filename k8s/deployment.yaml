@@ -116,7 +116,14 @@ spec:
                   key: cloudinary_api_secret
                   name: cityforge-secrets
                   optional: true
-            # Cloudflare Email configuration (optional - for password reset emails)
+            # Cloudflare Email configuration (optional - for password reset & email verification)
+            # Create secret: kubectl apply -f k8s/cloudflare-email-secret.yaml
+            # Or use kubectl command: kubectl create secret generic cloudflare-email \
+            #   --from-literal=CLOUDFLARE_EMAIL_API_TOKEN="your_token" \
+            #   --from-literal=CLOUDFLARE_ACCOUNT_ID="your_account_id" \
+            #   --from-literal=EMAIL_FROM="noreply@yourdomain.com" \
+            #   --from-literal=EMAIL_FROM_NAME="YourSiteName" \
+            #   -n cityforge
             - name: CLOUDFLARE_EMAIL_API_TOKEN
               valueFrom:
                 secretKeyRef:
