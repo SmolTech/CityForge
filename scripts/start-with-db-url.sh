@@ -6,5 +6,9 @@ export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGR
 
 echo "Starting with DATABASE_URL: postgresql://${POSTGRES_USER}:***@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
 
+# Run database migrations/schema updates
+echo "Applying database schema changes..."
+npx prisma db push --accept-data-loss
+
 # Start the Next.js server
 exec node server.js
