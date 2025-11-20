@@ -116,6 +116,31 @@ spec:
                   key: cloudinary_api_secret
                   name: cityforge-secrets
                   optional: true
+            # Cloudflare Email configuration (optional - for password reset emails)
+            - name: CLOUDFLARE_EMAIL_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: CLOUDFLARE_EMAIL_API_TOKEN
+                  name: cloudflare-email
+                  optional: true
+            - name: CLOUDFLARE_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: CLOUDFLARE_ACCOUNT_ID
+                  name: cloudflare-email
+                  optional: true
+            - name: EMAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  key: EMAIL_FROM
+                  name: cloudflare-email
+                  optional: true
+            - name: EMAIL_FROM_NAME
+              valueFrom:
+                secretKeyRef:
+                  key: EMAIL_FROM_NAME
+                  name: cloudflare-email
+                  optional: true
           volumeMounts:
             - name: uploads-storage
               mountPath: /app/uploads
