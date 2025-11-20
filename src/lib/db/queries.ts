@@ -73,7 +73,7 @@ export const cardQueries = {
 
     // Build include object conditionally
     const include = {
-      tags: true,
+      card_tags: { include: { tags: true } },
       creator: { select: { firstName: true, lastName: true } },
       ...(includeRatings && {
         reviews: {
@@ -105,6 +105,8 @@ export const cardQueries = {
     const transformedCards = cards.map((card) => {
       const baseCard = {
         ...card,
+        // Transform card_tags to simple tags array
+        tags: card.card_tags.map((ct) => ct.tags.name),
         // Generate slug if includeShareUrls
         ...(includeShareUrls && {
           slug: card.name
@@ -172,6 +174,8 @@ export const cardQueries = {
       // Transform data to match Flask API format
       const transformedCard = {
         ...card,
+        // Transform card_tags to simple tags array
+        tags: card.card_tags.map((ct) => ct.tags.name),
         // Generate slug if includeShareUrls
         ...(includeShareUrls && {
           slug: card.name
