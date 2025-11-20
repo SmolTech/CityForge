@@ -106,7 +106,7 @@ export const cardQueries = {
       const baseCard = {
         ...card,
         // Transform card_tags to simple tags array
-        tags: card.card_tags.map((ct) => ct.tags.name),
+        tags: card.card_tags?.map((ct) => ct.tags.name) || [],
         // Generate slug if includeShareUrls
         ...(includeShareUrls && {
           slug: card.name
@@ -175,7 +175,7 @@ export const cardQueries = {
       const transformedCard = {
         ...card,
         // Transform card_tags to simple tags array
-        tags: card.card_tags.map((ct) => ct.tags.name),
+        tags: card.card_tags?.map((ct) => ct.tags.name) || [],
         // Generate slug if includeShareUrls
         ...(includeShareUrls && {
           slug: card.name
