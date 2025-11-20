@@ -45,6 +45,7 @@ model User {
   assignedTickets           SupportTicket[]        @relation("TicketAssignee")
   supportTickets            SupportTicket[]        @relation("TicketCreator")
   revokedTokens             TokenBlacklist[]
+  passwordResetTokens       PasswordResetToken[]
 
   @@map("users")
 }
@@ -466,4 +467,20 @@ model card_tags {
 
   @@id([card_id, tag_id])
   @@index([tag_id], map: "ix_card_tags_tag_id")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(6)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamp(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "ix_password_reset_tokens_token")
+  @@index([userId], map: "ix_password_reset_tokens_user_id")
+  @@index([expiresAt], map: "ix_password_reset_tokens_expires_at")
+  @@map("password_reset_tokens")
 }

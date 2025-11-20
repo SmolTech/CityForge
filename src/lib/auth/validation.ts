@@ -197,3 +197,17 @@ export function validateUserLogin(
     },
   };
 }
+
+/**
+ * Validate password strength (exported for password reset)
+ */
+export function validatePasswordStrength(password: string): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors = validatePassword(password);
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
