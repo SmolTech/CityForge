@@ -18,14 +18,14 @@ async function fixUserIdSequence() {
 
     // Get the maximum user ID
     const maxUser = await prisma.$queryRaw`
-      SELECT MAX(id) as max_id FROM "User"
+      SELECT MAX(id) as max_id FROM users
     `;
     const maxId = maxUser[0]?.max_id || 0;
     console.log(`Maximum user ID in database: ${maxId}`);
 
     // Get the current sequence value
     const currentSeq = await prisma.$queryRaw`
-      SELECT last_value FROM "User_id_seq"
+      SELECT last_value FROM users_id_seq
     `;
     const currentValue = Number(currentSeq[0]?.last_value || 0);
     console.log(`Current sequence value: ${currentValue}`);
@@ -39,12 +39,12 @@ async function fixUserIdSequence() {
 
       // Reset the sequence to max_id + 1
       await prisma.$executeRaw`
-        SELECT setval('"User_id_seq"', ${maxId + 1}, false)
+        SELECT setval('"users_id_seq"', ${maxId + 1}, false)
       `;
 
       // Verify the fix
       const newSeq = await prisma.$queryRaw`
-        SELECT last_value FROM "User_id_seq"
+        SELECT last_value FROM users_id_seq
       `;
       const newValue = Number(newSeq[0]?.last_value || 0);
       console.log(`✅ Sequence updated to: ${newValue}`);
