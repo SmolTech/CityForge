@@ -93,7 +93,11 @@ export async function POST(request: NextRequest) {
     // Generate and send email verification token
     try {
       const verificationToken = await createEmailVerificationToken(user.id);
-      await sendVerificationEmail(user.email, verificationToken);
+      await sendVerificationEmail(
+        user.email,
+        verificationToken,
+        `${user.firstName} ${user.lastName}`
+      );
       logger.info(`Email verification sent to: ${user.email}`);
     } catch (emailError) {
       logger.error("Failed to send verification email", {

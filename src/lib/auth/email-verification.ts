@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
+import { getEmailService } from "@/lib/email";
 
 /**
  * Generate a secure email verification token
@@ -92,23 +93,48 @@ export async function isEmailVerified(userId: number): Promise<boolean> {
 }
 
 /**
- * Send email verification email (placeholder - implement with your email service)
+ * Send email verification email
  */
 export async function sendVerificationEmail(
   email: string,
-  token: string
+  token: string,
+  userName?: string
 ): Promise<void> {
-  // TODO: Implement with actual email service (SendGrid, AWS SES, etc.)
-  // For now, just log the verification URL
   const verificationUrl = `${process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000"}/verify-email?token=${token}`;
 
-  logger.info("Email verification email would be sent", {
-    email,
-    verificationUrl,
-    message: "In production, implement this with your email service",
-  });
+  const emailService = getEmailService();
 
-  console.log(`\n🔗 Email Verification Link for ${email}:`);
-  console.log(`   ${verificationUrl}`);
-  console.log(`\n📧 In production, this would be sent via email service.\n`);
+  if (emailService) {
+    try {
+      await emailService.sendEmailVerification(
+        email,
+        verificationUrl,
+        userName || email.split("@")[0] || "User"
+      );
+
+      logger.info("Email verification sent", {
+        email,
+      });
+    } catch (error) {
+      logger.error("Failed to send email verification", {
+        email,
+        error,
+      });
+      // Fall back to console logging in case of error
+      console.log(`\n🔗 Email Verification Link for ${email}:`);
+      console.log(`   ${verificationUrl}`);
+      console.log(`\n⚠️  Email sending failed, showing link instead.\n`);
+    }
+  } else {
+    // Development mode - log the verification URL
+    logger.info("Email verification email would be sent", {
+      email,
+      verificationUrl,
+      message: "Email service not configured, logging URL instead",
+    });
+
+    console.log(`\n🔗 Email Verification Link for ${email}:`);
+    console.log(`   ${verificationUrl}`);
+    console.log(`\n📧 In production, this would be sent via email service.\n`);
+  }
 }

@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         emailVerified: true,
         emailVerificationSentAt: true,
       },
@@ -65,7 +67,11 @@ export async function POST(request: NextRequest) {
     const token = await createEmailVerificationToken(user.id);
 
     // Send verification email
-    await sendVerificationEmail(user.email, token);
+    await sendVerificationEmail(
+      user.email,
+      token,
+      `${user.firstName} ${user.lastName}`
+    );
 
     logger.info("Verification email resent", { email: user.email });
 
