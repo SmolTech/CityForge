@@ -15,4 +15,4 @@ data:
   # Database: Must match spec.databases in postgres.yaml
   POSTGRES_DB: "cityforge"
   # Application URL
-  NEXT_PUBLIC_SITE_URL: "https://www.shrewsbuddy.com"
+  NEXT_PUBLIC_SITE_URL: "https://www.community.community"

@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - secrets.yaml
+  - mailgun-email-secret.yaml
   - config.yaml
   - deployment.yaml
   - service.yaml
