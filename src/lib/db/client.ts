@@ -80,6 +80,19 @@ export async function connectToDatabase() {
 
 // Helper function to check database health
 export async function checkDatabaseHealth() {
+  // Skip database health check during build time (Docker builds)
+  if (
+    process.env["SKIP_DATABASE_HEALTH_CHECK"] === "true" ||
+    process.env["NEXT_BUILD_TIME"] === "true"
+  ) {
+    logger.debug("[Database] Skipping health check during build time");
+    return {
+      status: "unhealthy",
+      error: "Build time - database not available",
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   try {
     await prisma.$queryRaw`SELECT 1`;
     return { status: "healthy", timestamp: new Date().toISOString() };
