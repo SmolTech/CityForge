@@ -6,7 +6,6 @@ import { ErrorBoundary } from "@/components/shared";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleAnalytics } from "@/components/analytics";
-import { resourceQueries } from "@/lib/db/queries";
 
 // Force dynamic rendering to avoid database queries during build
 export const dynamic = "force-dynamic";
@@ -21,30 +20,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  try {
-    // Get configuration directly from database
-    const configDict = await resourceQueries.getSiteConfig();
-
-    const title = configDict["site_title"] || "Community Website";
-    const description =
-      configDict["site_description"] ||
-      "Helping connect people to the resources available to them.";
-
-    return {
-      title,
-      description,
-    };
-  } catch (error) {
-    console.error("Failed to fetch metadata config from database:", error);
-
-    // Fallback to static defaults if database query fails
-    return {
-      title: "Community Website",
-      description: "Helping connect people to the resources available to them.",
-    };
-  }
-}
+// Static metadata - individual pages can override with their own generateMetadata
+export const metadata: Metadata = {
+  title: "Community Website",
+  description: "Helping connect people to the resources available to them.",
+};
 
 export default function RootLayout({
   children,
