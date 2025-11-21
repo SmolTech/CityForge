@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { CLIENT_CONFIG } from "@/lib/client-config";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     // Don't auto-redirect based on isAuthenticated() since it always returns true
@@ -37,6 +39,9 @@ export default function LoginPage() {
 
     try {
       const response = await apiClient.login(email, password);
+
+      // Refresh the auth context to update the user state
+      await refreshUser();
 
       // Redirect based on user role
       if (response.user.role === "admin") {
