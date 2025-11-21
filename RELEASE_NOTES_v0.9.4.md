@@ -1,6 +1,6 @@
 # CityForge v0.9.4
 
-**Release Date:** January 21, 2025
+**Release Date:** November 21, 2025
 
 ## Highlights
 
