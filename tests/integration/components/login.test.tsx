@@ -8,6 +8,22 @@ import {
 } from "../../utils/component-test-helpers";
 import LoginPage from "@/app/login/page";
 
+// Mock the AuthContext
+const mockRefreshUser = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: vi.fn(() => ({
+    user: null,
+    loading: false,
+    error: null,
+    refreshUser: mockRefreshUser,
+    isAuthenticated: false,
+    isEmailVerified: false,
+  })),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 describe("Login Component Integration", () => {
   const mockUser = {
     id: 1,
@@ -21,6 +37,7 @@ describe("Login Component Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRefreshUser.mockClear();
   });
 
   afterEach(() => {
@@ -72,6 +89,11 @@ describe("Login Component Integration", () => {
           }),
         })
       );
+    });
+
+    // Verify refreshUser was called
+    await waitFor(() => {
+      expect(mockRefreshUser).toHaveBeenCalled();
     });
 
     await waitFor(() => {
