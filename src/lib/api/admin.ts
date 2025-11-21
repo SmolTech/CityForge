@@ -149,8 +149,14 @@ export class AdminApi extends ApiClient {
     limit: number;
   }> {
     const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.append("page", params.page.toString());
-    if (params?.limit) searchParams.append("limit", params.limit.toString());
+
+    // Convert page to offset for backend API
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const offset = (page - 1) * limit;
+
+    searchParams.append("offset", offset.toString());
+    searchParams.append("limit", limit.toString());
     if (params?.search) searchParams.append("search", params.search);
 
     const queryString = searchParams.toString();
