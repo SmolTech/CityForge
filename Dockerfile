@@ -25,6 +25,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
 
+# Set environment variables for build time
+ENV NEXT_BUILD_TIME=true
+ENV SKIP_DATABASE_HEALTH_CHECK=true
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
+
 # Build the application (Prisma client already generated)
 RUN npm run build
 

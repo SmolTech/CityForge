@@ -8,12 +8,15 @@ import { handleApiError } from "@/lib/errors";
 // Cache for 5 minutes (300 seconds) to match Flask API
 export const revalidate = 300;
 
+// Mark as dynamic since we use search parameters
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     logger.info("Tags API request");
 
     // Parse pagination parameters for security
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const { limit, offset } = paginationUtils.parseFromSearchParams(
       searchParams,
       PAGINATION_LIMITS.TAGS_MAX_LIMIT,
