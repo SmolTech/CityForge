@@ -8,6 +8,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleAnalytics } from "@/components/analytics";
 import { resourceQueries } from "@/lib/db/queries";
 
+// Force dynamic rendering to avoid database queries during build
+export const dynamic = "force-dynamic";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

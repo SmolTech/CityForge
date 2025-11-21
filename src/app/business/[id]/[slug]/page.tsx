@@ -5,6 +5,9 @@ import { BusinessDetail } from "@/components/cards";
 import { CLIENT_CONFIG } from "@/lib/client-config";
 import { logger } from "@/lib/logger";
 
+// Force dynamic rendering to avoid database queries during build
+export const dynamic = "force-dynamic";
+
 interface BusinessPageProps {
   params: Promise<{
     id: string;
