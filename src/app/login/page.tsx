@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
@@ -13,13 +13,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { refreshUser } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isAuthenticated,
+    refreshUser,
+  } = useAuth();
 
-  useEffect(() => {
-    // Don't auto-redirect based on isAuthenticated() since it always returns true
-    // and can cause redirect loops when rate limited.
-    // Users can navigate to dashboard manually if already logged in.
-  }, [router]);
+  const handleLogout = async () => {
+    try {
+      await apiClient.logout();
+      await refreshUser();
+      // Force page refresh to clear any cached state
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   // Clear error when user starts typing
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +66,89 @@ export default function LoginPage() {
     }
   };
 
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show "already logged in" message if user is authenticated
+  if (isAuthenticated && user) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="text-center">
+            <Link
+              href="/"
+              className="text-2xl font-bold text-gray-900 dark:text-white"
+            >
+              {CLIENT_CONFIG.SITE_TITLE}
+            </Link>
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+            Already Logged In
+          </h2>
+        </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="text-center space-y-6">
+              {/* User info */}
+              <div className="flex items-center justify-center">
+                <div className="flex-shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center">
+                    <span className="text-xl font-semibold text-white">
+                      {user.first_name?.[0]?.toUpperCase() ||
+                        user.email?.[0]?.toUpperCase() ||
+                        "?"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  You&apos;re logged in as
+                </p>
+                <p className="text-lg font-medium text-gray-900 dark:text-white mt-1">
+                  {user.email}
+                </p>
+                {(user.first_name || user.last_name) && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {user.first_name} {user.last_name}
+                  </p>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={() =>
+                    router.push(user.role === "admin" ? "/admin" : "/dashboard")
+                  }
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Go to {user.role === "admin" ? "Admin Panel" : "Dashboard"}
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Log out and sign in as different user
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
