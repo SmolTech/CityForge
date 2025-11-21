@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { CLIENT_CONFIG } from "@/lib/client-config";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PasswordRequirement {
   label: string;
@@ -30,6 +31,7 @@ export default function RegisterPage() {
     { label: "Contains number", met: false },
   ]);
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     // Don't auto-redirect based on isAuthenticated() since it always returns true
@@ -74,6 +76,9 @@ export default function RegisterPage() {
         first_name: formData.first_name,
         last_name: formData.last_name,
       });
+
+      // Refresh the auth context to update the user state
+      await refreshUser();
 
       router.push("/dashboard");
     } catch (err) {
