@@ -151,6 +151,12 @@ export default function AdminPage() {
     }
   }, [activeTab, resourcesTab]);
 
+  useEffect(() => {
+    if (activeTab === "users") {
+      loadUsers();
+    }
+  }, [currentPage, searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadData = async () => {
     try {
       const userResponse = await apiClient.getCurrentUser();
