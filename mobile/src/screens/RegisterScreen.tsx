@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +12,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useTheme } from "../contexts/ThemeContext";
 import type { RootStackParamList } from "../types/navigation";
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
@@ -23,11 +24,73 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<
 export default function RegisterScreen() {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const { register, isLoading } = useAuth();
+  const { colors } = useTheme();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    } as const,
+    scrollContent: {
+      flexGrow: 1,
+    } as const,
+    content: {
+      flex: 1,
+      padding: 20,
+      justifyContent: "center",
+    } as const,
+    title: {
+      fontSize: 32,
+      fontWeight: "bold" as const,
+      marginBottom: 8,
+      color: colors.text,
+      textAlign: "center" as const,
+    } as const,
+    subtitle: {
+      fontSize: 16,
+      marginBottom: 32,
+      color: colors.textSecondary,
+      textAlign: "center" as const,
+    } as const,
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      fontSize: 16,
+      color: colors.text,
+    } as const,
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: "center" as const,
+      marginTop: 8,
+    } as const,
+    buttonDisabled: {
+      backgroundColor: colors.textMuted,
+    } as const,
+    buttonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "600" as const,
+    } as const,
+    linkButton: {
+      marginTop: 16,
+      alignItems: "center" as const,
+    } as const,
+    linkText: {
+      color: colors.primary,
+      fontSize: 14,
+    } as const,
+  }));
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -74,7 +137,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="First Name"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize="words"
@@ -84,7 +147,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Last Name"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize="words"
@@ -94,7 +157,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -105,7 +168,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -115,7 +178,7 @@ export default function RegisterScreen() {
           <TextInput
             style={styles.input}
             placeholder="Confirm Password"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -144,60 +207,3 @@ export default function RegisterScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#1f2937",
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 32,
-    color: "#6b7280",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: "#3b82f6",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: "#93c5fd",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  linkButton: {
-    marginTop: 16,
-    alignItems: "center",
-  },
-  linkText: {
-    color: "#3b82f6",
-    fontSize: 14,
-  },
-});

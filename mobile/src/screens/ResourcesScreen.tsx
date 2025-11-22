@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -12,35 +11,106 @@ import {
 import { apiClient } from "../api/client";
 import { logger } from "../utils/logger";
 import type { ResourceCategory, ResourceItem } from "../types/api";
+import ErrorScreen from "../components/ErrorScreen";
+import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useTheme } from "../contexts/ThemeContext";
 
 export default function ResourcesScreen() {
+  const { colors } = useTheme();
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
   const [items, setItems] = useState<ResourceItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (categories.length > 0 && selectedCategory === null) {
-      const firstCategory = categories[0];
-      if (firstCategory) {
-        setSelectedCategory(firstCategory.id);
-        loadItems(firstCategory.id);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories]);
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    } as const,
+    centered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    } as const,
+    categoryList: {
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    } as const,
+    categoryListContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+    } as const,
+    categoryTab: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: colors.backgroundTertiary,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    categoryTabActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    } as const,
+    categoryText: {
+      fontSize: 14,
+      fontWeight: "500" as const,
+      color: colors.textSecondary,
+    } as const,
+    categoryTextActive: {
+      color: "#fff",
+    } as const,
+    itemList: {
+      padding: 16,
+    } as const,
+    item: {
+      backgroundColor: colors.surface,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    itemTitle: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.text,
+      marginBottom: 4,
+    } as const,
+    itemDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    } as const,
+    itemUrl: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: "500" as const,
+    } as const,
+    emptyContainer: {
+      padding: 40,
+      alignItems: "center",
+    } as const,
+    emptyText: {
+      fontSize: 16,
+      color: colors.textMuted,
+    } as const,
+  }));
 
   const loadData = async (refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
-    } else {
+    if (!refresh) {
       setIsLoading(true);
     }
 
@@ -59,10 +129,34 @@ export default function ResourcesScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load resources");
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!refresh) {
+        setIsLoading(false);
+      }
     }
   };
+
+  // Network-aware refresh hook
+  const { refreshControl } = useNetworkRefresh({
+    onRefresh: async () => {
+      await loadData(true);
+    },
+  });
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategory === null) {
+      const firstCategory = categories[0];
+      if (firstCategory) {
+        setSelectedCategory(firstCategory.id);
+        loadItems(firstCategory.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
 
   const loadItems = async (categoryId: number) => {
     try {
@@ -119,22 +213,21 @@ export default function ResourcesScreen() {
     </TouchableOpacity>
   );
 
-  if (isLoading && !isRefreshing) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => loadData()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorScreen
+        message={error}
+        onRetry={() => loadData()}
+        icon="library-outline"
+      />
     );
   }
 
@@ -157,8 +250,8 @@ export default function ResourcesScreen() {
         contentContainerStyle={styles.itemList}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => loadData(true)}
+            refreshing={refreshControl.refreshing}
+            onRefresh={refreshControl.onRefresh}
           />
         }
         ListEmptyComponent={
@@ -170,100 +263,3 @@ export default function ResourcesScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  categoryList: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  categoryListContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  categoryTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f3f4f6",
-    marginRight: 8,
-  },
-  categoryTabActive: {
-    backgroundColor: "#3b82f6",
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-  categoryTextActive: {
-    color: "#fff",
-  },
-  itemList: {
-    padding: 16,
-  },
-  item: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: 4,
-  },
-  itemDescription: {
-    fontSize: 14,
-    color: "#6b7280",
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  itemUrl: {
-    fontSize: 14,
-    color: "#3b82f6",
-    fontWeight: "500",
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#9ca3af",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#ef4444",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
