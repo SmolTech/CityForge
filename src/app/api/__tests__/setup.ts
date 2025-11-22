@@ -4,8 +4,9 @@
 
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
+import { vi } from "vitest";
 
-const TEST_SECRET = process.env.JWT_SECRET_KEY || "test-secret-key";
+const TEST_SECRET = process.env["JWT_SECRET_KEY"] || "test-secret-key";
 
 /**
  * Create a mock NextRequest for testing API routes
@@ -34,7 +35,11 @@ export function createMockRequest(options: {
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  const requestInit: RequestInit = {
+  const requestInit: {
+    method: string;
+    headers: Headers;
+    body?: string;
+  } = {
     method,
     headers: requestHeaders,
   };
@@ -45,7 +50,8 @@ export function createMockRequest(options: {
     requestHeaders.set("Content-Type", "application/json");
   }
 
-  const request = new NextRequest(url, requestInit);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const request = new NextRequest(url, requestInit as any);
 
   // Mock cookies if needed
   if (token && useCookie) {
@@ -132,6 +138,8 @@ export function createMockUser(
     isActive: boolean;
     emailVerified: boolean;
     isSupporterFlag: boolean;
+    createdDate: Date;
+    lastLogin: Date;
   }> = {}
 ) {
   return {
