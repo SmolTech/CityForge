@@ -107,6 +107,26 @@ jobs:
           NODE_ENV: test
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/cityforge_test"
 
+      - name: Generate coverage report
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/cityforge_test"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage Summary
+        run: |
+          echo "📊 Code Coverage Summary:"
+          cat coverage/coverage-summary.json | grep -E '"(lines|statements|functions|branches)"' || echo "Coverage data not available"
+
       - name: Test Next.js build
         run: npm run build
         env:

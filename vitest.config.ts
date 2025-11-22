@@ -28,6 +28,38 @@ export default defineConfig({
     ],
     // Test timeout for integration tests
     testTimeout: 10000,
+    // Code coverage configuration
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      exclude: [
+        "node_modules/**",
+        "tests/**",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/__tests__/**",
+        ".next/**",
+        "dist/**",
+        "build/**",
+        "*.config.{js,ts,mjs}",
+        "src/app/layout.tsx",
+        "src/app/**/layout.tsx",
+        "src/app/api/__tests__/**",
+        "prisma/**",
+        "mobile/**",
+        "indexer/**",
+        "**/*.d.ts",
+        "**/*.min.js",
+        "**/seed-*.{js,ts}",
+        ".venv/**",
+      ],
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        branches: 60,
+        statements: 60,
+      },
+    },
   },
   resolve: {
     alias: {
