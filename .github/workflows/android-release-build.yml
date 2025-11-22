@@ -79,7 +79,7 @@ jobs:
       - name: Generate native code (prebuild)
         working-directory: mobile
         run: |
-          npx expo prebuild --platform android --clear
+          npx expo prebuild --platform android
 
       - name: Create keystore from secrets
         if: env.ANDROID_KEYSTORE_BASE64 != ''

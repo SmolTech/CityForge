@@ -107,7 +107,7 @@ jobs:
       - name: Generate native code (prebuild)
         working-directory: mobile
         run: |
-          npx expo prebuild --platform android --clear
+          npx expo prebuild --platform android
 
       - name: Grant execute permission for gradlew
         working-directory: mobile/android

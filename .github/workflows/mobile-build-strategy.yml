@@ -124,7 +124,7 @@ jobs:
 
       - name: Prebuild native code
         working-directory: mobile
-        run: npx expo prebuild --platform ${{ matrix.platform }} --clear
+        run: npx expo prebuild --platform ${{ matrix.platform }}
 
       - name: Build Android APK
         if: matrix.platform == 'android'
