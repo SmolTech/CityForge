@@ -9,6 +9,8 @@ import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import InstanceManagerScreen from "../screens/InstanceManagerScreen";
 import AddInstanceScreen from "../screens/AddInstanceScreen";
+import BusinessDetailScreen from "../screens/BusinessDetailScreen";
+import LoadingScreen from "../components/LoadingScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -16,8 +18,7 @@ export default function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    // TODO: Add a proper loading screen
-    return null;
+    return <LoadingScreen message="Initializing CityForge..." />;
   }
 
   return (
@@ -29,6 +30,11 @@ export default function RootNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+          <Stack.Screen
+            name="BusinessDetail"
+            component={BusinessDetailScreen}
+            options={{ headerShown: true, title: "Business Details" }}
+          />
           <Stack.Screen
             name="InstanceManager"
             component={InstanceManagerScreen}

@@ -3,31 +3,110 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { apiClient } from "../api/client";
 import type { Card } from "../types/api";
+import type { RootStackParamList } from "../types/navigation";
+import ErrorScreen from "../components/ErrorScreen";
+import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useTheme } from "../contexts/ThemeContext";
+
+type BusinessScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "MainTabs"
+>;
 
 export default function BusinessScreen() {
+  const navigation = useNavigation<BusinessScreenNavigationProp>();
+  const { colors } = useTheme();
   const [cards, setCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    loadCards();
-  }, []);
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    } as const,
+    centered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    } as const,
+    list: {
+      padding: 16,
+    } as const,
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    cardContent: {
+      overflow: "hidden",
+      borderRadius: 12,
+    } as const,
+    cardInfo: {
+      padding: 16,
+    } as const,
+    cardName: {
+      fontSize: 18,
+      fontWeight: "600" as const,
+      color: colors.text,
+      marginBottom: 4,
+    } as const,
+    cardDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 12,
+      lineHeight: 20,
+    } as const,
+    tags: {
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
+      gap: 8,
+    } as const,
+    tag: {
+      backgroundColor: colors.backgroundTertiary,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    tagText: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: "500" as const,
+    } as const,
+    loadingFooter: {
+      paddingVertical: 16,
+    } as const,
+  }));
+
+  const cardImageStyle = {
+    width: "100%" as const,
+    height: 160,
+  };
 
   const loadCards = async (pageNum = 1, refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
-    } else if (pageNum === 1) {
+    if (!refresh && pageNum === 1) {
       setIsLoading(true);
     }
 
@@ -49,10 +128,22 @@ export default function BusinessScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load cards");
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!refresh && pageNum === 1) {
+        setIsLoading(false);
+      }
     }
   };
+
+  // Network-aware refresh hook
+  const { refreshControl } = useNetworkRefresh({
+    onRefresh: async () => {
+      await loadCards(1, true);
+    },
+  });
+
+  useEffect(() => {
+    loadCards();
+  }, []);
 
   const loadMore = () => {
     if (!isLoading && hasMore) {
@@ -60,17 +151,16 @@ export default function BusinessScreen() {
     }
   };
 
-  const onRefresh = () => {
-    loadCards(1, true);
-  };
-
   const renderCard = ({ item }: { item: Card }) => (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("BusinessDetail", { slug: item.slug })}
+    >
       <View style={styles.cardContent}>
         {item.image_url && (
           <Image
             source={{ uri: item.image_url }}
-            style={styles.cardImage}
+            style={cardImageStyle}
             resizeMode="cover"
             alt={item.name}
           />
@@ -94,25 +184,21 @@ export default function BusinessScreen() {
     </TouchableOpacity>
   );
 
-  if (isLoading && !isRefreshing) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => loadCards(1)}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorScreen
+        message={error}
+        onRetry={() => loadCards(1)}
+        icon="business-outline"
+      />
     );
   }
 
@@ -124,7 +210,10 @@ export default function BusinessScreen() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshControl.refreshing}
+            onRefresh={refreshControl.onRefresh}
+          />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -132,7 +221,7 @@ export default function BusinessScreen() {
           isLoading && page > 1 ? (
             <ActivityIndicator
               size="small"
-              color="#3b82f6"
+              color={colors.primary}
               style={styles.loadingFooter}
             />
           ) : null
@@ -141,88 +230,3 @@ export default function BusinessScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  list: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardContent: {
-    overflow: "hidden",
-    borderRadius: 12,
-  },
-  cardImage: {
-    width: "100%",
-    height: 160,
-  },
-  cardInfo: {
-    padding: 16,
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: 4,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: "#e0f2fe",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tagText: {
-    fontSize: 12,
-    color: "#0369a1",
-    fontWeight: "500",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#ef4444",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingFooter: {
-    paddingVertical: 16,
-  },
-});

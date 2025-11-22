@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Linking,
@@ -12,12 +11,119 @@ import {
 import { apiClient } from "../api/client";
 import { logger } from "../utils/logger";
 import type { SearchResult } from "../types/api";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useTheme } from "../contexts/ThemeContext";
 
 export default function SearchScreen() {
+  const { colors } = useTheme();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    } as const,
+    searchBar: {
+      flexDirection: "row" as const,
+      padding: 16,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: 8,
+    } as const,
+    searchInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: colors.backgroundSecondary,
+      color: colors.text,
+    } as const,
+    searchButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      justifyContent: "center",
+    } as const,
+    searchButtonText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "600" as const,
+    } as const,
+    centered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    } as const,
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: colors.textSecondary,
+    } as const,
+    placeholderText: {
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: "center",
+    } as const,
+    resultsList: {
+      padding: 16,
+    } as const,
+    result: {
+      backgroundColor: colors.surface,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    resultTitle: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.text,
+      marginBottom: 8,
+    } as const,
+    resultContent: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    } as const,
+    resultFooter: {
+      flexDirection: "row" as const,
+      justifyContent: "space-between",
+      alignItems: "center",
+    } as const,
+    resultScore: {
+      fontSize: 12,
+      color: colors.textMuted,
+    } as const,
+    emptyContainer: {
+      padding: 40,
+      alignItems: "center",
+    } as const,
+    emptyText: {
+      fontSize: 18,
+      fontWeight: "600" as const,
+      color: colors.textSecondary,
+      marginBottom: 8,
+    } as const,
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+    } as const,
+  }));
 
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -85,7 +191,7 @@ export default function SearchScreen() {
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Searching...</Text>
         </View>
       ) : hasSearched ? (
@@ -113,103 +219,3 @@ export default function SearchScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  searchBar: {
-    flexDirection: "row",
-    padding: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  searchButton: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    justifyContent: "center",
-  },
-  searchButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#6b7280",
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: "#9ca3af",
-    textAlign: "center",
-  },
-  resultsList: {
-    padding: 16,
-  },
-  result: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: 8,
-  },
-  resultContent: {
-    fontSize: 14,
-    color: "#6b7280",
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  resultFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  resultScore: {
-    fontSize: 12,
-    color: "#9ca3af",
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#6b7280",
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-  },
-});

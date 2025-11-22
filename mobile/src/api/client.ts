@@ -1,5 +1,7 @@
 import { tokenStorage } from "../utils/tokenStorage";
 import { logger } from "../utils/logger";
+import { cacheManager } from "../utils/cacheManager";
+import { networkManager } from "../utils/networkManager";
 import {
   fetchWithMobileTimeout,
   MobileTimeoutError,
@@ -46,6 +48,21 @@ class ApiClient {
     options: RequestInit = {},
     token?: string | null
   ): Promise<T> {
+    // Check if this is a cacheable GET request
+    const isGetRequest = !options.method || options.method === "GET";
+    const cacheKey = `${endpoint}:${JSON.stringify(options)}`;
+
+    // For GET requests, try cache first if offline
+    if (isGetRequest && networkManager.isOffline()) {
+      const cachedData = await cacheManager.get<T>(cacheKey);
+      if (cachedData) {
+        logger.info(`Serving cached data for ${endpoint} (offline)`);
+        return cachedData;
+      } else {
+        throw new Error("No internet connection and no cached data available");
+      }
+    }
+
     // Use provided token or fall back to tokenStorage (for backward compatibility)
     const authToken =
       token !== undefined ? token : await tokenStorage.getToken();
@@ -79,11 +96,41 @@ class ApiClient {
 
       // Handle other error responses
       if (!response.ok) {
+        // Try cache if request failed but data exists
+        if (isGetRequest) {
+          const cachedData = await cacheManager.get<T>(cacheKey);
+          if (cachedData) {
+            logger.info(`Serving cached data for ${endpoint} (request failed)`);
+            return cachedData;
+          }
+        }
+
         const errorData: ApiError = await response.json();
         throw new Error(errorData.error?.message || "An error occurred");
       }
 
-      return await response.json();
+      const responseData = await response.json();
+
+      // Cache successful GET responses
+      if (isGetRequest && responseData) {
+        // Cache for different durations based on endpoint type
+        let cacheTime = 5 * 60 * 1000; // 5 minutes default
+
+        if (endpoint.includes("/cards")) {
+          cacheTime = 10 * 60 * 1000; // 10 minutes for cards
+        } else if (
+          endpoint.includes("/tags") ||
+          endpoint.includes("/site-config")
+        ) {
+          cacheTime = 30 * 60 * 1000; // 30 minutes for relatively static data
+        } else if (endpoint.includes("/auth/me")) {
+          cacheTime = 2 * 60 * 1000; // 2 minutes for user data
+        }
+
+        await cacheManager.set(cacheKey, responseData, cacheTime);
+      }
+
+      return responseData;
     } catch (error) {
       // Handle timeout errors specifically
       if (error instanceof MobileTimeoutError) {
@@ -93,9 +140,28 @@ class ApiClient {
           ":",
           error.message
         );
+
+        // Try cache for GET requests on timeout
+        if (isGetRequest) {
+          const cachedData = await cacheManager.get<T>(cacheKey);
+          if (cachedData) {
+            logger.info(`Serving cached data for ${endpoint} (timeout)`);
+            return cachedData;
+          }
+        }
+
         throw new Error(
           "Request timed out. Please check your connection and try again."
         );
+      }
+
+      // Try cache for GET requests on any error
+      if (isGetRequest) {
+        const cachedData = await cacheManager.get<T>(cacheKey);
+        if (cachedData) {
+          logger.info(`Serving cached data for ${endpoint} (error fallback)`);
+          return cachedData;
+        }
       }
 
       if (error instanceof Error) {
