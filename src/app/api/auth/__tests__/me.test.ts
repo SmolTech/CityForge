@@ -44,7 +44,7 @@ describe("GET /api/auth/me", () => {
       role: "user",
     });
 
-    const token = createTestToken(mockUser.id, mockUser.role);
+    const token = createTestToken(mockUser.id);
 
     (
       prisma.tokenBlacklist.findUnique as ReturnType<typeof vi.fn>
@@ -151,7 +151,7 @@ describe("GET /api/auth/me", () => {
   });
 
   it("should return 401 for expired token", async () => {
-    const token = createTestToken(1, "user", { expired: true });
+    const token = createTestToken(1, { expired: true });
 
     const request = createMockRequest({
       method: "GET",
