@@ -187,10 +187,12 @@ Based on the original roadmap, here are the recommended next priorities:
 
 ### High Priority
 
-1. **Integration Testing** ⏭️
-   - Test full stack: database → API routes → frontend
-   - Use Testcontainers for isolated PostgreSQL instances
-   - Test authentication flows end-to-end
+1. **Integration Testing** ✅ **IN PROGRESS**
+   - ✅ Testcontainers setup with PostgreSQL
+   - ✅ Test infrastructure and utilities
+   - ✅ Authentication API tests (9/9 passing)
+   - ⚠️ Cards API tests (4/9 passing - needs debugging)
+   - See [INTEGRATION_TESTING.md](./INTEGRATION_TESTING.md) for details
 
 2. **E2E Testing** ⏭️
    - Implement Playwright for browser automation

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { GET as cardsListRoute } from "@/app/api/cards/route";
 import { GET as cardDetailsRoute } from "@/app/api/cards/[id]/route";
 import { POST as suggestEditRoute } from "@/app/api/cards/[id]/suggest-edit/route";
@@ -8,23 +8,30 @@ import {
   assertApiResponse,
 } from "../../utils/api-test-helpers";
 import {
-  cleanupTestDatabase,
-  disconnectTestDatabase,
   createTestCardInDb,
   createUniqueTestUser,
   toApiUser,
   testPrisma,
 } from "../../utils/database-test-helpers";
+import {
+  setupIntegrationTests,
+  teardownIntegrationTests,
+  cleanDatabase,
+} from "../setup";
 
 describe("Cards API Routes", () => {
   beforeAll(async () => {
-    // Clean up database before starting tests to ensure clean slate
-    await cleanupTestDatabase();
+    await setupIntegrationTests();
+  }, 60000);
+
+  afterEach(async () => {
+    // Clean database after each test to ensure isolation
+    await cleanDatabase();
   });
 
   afterAll(async () => {
-    await disconnectTestDatabase();
-  });
+    await teardownIntegrationTests();
+  }, 30000);
 
   describe("GET /api/cards", () => {
     it("should return list of approved cards", async () => {
