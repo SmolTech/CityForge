@@ -26,6 +26,8 @@ export default defineConfig({
       "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
       "tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
     ],
+    // Exclude E2E tests (run by Playwright)
+    exclude: ["node_modules/**", "tests/e2e/**"],
     // Test timeout for integration tests
     testTimeout: 10000,
     // Code coverage configuration
