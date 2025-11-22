@@ -196,24 +196,28 @@ await assertApiResponse(response, 200, (data) => {
 - Cookie handling
 - Token validation
 
-### ⚠️ Partially Passing Tests
+**Cards API (`tests/integration/api/cards.test.ts`)** - 9/9 tests passing:
 
-**Cards API (`tests/integration/api/cards.test.ts`)** - 4/9 tests passing:
-
+- ✅ Return list of approved cards
+- ✅ Filter cards by tag
 - ✅ Pagination support
+- ✅ Return card details
 - ✅ 404 for non-existent card
 - ✅ 400 for invalid card ID
+- ✅ Create edit suggestion from authenticated user
 - ✅ Reject unauthenticated edit suggestion
-- ❌ Return list of approved cards (finds extra cards)
-- ❌ Filter cards by tag (finds extra cards)
-- ❌ Return card details (card not found)
-- ❌ Create edit suggestion (authentication issue)
-- ❌ Validate edit suggestion data (authentication issue)
+- ✅ Validate edit suggestion data
 
-**Known Issues**:
+**Component Tests** - 11/11 tests passing:
 
-- Some cards tests are finding more data than expected, suggesting database cleanup timing issues
-- Authentication for edit suggestions may need adjustment
+- ✅ Business Directory Integration (6 tests)
+- ✅ Login Component Integration (5 tests)
+
+**Database Tests** - 1/1 tests passing:
+
+- ✅ Database Connection Test
+
+**Total: 30/30 integration tests passing** ✅
 
 ### 📝 Skipped Tests
 
@@ -304,15 +308,35 @@ If tests fail to connect to the database:
 
 ### Prisma Client Caching
 
-If tests use stale database connections:
+The integration test setup uses a workaround for ES module caching to ensure API routes use the Testcontainers database:
+
+**The Problem:**
+
+- The Prisma client in `@/lib/db/client` is created at module load time with `DATABASE_URL` from environment
+- ES modules are cached after first import, so changing `process.env.DATABASE_URL` doesn't recreate the client
+- API routes import the cached client, connecting to the wrong database (vitest.config.ts URL instead of Testcontainers)
+
+**The Solution:**
+The setup uses `Object.defineProperty` to replace the exported Prisma client with the test client:
 
 ```typescript
-// The setup already clears cached clients
-if (globalThis.__prisma) {
-  await globalThis.__prisma.$disconnect();
-  globalThis.__prisma = undefined;
-}
+// Force the API routes to use the test Prisma client
+const dbClient = await import("@/lib/db/client");
+Object.defineProperty(dbClient, "prisma", {
+  get() {
+    return prisma; // Returns Testcontainers Prisma client
+  },
+  configurable: true,
+});
+Object.defineProperty(dbClient, "default", {
+  get() {
+    return prisma;
+  },
+  configurable: true,
+});
 ```
+
+This ensures all API routes use the Testcontainers database without requiring code changes to the API routes themselves.
 
 ## Performance
 

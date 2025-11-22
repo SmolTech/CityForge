@@ -248,44 +248,44 @@ describe("Authentication API Routes", () => {
       expect(data.error.details.password).toBeDefined();
     });
   });
-});
 
-describe("POST /api/auth/logout", () => {
-  it("should logout successfully", async () => {
-    // Create test user with unique email
-    const uniqueEmail = `logout-${Date.now()}@example.com`;
-    const user = await createTestUserInDb({
-      email: uniqueEmail,
-      firstName: "Logout",
-      lastName: "User",
-      password: "LogoutPassword123!",
+  describe("POST /api/auth/logout", () => {
+    it("should logout successfully", async () => {
+      // Create test user with unique email
+      const uniqueEmail = `logout-${Date.now()}@example.com`;
+      const user = await createTestUserInDb({
+        email: uniqueEmail,
+        firstName: "Logout",
+        lastName: "User",
+        password: "LogoutPassword123!",
+      });
+
+      const request = createAuthenticatedRequest(
+        "http://localhost:3000/api/auth/logout",
+        {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role as "admin" | "supporter" | "user",
+          isActive: user.isActive ?? true,
+          emailVerified: user.emailVerified ?? false,
+        },
+        {
+          method: "POST",
+        }
+      );
+
+      const response = await logoutRoute(request);
+
+      await assertApiResponse(response, 200, (data) => {
+        expect(data.message).toBe("Successfully logged out");
+      });
+
+      // Check that cookie is cleared
+      const setCookie = response.headers.get("Set-Cookie");
+      expect(setCookie).toContain("access_token");
+      expect(setCookie).toContain("Max-Age=0");
     });
-
-    const request = createAuthenticatedRequest(
-      "http://localhost:3000/api/auth/logout",
-      {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role as "admin" | "supporter" | "user",
-        isActive: user.isActive ?? true,
-        emailVerified: user.emailVerified ?? false,
-      },
-      {
-        method: "POST",
-      }
-    );
-
-    const response = await logoutRoute(request);
-
-    await assertApiResponse(response, 200, (data) => {
-      expect(data.message).toBe("Successfully logged out");
-    });
-
-    // Check that cookie is cleared
-    const setCookie = response.headers.get("Set-Cookie");
-    expect(setCookie).toContain("access_token");
-    expect(setCookie).toContain("Max-Age=0");
   });
 });

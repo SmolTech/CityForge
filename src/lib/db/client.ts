@@ -12,6 +12,9 @@ declare global {
 function getDatabaseUrl(): string {
   if (process.env["DATABASE_URL"]) {
     logger.debug("[Database] Using DATABASE_URL from environment");
+    logger.debug(
+      `[Database] Connection URL: ${redactDatabaseUrl(process.env["DATABASE_URL"])}`
+    );
     return process.env["DATABASE_URL"];
   }
 
