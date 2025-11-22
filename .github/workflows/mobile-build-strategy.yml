@@ -65,9 +65,17 @@ jobs:
         if: matrix.platform == 'android'
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platforms;android-34
-            build-tools;34.0.0
+          cmdline-tools-version: 12266719
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
+
+      - name: Install Android SDK packages
+        if: matrix.platform == 'android'
+        run: |
+          echo "Installing Android SDK packages..."
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0"
 
       # iOS-specific setup (macOS runner required)
       - name: Switch to macOS runner for iOS
