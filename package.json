@@ -55,6 +55,7 @@
     "@eslint/eslintrc": "^3",
     "@mswjs/http-middleware": "^0.10.3",
     "@tailwindcss/postcss": "^4",
+    "@testcontainers/postgresql": "^11.8.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -76,6 +77,7 @@
     "node-mocks-http": "^1.17.2",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
+    "testcontainers": "^11.8.1",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

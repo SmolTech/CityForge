@@ -1,12 +1,35 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "@/lib/auth/password";
+import { getTestPrisma } from "../integration/setup";
 
-// Create a separate Prisma instance for testing
-export const testPrisma = new PrismaClient({
-  // Use test database or in-memory database
-  datasourceUrl:
-    process.env["DATABASE_URL"] ||
-    "postgresql://test:test@localhost:5432/cityforge_test",
+// Lazy Prisma instance - will be initialized on first use
+let _testPrisma: PrismaClient | null = null;
+
+// Get the Prisma instance from integration test setup
+// This ensures we use the Testcontainers database
+function getPrisma(): PrismaClient {
+  if (_testPrisma) {
+    return _testPrisma;
+  }
+
+  try {
+    _testPrisma = getTestPrisma();
+    return _testPrisma;
+  } catch {
+    // Fallback for non-integration tests
+    _testPrisma = new PrismaClient({
+      datasourceUrl:
+        process.env["DATABASE_URL"] ||
+        "postgresql://test:test@localhost:5432/cityforge_test",
+    });
+    return _testPrisma;
+  }
+}
+
+export const testPrisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return getPrisma()[prop as keyof PrismaClient];
+  },
 });
 
 /**

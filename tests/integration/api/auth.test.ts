@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { POST as registerRoute } from "@/app/api/auth/register/route";
 import { POST as logoutRoute } from "@/app/api/auth/logout/route";
@@ -7,17 +7,26 @@ import {
   assertApiResponse,
   createAuthenticatedRequest,
 } from "../../utils/api-test-helpers";
+import { createTestUserInDb } from "../../utils/database-test-helpers";
 import {
-  disconnectTestDatabase,
-  createTestUserInDb,
-} from "../../utils/database-test-helpers";
+  setupIntegrationTests,
+  teardownIntegrationTests,
+  cleanDatabase,
+} from "../setup";
 
 describe("Authentication API Routes", () => {
-  // No global cleanup - each test manages its own data
+  beforeAll(async () => {
+    await setupIntegrationTests();
+  }, 60000);
+
+  afterEach(async () => {
+    // Clean database after each test to ensure isolation
+    await cleanDatabase();
+  });
 
   afterAll(async () => {
-    await disconnectTestDatabase();
-  });
+    await teardownIntegrationTests();
+  }, 30000);
 
   describe("POST /api/auth/login", () => {
     it("should login with valid credentials", async () => {
