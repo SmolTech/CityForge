@@ -1,0 +1,184 @@
+name: Android Release Build (Signed)
+
+on:
+  push:
+    tags:
+      - "mobile-v*"
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Create GitHub release"
+        required: true
+        type: boolean
+        default: false
+
+env:
+  JAVA_VERSION: "17"
+  NODE_VERSION: "20"
+
+jobs:
+  build-signed-release:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Setup Expo CLI
+        run: npm install -g @expo/cli@latest
+
+      - name: Create production environment file
+        working-directory: mobile
+        run: |
+          echo "EXPO_PUBLIC_API_URL=${{ secrets.PRODUCTION_API_URL || 'https://api.yourdomain.com' }}" > .env
+
+      - name: Generate native code (prebuild)
+        working-directory: mobile
+        run: |
+          npx expo prebuild --platform android --clear
+
+      - name: Create keystore from secrets
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        working-directory: mobile/android
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/release-key.keystore
+
+      - name: Create signing config
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        working-directory: mobile/android
+        run: |
+          cat >> app/build.gradle << EOF
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file('release-key.keystore')
+                      storePassword '$ANDROID_STORE_PASSWORD'
+                      keyAlias '$ANDROID_KEY_ALIAS'
+                      keyPassword '$ANDROID_KEY_PASSWORD'
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
+
+      - name: Grant execute permission for gradlew
+        working-directory: mobile/android
+        run: chmod +x gradlew
+
+      - name: Build signed release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        working-directory: mobile/android
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "🔐 Building signed release APK"
+            ./gradlew assembleRelease --no-daemon --stacktrace
+            APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          else
+            echo "⚠️  Building unsigned release APK (no keystore configured)"
+            ./gradlew assembleRelease --no-daemon --stacktrace
+            APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+          fi
+
+          # Verify APK was created
+          if [ ! -f "$APK_PATH" ]; then
+            echo "❌ Release APK build failed - file not found at $APK_PATH"
+            exit 1
+          fi
+
+          # Get APK info
+          APK_SIZE=$(stat -c%s "$APK_PATH" | numfmt --to=iec)
+          echo "✅ Release APK built successfully (Size: $APK_SIZE)"
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+
+          # Set APK name with version
+          VERSION=$(grep -o 'version.*[0-9]\+\.[0-9]\+\.[0-9]\+' ../app.json | sed 's/.*: "\(.*\)".*/\1/')
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "APK_NAME=cityforge-v${VERSION}-signed.apk" >> $GITHUB_ENV
+          else
+            echo "APK_NAME=cityforge-v${VERSION}-unsigned.apk" >> $GITHUB_ENV
+          fi
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}
+          path: mobile/android/${{ env.APK_PATH }}
+          retention-days: 90
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: mobile/android/app/build/outputs/apk/release/*.apk
+          name: "CityForge Mobile v${{ github.ref_name }}"
+          body: |
+            ## CityForge Mobile Release ${{ github.ref_name }}
+
+            Download the APK file below to install on Android devices.
+
+            ### Build Information:
+            - Version: ${{ github.ref_name }}
+            - Build Date: $(date)
+            - Commit: ${COMMIT_SHA}
+            - Signed: ${{ env.KEYSTORE_BASE64 != '' && 'Yes' || 'No' }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha')
+
+      - name: Clean up keystore
+        if: always() && env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        working-directory: mobile/android
+        run: |
+          rm -f app/release-key.keystore
