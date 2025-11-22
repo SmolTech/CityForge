@@ -48,7 +48,7 @@ test.describe("Business Directory E2E", () => {
     });
 
     // Visit business directory
-    await page.goto("/business");
+    await page.goto("/");
 
     // Wait for cards to load
     await page.waitForSelector('[data-testid="business-card"]', {
@@ -88,7 +88,7 @@ test.describe("Business Directory E2E", () => {
     });
 
     // Visit business directory
-    await page.goto("/business");
+    await page.goto("/");
 
     // Wait for cards to load
     await page.waitForSelector('[data-testid="business-card"]');
@@ -125,7 +125,7 @@ test.describe("Business Directory E2E", () => {
     });
 
     // Visit business directory
-    await page.goto("/business");
+    await page.goto("/");
 
     // Wait for cards to load
     await page.waitForSelector('[data-testid="business-card"]');
@@ -137,8 +137,10 @@ test.describe("Business Directory E2E", () => {
     // Verify redirected to detail page
     await expect(page).toHaveURL(new RegExp(`/business/${card.id}`));
 
-    // Verify business details are shown
-    await expect(page.getByText("Detail Test Business")).toBeVisible();
+    // Verify business details are shown (be specific about which element)
+    await expect(
+      page.getByRole("heading", { name: "Detail Test Business" })
+    ).toBeVisible();
     await expect(page.getByText("Click to see details")).toBeVisible();
   });
 
@@ -160,7 +162,7 @@ test.describe("Business Directory E2E", () => {
     }
 
     // Visit business directory
-    await page.goto("/business");
+    await page.goto("/");
 
     // Wait for cards to load
     await page.waitForSelector('[data-testid="business-card"]');
@@ -208,7 +210,7 @@ test.describe("Business Directory E2E", () => {
     });
 
     // Visit business directory
-    await page.goto("/business");
+    await page.goto("/");
 
     // Wait for search input
     await page.waitForSelector('[data-testid="search-input"]');
@@ -225,8 +227,8 @@ test.describe("Business Directory E2E", () => {
   });
 
   test("should show empty state when no businesses", async ({ page }) => {
-    // Visit business directory with no cards
-    await page.goto("/business");
+    // Visit business directory with no cards (home page is the business directory)
+    await page.goto("/");
 
     // Wait for page to load
     await page.waitForLoadState("networkidle");

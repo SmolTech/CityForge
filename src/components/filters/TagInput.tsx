@@ -106,6 +106,7 @@ export default function TagInput({
             placeholder={tags.length === 0 ? placeholder : ""}
             disabled={maxTags ? tags.length >= maxTags : false}
             className="flex-1 min-w-[120px] px-1 py-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+            data-testid="tag-input"
           />
         </div>
       </div>

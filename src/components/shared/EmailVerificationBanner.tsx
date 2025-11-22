@@ -46,6 +46,7 @@ export function EmailVerificationBanner({
 
   return (
     <div
+      data-testid="email-verification-banner"
       className={`bg-yellow-50 border border-yellow-200 rounded-lg p-4 ${className}`}
     >
       <div className="flex items-start justify-between">

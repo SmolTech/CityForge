@@ -42,9 +42,9 @@ test.describe("Business Submission E2E", () => {
       "This is a test business description"
     );
     await page.fill('input[name="address"]', "123 Test St");
-    await page.fill('input[name="phone"]', "555-1234");
+    await page.fill('input[name="phone_number"]', "555-1234");
     await page.fill('input[name="email"]', "business@example.com");
-    await page.fill('input[name="website"]', "https://example.com");
+    await page.fill('input[name="website_url"]', "https://example.com");
 
     // Add tags
     const tagInput = page.locator('[data-testid="tag-input"]');
@@ -57,7 +57,7 @@ test.describe("Business Submission E2E", () => {
     await page.click('button[type="submit"]');
 
     // Wait for success message
-    const successMessage = page.locator('[role="alert"]');
+    const successMessage = page.locator('[data-testid="submit-success"]');
     await expect(successMessage).toBeVisible();
     await expect(successMessage).toContainText(/submitted/i);
   });
@@ -74,18 +74,19 @@ test.describe("Business Submission E2E", () => {
     // Navigate to submission form
     await page.goto("/submit");
 
-    // Try to submit empty form
+    // Try to submit form with empty required field (name)
     await page.click('button[type="submit"]');
 
-    // Check for validation errors
-    const nameError = page.locator('[data-testid="name-error"]');
-    const descriptionError = page.locator('[data-testid="description-error"]');
+    // Check that HTML5 validation prevents submission
+    // The form should not submit and we should still be on the submit page
+    await expect(page).toHaveURL(/\/submit/);
 
-    // At least one validation error should be visible
-    const anyErrorVisible =
-      (await nameError.isVisible()) || (await descriptionError.isVisible());
-
-    expect(anyErrorVisible).toBe(true);
+    // Check that the required field has validation state
+    const nameInput = page.locator('input[name="name"]');
+    const isValid = await nameInput.evaluate(
+      (input: HTMLInputElement) => input.validity.valid
+    );
+    expect(isValid).toBe(false);
   });
 
   test("should require authentication to submit", async ({ page }) => {
@@ -108,23 +109,22 @@ test.describe("Business Submission E2E", () => {
     // Navigate to submission form
     await page.goto("/submit");
 
-    // Fill in form with invalid email
+    // Fill in form with valid name and invalid email
     await page.fill('input[name="name"]', "Test Business");
-    await page.fill('input[name="description"]', "Test description");
     await page.fill('input[name="email"]', "invalid-email");
 
     // Submit form
     await page.click('button[type="submit"]');
 
-    // Check for email validation error
-    const emailError = page.locator('[data-testid="email-error"]');
-    const anyError = page.locator('[role="alert"]');
+    // Check that HTML5 validation prevents submission due to invalid email
+    await expect(page).toHaveURL(/\/submit/);
 
-    // Either field-level or form-level error should be visible
-    const errorVisible =
-      (await emailError.isVisible()) || (await anyError.isVisible());
-
-    expect(errorVisible).toBe(true);
+    // Check that the email field has validation state
+    const emailInput = page.locator('input[name="email"]');
+    const isValid = await emailInput.evaluate(
+      (input: HTMLInputElement) => input.validity.valid
+    );
+    expect(isValid).toBe(false);
   });
 
   test("should validate website URL format", async ({ page }) => {
@@ -139,23 +139,22 @@ test.describe("Business Submission E2E", () => {
     // Navigate to submission form
     await page.goto("/submit");
 
-    // Fill in form with invalid website URL
+    // Fill in form with valid name and invalid website URL
     await page.fill('input[name="name"]', "Test Business");
-    await page.fill('input[name="description"]', "Test description");
-    await page.fill('input[name="website"]', "not-a-url");
+    await page.fill('input[name="website_url"]', "not-a-url");
 
     // Submit form
     await page.click('button[type="submit"]');
 
-    // Check for website validation error
-    const websiteError = page.locator('[data-testid="website-error"]');
-    const anyError = page.locator('[role="alert"]');
+    // Check that HTML5 validation prevents submission due to invalid URL
+    await expect(page).toHaveURL(/\/submit/);
 
-    // Either field-level or form-level error should be visible
-    const errorVisible =
-      (await websiteError.isVisible()) || (await anyError.isVisible());
-
-    expect(errorVisible).toBe(true);
+    // Check that the website URL field has validation state
+    const websiteInput = page.locator('input[name="website_url"]');
+    const isValid = await websiteInput.evaluate(
+      (input: HTMLInputElement) => input.validity.valid
+    );
+    expect(isValid).toBe(false);
   });
 
   test("should allow user to edit draft before submission", async ({
@@ -174,7 +173,7 @@ test.describe("Business Submission E2E", () => {
 
     // Fill in initial data
     await page.fill('input[name="name"]', "Initial Name");
-    await page.fill('input[name="description"]', "Initial description");
+    await page.fill('textarea[name="description"]', "Initial description");
 
     // Edit the name
     await page.fill('input[name="name"]', "Updated Name");

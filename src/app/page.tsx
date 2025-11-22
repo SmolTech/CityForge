@@ -212,7 +212,7 @@ export default function Home() {
                 </div>
               </div>
             ) : cards.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12" data-testid="empty-state">
                 <p className="text-gray-500 dark:text-gray-400 text-lg">
                   No cards found matching your criteria.
                 </p>

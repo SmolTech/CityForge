@@ -17,6 +17,10 @@ const config = defineConfig({
   // Retry on CI only
   retries: process.env["CI"] ? 2 : 0,
 
+  // Use single worker to avoid database conflicts in tests
+  // Our tests share a database and use cleanDatabase() which can interfere when parallel
+  workers: 1,
+
   // Reporter to use
   reporter: [["html"], ["list"], process.env["CI"] ? ["github"] : ["line"]],
 
@@ -73,10 +77,5 @@ const config = defineConfig({
     timeout: 120000, // 2 minutes for Next.js to start
   },
 });
-
-// Conditionally set workers to avoid undefined type issues
-if (process.env["CI"]) {
-  config.workers = 1;
-}
 
 export default config;

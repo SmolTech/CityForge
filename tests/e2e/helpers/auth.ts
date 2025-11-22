@@ -20,16 +20,26 @@ export async function registerUser(
 
   // Fill in registration form
   await page.fill('input[name="email"]', userData.email);
-  await page.fill('input[name="firstName"]', userData.firstName);
-  await page.fill('input[name="lastName"]', userData.lastName);
+  await page.fill('input[name="first_name"]', userData.firstName);
+  await page.fill('input[name="last_name"]', userData.lastName);
   await page.fill('input[name="password"]', userData.password);
   await page.fill('input[name="confirmPassword"]', userData.password);
 
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for registration to complete
-  await page.waitForURL("/dashboard", { timeout: 10000 });
+  // Wait a bit for any potential error messages to appear
+  await page.waitForTimeout(2000);
+
+  // Check if there are any error messages first
+  const errorElement = page.locator('[data-testid="register-error"]');
+  if (await errorElement.isVisible()) {
+    const errorText = await errorElement.textContent();
+    throw new Error("Registration failed with error: " + errorText);
+  }
+
+  // Wait for successful authentication and dashboard access
+  await waitForAuthentication(page);
 }
 
 /**
@@ -51,8 +61,18 @@ export async function loginUser(
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for login to complete
-  await page.waitForURL("/dashboard", { timeout: 10000 });
+  // Wait a bit for any potential error messages to appear
+  await page.waitForTimeout(2000);
+
+  // Check if there are any error messages first
+  const errorElement = page.locator('[data-testid="login-error"]');
+  if (await errorElement.isVisible()) {
+    const errorText = await errorElement.textContent();
+    throw new Error("Login failed with error: " + errorText);
+  }
+
+  // Wait for successful authentication and dashboard access
+  await waitForAuthentication(page);
 }
 
 /**
@@ -73,16 +93,29 @@ export async function logoutUser(page: Page) {
  * Check if user is logged in
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  // Check for user menu presence
-  const userMenu = page.locator('[data-testid="user-menu"]');
-  return await userMenu.isVisible();
+  try {
+    // Navigate to dashboard and wait for it to load
+    await page.goto("/dashboard", { timeout: 5000 });
+    await page.waitForLoadState("networkidle", { timeout: 5000 });
+
+    // If we stayed on the dashboard (not redirected to login), we're logged in
+    return page.url().includes("/dashboard");
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Generate a unique test email
  */
 export function generateTestEmail(): string {
-  return `e2e-test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+  return (
+    "e2e-test-" +
+    Date.now() +
+    "-" +
+    Math.random().toString(36).substring(7) +
+    "@example.com"
+  );
 }
 
 /**
@@ -95,4 +128,52 @@ export function generateTestUser() {
     lastName: "User",
     password: "TestPassword123!",
   };
+}
+
+/**
+ * Wait for authentication to complete and dashboard to be accessible
+ */
+export async function waitForAuthentication(page: Page, timeout = 15000) {
+  const endTime = Date.now() + timeout;
+  let attempts = 0;
+
+  while (Date.now() < endTime) {
+    attempts++;
+    try {
+      // Navigate to dashboard
+      await page.goto("/dashboard", { timeout: 5000 });
+      await page.waitForLoadState("networkidle", { timeout: 5000 });
+
+      // If we're still on the dashboard (not redirected to login), we're authenticated
+      if (page.url().includes("/dashboard")) {
+        console.log("Authentication successful after attempts:", attempts);
+        return;
+      }
+
+      // Log the current URL for debugging
+      console.log("Authentication attempt details:", {
+        attempt: attempts,
+        currentUrl: page.url(),
+      });
+
+      // If we get redirected to login, wait a bit and try again
+      await page.waitForTimeout(1000);
+    } catch (error) {
+      console.log("Authentication attempt failed:", {
+        attempt: attempts,
+        error,
+      });
+      // If there's an error, wait a bit and try again
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  throw new Error(
+    "Authentication did not complete within timeout. Details: " +
+      JSON.stringify({
+        timeoutMs: timeout,
+        attempts,
+        currentUrl: page.url(),
+      })
+  );
 }
