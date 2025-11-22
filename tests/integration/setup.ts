@@ -35,16 +35,45 @@ export async function setupIntegrationTests() {
 
   const connectionString = postgresContainer.getConnectionUri();
   console.log("✅ PostgreSQL container started");
+  console.log(
+    `📍 Container connection: ${connectionString.replace(/:[^:@]+@/, ":***@")}`
+  );
 
   // Set DATABASE_URL for Prisma
   process.env["DATABASE_URL"] = connectionString;
+  console.log(
+    `📍 DATABASE_URL set to: ${process.env["DATABASE_URL"]?.replace(/:[^:@]+@/, ":***@")}`
+  );
 
   // Clear any cached Prisma client to force recreation with new URL
   // This is needed because API routes import @/lib/db/client which caches the client
   if (globalThis.__prisma) {
+    console.log("🔄 Disconnecting existing Prisma client");
     await globalThis.__prisma.$disconnect();
-    globalThis.__prisma = undefined;
+    delete (globalThis as { __prisma?: unknown }).__prisma;
+    console.log("✅ Prisma client cleared");
+  } else {
+    console.log("ℹ️  No existing Prisma client to clear");
   }
+
+  // Force the API routes to use the test Prisma client
+  // This is a workaround for ES module caching issues
+  // We dynamically import and replace the prisma export
+  const dbClient = await import("@/lib/db/client");
+  // Replace the cached prisma client with our test one
+  Object.defineProperty(dbClient, "prisma", {
+    get() {
+      return prisma;
+    },
+    configurable: true,
+  });
+  Object.defineProperty(dbClient, "default", {
+    get() {
+      return prisma;
+    },
+    configurable: true,
+  });
+  console.log("✅ Replaced API Prisma client with test client");
 
   // Run Prisma migrations to create schema
   console.log("📦 Applying database schema...");
