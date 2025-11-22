@@ -194,6 +194,7 @@ export default function Navigation({
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
                       className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
+                      data-testid="user-menu"
                     >
                       {user?.first_name}
                       <svg
@@ -244,6 +245,7 @@ export default function Navigation({
                             setUserMenuOpen(false);
                           }}
                           className="block w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg mx-1"
+                          data-testid="logout-button"
                         >
                           Logout
                         </button>
@@ -403,6 +405,7 @@ export default function Navigation({
                             setMobileMenuOpen(false);
                           }}
                           className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          data-testid="logout-button"
                         >
                           Logout
                         </button>

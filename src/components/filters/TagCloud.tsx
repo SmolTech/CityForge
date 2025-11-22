@@ -42,6 +42,7 @@ export default function TagCloud({ tags, selectedTags, onTagClick }: Props) {
             <button
               key={tag.name}
               onClick={() => onTagClick(tag.name)}
+              data-testid={`tag-${tag.name}`}
               className={`
                 inline-flex items-center px-3 py-1.5 rounded-full font-medium transition-all duration-200
                 ${getTagSize(tag.count, maxCount)}

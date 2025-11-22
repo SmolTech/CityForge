@@ -48,6 +48,7 @@ export default function SearchBar({
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
+        data-testid="search-input"
         className="block w-full pl-10 pr-10 py-3 border border-gray-200 dark:border-slate-700 rounded-xl leading-5 bg-white dark:bg-slate-800 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm hover:shadow-md"
         placeholder={placeholder}
       />

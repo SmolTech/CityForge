@@ -252,7 +252,10 @@ export default function SubmitPage() {
         </div>
 
         {success && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-200 px-4 py-3 rounded">
+          <div
+            data-testid="submit-success"
+            className="mb-6 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-200 px-4 py-3 rounded"
+          >
             <div className="flex">
               <svg
                 className="w-5 h-5 mr-2"
@@ -279,7 +282,10 @@ export default function SubmitPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded">
+              <div
+                data-testid="submit-error"
+                className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded"
+              >
                 {error}
               </div>
             )}

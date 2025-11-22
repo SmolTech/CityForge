@@ -109,6 +109,7 @@ export default function Pagination({
         disabled={currentPage === totalPages}
         className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
+        data-testid="pagination-next"
       >
         Next
       </button>

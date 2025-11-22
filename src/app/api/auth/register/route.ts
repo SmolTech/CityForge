@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       is_supporter: user.role === "supporter" || user.role === "admin",
       is_supporter_flag: user.isSupporterFlag ?? false, // Use actual value from database
       is_active: user.isActive,
+      email_verified: user.emailVerified, // Include email verification status
       created_date: user.createdDate?.toISOString() ?? new Date().toISOString(),
       last_login: user.lastLogin?.toISOString() || null,
     };

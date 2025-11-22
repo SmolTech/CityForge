@@ -24,6 +24,11 @@ __pycache__
 # testing
 /coverage
 
+# playwright
+/test-results/
+/playwright-report/
+test-results.json
+
 # next.js
 /.next/
 /out/

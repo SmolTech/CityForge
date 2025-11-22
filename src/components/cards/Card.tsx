@@ -109,6 +109,7 @@ export default function Card({ card }: Props) {
   return (
     <>
       <div
+        data-testid="business-card"
         className="bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 cursor-pointer border border-gray-100 dark:border-slate-700 hover:scale-[1.02] hover:border-blue-200 dark:hover:border-blue-800"
         onClick={handleCardClick}
       >
