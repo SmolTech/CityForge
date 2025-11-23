@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { loadAppConfig } from "@/lib/server-config";
 import { logger } from "@/lib/logger";
 import {
   businessMetrics,
@@ -242,17 +241,18 @@ async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
   }
 }
 
+function getBaseUrl(): string {
+  // Priority: NEXT_PUBLIC_SITE_URL -> fallback to localhost for development
+  return process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+}
+
 export async function GET(): Promise<NextResponse> {
   const timing = createTimingMiddleware();
   const startTime = timing.start();
 
   try {
-    // Get site configuration for base URL
-    const config = await loadAppConfig();
-    const baseUrl =
-      process.env["NEXT_PUBLIC_SITE_URL"] ||
-      `https://${config.site.domain}` ||
-      "http://localhost:3000";
+    // Get base URL from environment variable
+    const baseUrl = getBaseUrl();
 
     // Collect all URLs
     const [staticUrls, businessUrls, forumUrls, helpWantedUrls] =
@@ -273,7 +273,7 @@ export async function GET(): Promise<NextResponse> {
     // Generate XML sitemap
     const sitemapXml = generateSitemapXML(allUrls);
 
-    logger.info(`Generated sitemap with ${allUrls.length} URLs`);
+    logger.info(`Generated sitemap with ${allUrls.length} URLs for ${baseUrl}`);
 
     // Track sitemap generation metrics
     businessMetrics.sitemapGenerated();
@@ -293,9 +293,8 @@ export async function GET(): Promise<NextResponse> {
     // Track error metrics
     timing.end(startTime, 500, "/sitemap.xml");
 
-    // Return a basic sitemap on error
-    const baseUrl =
-      process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+    // Return a basic sitemap on error using the same base URL logic
+    const baseUrl = getBaseUrl();
     const fallbackUrls = await getStaticUrls(baseUrl);
     const fallbackXml = generateSitemapXML(fallbackUrls);
 
