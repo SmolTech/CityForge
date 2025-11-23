@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { loadAppConfig } from "@/lib/server-config";
 import { logger } from "@/lib/logger";
+import {
+  businessMetrics,
+  createTimingMiddleware,
+} from "@/lib/monitoring/metrics";
 
 interface SitemapUrl {
   loc: string;
@@ -239,6 +243,9 @@ async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
 }
 
 export async function GET(): Promise<NextResponse> {
+  const timing = createTimingMiddleware();
+  const startTime = timing.start();
+
   try {
     // Get site configuration for base URL
     const config = await loadAppConfig();
@@ -268,6 +275,10 @@ export async function GET(): Promise<NextResponse> {
 
     logger.info(`Generated sitemap with ${allUrls.length} URLs`);
 
+    // Track sitemap generation metrics
+    businessMetrics.sitemapGenerated();
+    timing.end(startTime, 200, "/sitemap.xml");
+
     // Return XML response with proper headers
     return new NextResponse(sitemapXml, {
       status: 200,
@@ -278,6 +289,9 @@ export async function GET(): Promise<NextResponse> {
     });
   } catch (error) {
     logger.error("Error generating sitemap:", error);
+
+    // Track error metrics
+    timing.end(startTime, 500, "/sitemap.xml");
 
     // Return a basic sitemap on error
     const baseUrl =

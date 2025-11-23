@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkDatabaseHealth } from "@/lib/db/client";
 import { redactDatabaseUrl } from "@/lib/utils/log-redaction";
+import { metrics } from "@/lib/monitoring/metrics";
 import { logger } from "@/lib/logger";
 
 /**
@@ -46,6 +47,9 @@ export async function GET() {
     const healthCheck = await checkDatabaseHealth();
 
     if (healthCheck.status === "healthy") {
+      // Get current metrics for health response
+      const currentMetrics = metrics.getMetrics();
+
       return NextResponse.json(
         {
           status: "ok",
@@ -53,6 +57,21 @@ export async function GET() {
           services: {
             database: "connected",
             server: "running",
+          },
+          metrics: {
+            uptime: Math.round(currentMetrics.uptime / 1000), // seconds
+            requestCount: currentMetrics.httpRequestTotal,
+            errorRate: Math.round(currentMetrics.httpErrorRate * 100) / 100, // round to 2 decimals
+            memoryUsage: Math.round(currentMetrics.memoryUsage / 1024 / 1024), // MB
+            avgResponseTime:
+              currentMetrics.httpRequestDuration.length > 0
+                ? Math.round(
+                    currentMetrics.httpRequestDuration.reduce(
+                      (a, b) => a + b,
+                      0
+                    ) / currentMetrics.httpRequestDuration.length
+                  )
+                : 0,
           },
           databaseUrl: constructedUrl, // Already redacted
         },

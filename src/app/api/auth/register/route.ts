@@ -7,6 +7,7 @@ import {
   createEmailVerificationToken,
   sendVerificationEmail,
 } from "@/lib/auth/email-verification";
+import { businessMetrics } from "@/lib/monitoring/metrics";
 import { logger } from "@/lib/logger";
 import { handleApiError, ValidationError, ConflictError } from "@/lib/errors";
 
@@ -90,6 +91,9 @@ export async function POST(request: NextRequest) {
     };
 
     logger.info(`New user registered: ${user.email}`);
+
+    // Track user registration metric
+    businessMetrics.userRegistered();
 
     // Generate and send email verification token
     try {
