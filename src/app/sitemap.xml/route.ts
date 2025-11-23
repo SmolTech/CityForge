@@ -5,6 +5,7 @@ import {
   businessMetrics,
   createTimingMiddleware,
 } from "@/lib/monitoring/metrics";
+import { getSiteUrl } from "@/lib/runtime-config";
 
 interface SitemapUrl {
   loc: string;
@@ -242,11 +243,9 @@ async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
 }
 
 function getBaseUrl(): string {
-  // Use dynamic property access to prevent Next.js from inlining env vars at build time
-  // This is critical for standalone mode where the same Docker image runs in multiple envs
-  const siteUrl = process.env["SITE_URL"];
-  const publicSiteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
-  return siteUrl || publicSiteUrl || "http://localhost:3000";
+  // Use runtime config file to prevent Next.js from inlining values at build time
+  // The config file is created at container startup with the correct SITE_URL
+  return getSiteUrl();
 }
 
 export async function GET(): Promise<NextResponse> {
