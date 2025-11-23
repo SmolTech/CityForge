@@ -1,0 +1,63 @@
+# Prometheus configuration for CityForge monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "cityforge"
+    environment: "production"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# rule_files:
+#   - "alert_rules.yml"
+
+# Scrape configuration
+scrape_configs:
+  # CityForge application metrics
+  - job_name: "cityforge-app"
+    static_configs:
+      - targets: ["localhost:3000"] # Host network access
+    metrics_path: "/api/metrics"
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    params:
+      format: ["prometheus"]
+
+  # CityForge health checks
+  - job_name: "cityforge-health"
+    static_configs:
+      - targets: ["localhost:3000"]
+    metrics_path: "/api/health"
+    scrape_interval: 15s
+
+  # System metrics
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["localhost:9100"]
+
+  # Container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["localhost:8080"]
+
+  # Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Grafana
+  - job_name: "grafana"
+    static_configs:
+      - targets: ["localhost:3001"]
+
+  # AlertManager
+  - job_name: "alertmanager"
+    static_configs:
+      - targets: ["localhost:9093"]

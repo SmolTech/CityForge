@@ -1,0 +1,12 @@
+# Grafana Dashboard Configuration for CityForge
+
+apiVersion: 1
+
+providers:
+  - name: "CityForge Dashboards"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

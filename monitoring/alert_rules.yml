@@ -1,0 +1,114 @@
+# CityForge Prometheus Alert Rules
+
+groups:
+  - name: cityforge.rules
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: cityforge_http_error_rate > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: cityforge
+        annotations:
+          summary: "CityForge error rate is high"
+          description: "Error rate is {{ $value | humanizePercentage }} for more than 5 minutes"
+
+      # Critical error rate alert
+      - alert: CriticalErrorRate
+        expr: cityforge_http_error_rate > 0.2
+        for: 2m
+        labels:
+          severity: critical
+          service: cityforge
+        annotations:
+          summary: "CityForge error rate is critically high"
+          description: "Error rate is {{ $value | humanizePercentage }} for more than 2 minutes"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: cityforge_memory_usage_bytes > 1073741824 # 1GB
+        for: 10m
+        labels:
+          severity: warning
+          service: cityforge
+        annotations:
+          summary: "CityForge memory usage is high"
+          description: "Memory usage is {{ $value | humanizeBytes }} for more than 10 minutes"
+
+      # Application down
+      - alert: CityForgeDown
+        expr: up{job="cityforge-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cityforge
+        annotations:
+          summary: "CityForge application is down"
+          description: "CityForge application has been down for more than 1 minute"
+
+      # Database connectivity issues
+      - alert: DatabaseUnhealthy
+        expr: up{job="cityforge-health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: cityforge
+        annotations:
+          summary: "CityForge health check failing"
+          description: "CityForge health endpoint has been failing for more than 2 minutes"
+
+      # Slow response time
+      - alert: SlowResponseTime
+        expr: cityforge_http_response_time_ms > 2000
+        for: 5m
+        labels:
+          severity: warning
+          service: cityforge
+        annotations:
+          summary: "CityForge response time is slow"
+          description: "Average response time is {{ $value }}ms for more than 5 minutes"
+
+      # Low request volume (might indicate issues)
+      - alert: LowRequestVolume
+        expr: rate(cityforge_http_requests_total[5m]) < 0.1
+        for: 15m
+        labels:
+          severity: info
+          service: cityforge
+        annotations:
+          summary: "CityForge request volume is low"
+          description: "Request rate is {{ $value }} requests/sec for more than 15 minutes"
+
+      # High container CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name="cityforge-frontend"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: cityforge
+        annotations:
+          summary: "CityForge container CPU usage is high"
+          description: "CPU usage is {{ $value }}% for more than 10 minutes"
+
+      # High container memory usage
+      - alert: HighContainerMemoryUsage
+        expr: container_memory_usage_bytes{name="cityforge-frontend"} > 1073741824 # 1GB
+        for: 10m
+        labels:
+          severity: warning
+          service: cityforge
+        annotations:
+          summary: "CityForge container memory usage is high"
+          description: "Container memory usage is {{ $value | humanizeBytes }} for more than 10 minutes"
+
+      # Disk space running low
+      - alert: LowDiskSpace
+        expr: (node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space on CityForge server"
+          description: "Disk space is {{ $value }}% free for more than 5 minutes"

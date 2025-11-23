@@ -19,6 +19,11 @@ spec:
     metadata:
       labels:
         app: cityforge
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/metrics"
+        prometheus.io/port: "3000"
+        prometheus.io/scheme: "http"
     spec:
       securityContext:
         runAsNonRoot: true
