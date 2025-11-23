@@ -242,14 +242,11 @@ async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
 }
 
 function getBaseUrl(): string {
-  // Priority: SITE_URL (runtime) -> NEXT_PUBLIC_SITE_URL (build-time) -> fallback to localhost for development
-  // SITE_URL is used for runtime configuration in deployed environments (e.g., Kubernetes)
-  // NEXT_PUBLIC_SITE_URL is embedded at build time for client-side code
-  return (
-    process.env["SITE_URL"] ||
-    process.env["NEXT_PUBLIC_SITE_URL"] ||
-    "http://localhost:3000"
-  );
+  // Use dynamic property access to prevent Next.js from inlining env vars at build time
+  // This is critical for standalone mode where the same Docker image runs in multiple envs
+  const siteUrl = process.env["SITE_URL"];
+  const publicSiteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
+  return siteUrl || publicSiteUrl || "http://localhost:3000";
 }
 
 export async function GET(): Promise<NextResponse> {
