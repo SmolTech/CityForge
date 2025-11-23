@@ -154,15 +154,15 @@ jobs:
           ./gradlew assembleRelease --no-daemon --stacktrace
 
           # Verify APK was created
-          if [ ! -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          if [ ! -f app/build/outputs/apk/release/app-release.apk ]; then
             echo "❌ Release APK build failed - file not found"
             exit 1
           fi
 
           # Get APK info
-          APK_SIZE=$(stat -c%s app/build/outputs/apk/release/app-release-unsigned.apk | numfmt --to=iec)
+          APK_SIZE=$(stat -c%s app/build/outputs/apk/release/app-release.apk | numfmt --to=iec)
           echo "✅ Release APK built successfully (Size: $APK_SIZE)"
-          echo "APK_PATH=app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_ENV
+          echo "APK_PATH=app/build/outputs/apk/release/app-release.apk" >> $GITHUB_ENV
           echo "APK_NAME=cityforge-release-$(date +%Y%m%d-%H%M%S).apk" >> $GITHUB_ENV
 
       - name: Upload APK artifact

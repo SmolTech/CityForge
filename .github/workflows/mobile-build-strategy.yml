@@ -141,7 +141,7 @@ jobs:
               ;;
             "production")
               ./gradlew assembleRelease --no-daemon --stacktrace
-              APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+              APK_PATH="app/build/outputs/apk/release/app-release.apk"
               ;;
           esac
 
