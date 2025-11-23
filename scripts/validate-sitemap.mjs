@@ -58,7 +58,7 @@ async function validateSitemap() {
 
       // Validate URL structure
       let validUrls = 0;
-      let invalidUrls = [];
+      const invalidUrls = [];
 
       for (const url of urls) {
         if (!url.loc) {
