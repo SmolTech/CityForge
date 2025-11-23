@@ -12,7 +12,7 @@ groups:
           service: cityforge
         annotations:
           summary: "CityForge error rate is high"
-          description: "Error rate is {{ $value | humanizePercentage }} for more than 5 minutes"
+          description: "Error rate is {{ $value }} for more than 5 minutes"
 
       # Critical error rate alert
       - alert: CriticalErrorRate
@@ -23,7 +23,7 @@ groups:
           service: cityforge
         annotations:
           summary: "CityForge error rate is critically high"
-          description: "Error rate is {{ $value | humanizePercentage }} for more than 2 minutes"
+          description: "Error rate is {{ $value }} for more than 2 minutes"
 
       # High memory usage
       - alert: HighMemoryUsage
@@ -34,7 +34,7 @@ groups:
           service: cityforge
         annotations:
           summary: "CityForge memory usage is high"
-          description: "Memory usage is {{ $value | humanizeBytes }} for more than 10 minutes"
+          description: "Memory usage is {{ $value }} bytes for more than 10 minutes"
 
       # Application down
       - alert: CityForgeDown
@@ -100,7 +100,7 @@ groups:
           service: cityforge
         annotations:
           summary: "CityForge container memory usage is high"
-          description: "Container memory usage is {{ $value | humanizeBytes }} for more than 10 minutes"
+          description: "Container memory usage is {{ $value }} bytes for more than 10 minutes"
 
       # Disk space running low
       - alert: LowDiskSpace
