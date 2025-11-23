@@ -1,5 +1,4 @@
 import fs from "fs";
-import path from "path";
 
 /**
  * Runtime configuration loader
@@ -21,8 +20,9 @@ export function getRuntimeConfig(): RuntimeConfig {
     return cachedConfig;
   }
 
-  // Try to read runtime config file (created at container startup)
-  const configPath = path.join(process.cwd(), "runtime-config.json");
+  // Try to read runtime config file (created at container startup in /tmp)
+  // Using /tmp because it's always writable by the nextjs user
+  const configPath = "/tmp/runtime-config.json";
 
   try {
     if (fs.existsSync(configPath)) {
