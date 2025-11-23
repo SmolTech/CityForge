@@ -133,7 +133,7 @@ jobs:
           else
             echo "⚠️  Building unsigned release APK (no keystore configured)"
             ./gradlew assembleRelease --no-daemon --stacktrace
-            APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+            APK_PATH="app/build/outputs/apk/release/app-release.apk"
           fi
 
           # Verify APK was created
