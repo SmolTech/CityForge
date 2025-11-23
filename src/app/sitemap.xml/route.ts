@@ -242,8 +242,14 @@ async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
 }
 
 function getBaseUrl(): string {
-  // Priority: NEXT_PUBLIC_SITE_URL -> fallback to localhost for development
-  return process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+  // Priority: SITE_URL (runtime) -> NEXT_PUBLIC_SITE_URL (build-time) -> fallback to localhost for development
+  // SITE_URL is used for runtime configuration in deployed environments (e.g., Kubernetes)
+  // NEXT_PUBLIC_SITE_URL is embedded at build time for client-side code
+  return (
+    process.env["SITE_URL"] ||
+    process.env["NEXT_PUBLIC_SITE_URL"] ||
+    "http://localhost:3000"
+  );
 }
 
 export async function GET(): Promise<NextResponse> {

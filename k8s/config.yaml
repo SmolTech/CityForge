@@ -14,5 +14,8 @@ data:
   POSTGRES_PORT: "5432"
   # Database: Must match spec.databases in postgres.yaml
   POSTGRES_DB: "cityforge"
-  # Application URL
+  # Application URLs
+  # SITE_URL: Runtime configuration for server-side code (sitemap, API routes)
+  SITE_URL: "https://www.community.community"
+  # NEXT_PUBLIC_SITE_URL: Build-time configuration for client-side code (embedded in bundle)
   NEXT_PUBLIC_SITE_URL: "https://www.community.community"

@@ -48,6 +48,7 @@ export async function loadAppConfig(): Promise<AppConfig> {
   // This prevents database connection errors during Docker builds
   if (
     process.env.NODE_ENV !== "production" &&
+    !process.env["SITE_URL"] &&
     !process.env["NEXT_PUBLIC_SITE_URL"]
   ) {
     logger.warn("Build time detected, using default config");
@@ -57,8 +58,11 @@ export async function loadAppConfig(): Promise<AppConfig> {
   try {
     // Fetch from Next.js API route (which in turn fetches from Python backend)
     // Use absolute URL for server-side fetch
+    // Priority: SITE_URL (runtime) -> NEXT_PUBLIC_SITE_URL (build-time) -> fallback
     const baseUrl =
-      process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+      process.env["SITE_URL"] ||
+      process.env["NEXT_PUBLIC_SITE_URL"] ||
+      "http://localhost:3000";
     const response = await fetchWithTimeout(`${baseUrl}/api/config`, {
       next: { revalidate: 300 }, // Cache for 5 minutes
     });

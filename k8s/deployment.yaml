@@ -53,6 +53,13 @@ spec:
               value: "production"
             - name: PORT
               value: "3000"
+            # Runtime site URL for server-side code (sitemap, server components)
+            - name: SITE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cityforge-config
+                  key: SITE_URL
+            # Build-time site URL for client-side code (embedded in JS bundle)
             - name: NEXT_PUBLIC_SITE_URL
               valueFrom:
                 configMapKeyRef:
