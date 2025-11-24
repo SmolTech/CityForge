@@ -7,6 +7,9 @@ import {
 } from "@/lib/monitoring/metrics";
 import { getSiteUrl } from "@/lib/runtime-config";
 
+// Force dynamic rendering - don't pre-render at build time
+export const dynamic = "force-dynamic";
+
 interface SitemapUrl {
   loc: string;
   lastmod?: string;
