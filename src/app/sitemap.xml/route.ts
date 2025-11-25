@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import {
   businessMetrics,
   createTimingMiddleware,
 } from "@/lib/monitoring/metrics";
 import { getSiteUrl } from "@/lib/runtime-config";
+import type { PrismaClient } from "@prisma/client";
 
 // Force dynamic rendering - don't pre-render at build time
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs"; // Ensure Node.js runtime
+
+// Lazy import Prisma to prevent instantiation during build
+function getPrisma(): PrismaClient {
+  // This ensures Prisma is only imported when the route is actually called
+  // Type-only import above ensures TypeScript knows the return type
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { prisma } = require("@/lib/db/client");
+  return prisma as PrismaClient;
+}
 
 interface SitemapUrl {
   loc: string;
@@ -99,6 +109,7 @@ async function getStaticUrls(baseUrl: string): Promise<SitemapUrl[]> {
 
 async function getBusinessUrls(baseUrl: string): Promise<SitemapUrl[]> {
   try {
+    const prisma = getPrisma();
     // Get approved business cards with their basic info
     const cards = await prisma.card.findMany({
       where: {
@@ -138,6 +149,7 @@ async function getBusinessUrls(baseUrl: string): Promise<SitemapUrl[]> {
 
 async function getForumUrls(baseUrl: string): Promise<SitemapUrl[]> {
   try {
+    const prisma = getPrisma();
     const urls: SitemapUrl[] = [];
 
     // Get active forum categories
@@ -216,6 +228,7 @@ async function getForumUrls(baseUrl: string): Promise<SitemapUrl[]> {
 
 async function getHelpWantedUrls(baseUrl: string): Promise<SitemapUrl[]> {
   try {
+    const prisma = getPrisma();
     // Get recent help wanted posts (limit to prevent huge sitemaps)
     const posts = await prisma.helpWantedPost.findMany({
       where: {
