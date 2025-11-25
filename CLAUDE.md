@@ -685,6 +685,133 @@ limiter = Limiter(
 )
 ```
 
+### Security Headers
+
+The application implements comprehensive security headers to protect against common web vulnerabilities including XSS, clickjacking, MITM attacks, and data leakage.
+
+#### Multi-Layer Security Implementation
+
+**Dual Layer Approach:**
+
+- **Next.js Middleware** (`src/middleware.ts`) - Primary security headers applied to all responses
+- **nginx Configuration** (`nginx.conf`) - Backup security headers for production deployments
+
+This ensures security headers are present even if one layer fails or is misconfigured.
+
+#### Security Headers Implemented
+
+**Content Security Policy (CSP)**:
+
+- Prevents XSS attacks by controlling resource loading sources
+- Environment-specific policies (development includes `'unsafe-eval'`, production is strict)
+- Always includes `'unsafe-inline'` for styles (required by Tailwind CSS)
+
+**HTTP Strict Transport Security (HSTS)**:
+
+- Forces HTTPS connections to prevent MITM attacks
+- 1-year cache duration with subdomain inclusion and preload eligibility
+
+**Additional Headers**:
+
+- `X-Frame-Options: DENY` - Prevents clickjacking
+- `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
+- `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer information
+- `Permissions-Policy` - Disables unnecessary browser features (camera, microphone, geolocation)
+
+#### Implementation Files
+
+**Security Headers Utility** (`src/lib/security-headers.ts`):
+
+```typescript
+import { getSecurityHeaders } from "@/lib/security-headers";
+
+const headers = getSecurityHeaders();
+// Apply to response
+```
+
+**Next.js Middleware Integration** (`src/middleware.ts`):
+
+```typescript
+import { getSecurityHeaders } from "@/lib/security-headers";
+
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+
+  // Apply security headers
+  const securityHeaders = getSecurityHeaders();
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
+}
+```
+
+**nginx Configuration** (`nginx.conf`):
+
+```nginx
+# Security Headers
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Content-Security-Policy "..." always;
+```
+
+#### Environment Configuration
+
+**Development Environment**:
+
+- Includes `'unsafe-eval'` in script-src for hot reload
+- Relaxed CSP for development tools
+- WebSocket connections allowed for hot reload (`ws:`, `wss:`)
+
+**Production Environment**:
+
+- Strict CSP with minimal allowed sources
+- No `'unsafe-eval'` to prevent code injection
+- Maximum security configuration
+
+#### Testing and Validation
+
+**Automated Testing** (`tests/utils/security-headers.test.ts`):
+
+- 23 comprehensive tests covering all security headers
+- Environment-specific CSP validation
+- Error handling and graceful fallbacks
+
+**CLI Testing Tool** (`scripts/test-security-headers.sh`):
+
+```bash
+# Test local development
+./scripts/test-security-headers.sh http://localhost:3000
+
+# Test production deployment
+./scripts/test-security-headers.sh https://yourdomain.com
+```
+
+**Programmatic Validator** (`scripts/security-headers-validator.ts`):
+
+```bash
+npx tsx scripts/security-headers-validator.ts https://yourdomain.com
+```
+
+#### Security Benefits
+
+**Attack Vectors Mitigated**:
+
+- **Cross-Site Scripting (XSS)**: CSP blocks inline scripts and untrusted sources
+- **Clickjacking**: X-Frame-Options prevents iframe embedding
+- **Man-in-the-Middle (MITM)**: HSTS forces HTTPS connections
+- **Information Disclosure**: Referrer-Policy controls referrer leakage
+
+**Compliance**:
+
+- OWASP recommendations compliance
+- Industry security best practices
+- Modern browser compatibility
+
+For complete documentation, see `docs/SECURITY_HEADERS.md`.
+
 ### API Endpoints
 
 **Public APIs:**

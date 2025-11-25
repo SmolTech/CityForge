@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleCORSPreflight, addCORSHeaders } from "@/lib/cors";
+import { addSecurityHeaders } from "@/lib/security-headers";
 
 /**
  * Request timeout configuration for different endpoint types
@@ -34,6 +35,7 @@ function getServerTimeout(pathname: string): number {
 /**
  * Global middleware for all requests
  * - Handles CORS for API routes when nginx proxy is not available
+ * - Enforces comprehensive security headers (CSP, HSTS, X-Frame-Options, etc.)
  * - Enforces request body size limits to prevent DoS attacks
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
@@ -42,7 +44,8 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/api/")) {
     const preflightResponse = handleCORSPreflight(request);
     if (preflightResponse) {
-      return preflightResponse;
+      // Apply security headers to CORS preflight responses
+      return addSecurityHeaders(preflightResponse, request);
     }
   }
 
@@ -72,7 +75,7 @@ export async function middleware(request: NextRequest) {
         const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
         if (size > MAX_BODY_SIZE) {
-          return NextResponse.json(
+          const bodyErrorResponse = NextResponse.json(
             {
               error: {
                 message: "Request body too large",
@@ -85,6 +88,9 @@ export async function middleware(request: NextRequest) {
             },
             { status: 413 }
           );
+
+          // Apply security headers to error responses
+          return addSecurityHeaders(bodyErrorResponse, request);
         }
       }
     }
@@ -92,18 +98,21 @@ export async function middleware(request: NextRequest) {
     // Race between request processing and timeout
     const nextPromise = Promise.resolve(NextResponse.next());
 
-    const response = await Promise.race([nextPromise, timeoutPromise]);
+    let response = await Promise.race([nextPromise, timeoutPromise]);
+
+    // Add security headers to all responses
+    response = addSecurityHeaders(response, request);
 
     // Add CORS headers to API responses when nginx proxy is not available
     if (request.nextUrl.pathname.startsWith("/api/")) {
-      return addCORSHeaders(response, request);
+      response = addCORSHeaders(response, request);
     }
 
     return response;
   } catch (error) {
     // Handle timeout errors
     if (error instanceof Error && error.message.includes("timeout")) {
-      return NextResponse.json(
+      const timeoutResponse = NextResponse.json(
         {
           error: {
             message: "Request timeout - server took too long to respond",
@@ -115,10 +124,13 @@ export async function middleware(request: NextRequest) {
         },
         { status: 504 } // Gateway Timeout
       );
+
+      // Apply security headers to error responses
+      return addSecurityHeaders(timeoutResponse, request);
     }
 
     // Handle other unexpected errors
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: {
           message: "Internal server error",
@@ -127,10 +139,16 @@ export async function middleware(request: NextRequest) {
       },
       { status: 500 }
     );
+
+    // Apply security headers to error responses
+    return addSecurityHeaders(errorResponse, request);
   }
 }
 
-// Apply middleware to all API routes
+// Apply middleware to all routes for security headers, with specific CORS handling for API routes
 export const config = {
-  matcher: "/api/:path*",
+  matcher: [
+    // Apply to all routes except static files
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };
