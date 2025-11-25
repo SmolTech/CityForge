@@ -625,65 +625,184 @@ python cleanup_expired_tokens.py
 
 ### API Rate Limiting
 
-The backend implements Flask-Limiter for API rate limiting to protect against:
+The Next.js application implements comprehensive rate limiting for authentication endpoints to protect against:
 
 - Brute force attacks on authentication endpoints
 - Resource exhaustion (DoS)
-- Spam submissions
 - Account enumeration
+- Spam registration attempts
 
-#### Rate Limits by Endpoint Type
+#### Implementation Architecture
 
-**Authentication:**
+**Next.js Middleware-Based Rate Limiting** (`src/lib/auth/rateLimit.ts`):
+
+- **In-memory sliding window algorithm** with IP-based tracking
+- **Configurable limits** per authentication endpoint
+- **Standard HTTP headers** (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+- **429 status responses** with Retry-After header
+- **Automatic cleanup** to prevent memory leaks
+
+#### Rate Limits by Authentication Endpoint
+
+**Core Authentication:**
 
 - **Login** (`/api/auth/login`): 5 requests per minute
 - **Registration** (`/api/auth/register`): 3 requests per hour
-- **Email update** (`/api/auth/update-email`): 5 requests per hour
-- **Password update** (`/api/auth/update-password`): 5 requests per hour
+- **Forgot Password** (`/api/auth/forgot-password`): 5 requests per hour
+- **Reset Password** (`/api/auth/reset-password`): 5 requests per hour
+- **Resend Verification** (`/api/auth/resend-verification`): 3 requests per hour
+- **Verify Email** (`/api/auth/verify-email`): 10 requests per hour
 
-**Public API Reads:**
+#### Rate Limit Configuration
 
-- **Card listing** (`/api/cards`): 100 requests per minute
-- **Search** (`/api/search`): 60 requests per minute
+**Configuration Object** (`src/lib/auth/rateLimit.ts`):
 
-**User Submissions:**
+```typescript
+export const AUTH_RATE_LIMITS = {
+  login: {
+    maxRequests: 5,
+    windowMs: 60000,
+    description: "5 logins per minute",
+  },
+  register: {
+    maxRequests: 3,
+    windowMs: 3600000,
+    description: "3 registrations per hour",
+  },
+  "forgot-password": {
+    maxRequests: 5,
+    windowMs: 3600000,
+    description: "5 password resets per hour",
+  },
+  "reset-password": {
+    maxRequests: 5,
+    windowMs: 3600000,
+    description: "5 password resets per hour",
+  },
+  "resend-verification": {
+    maxRequests: 3,
+    windowMs: 3600000,
+    description: "3 verification emails per hour",
+  },
+  "verify-email": {
+    maxRequests: 10,
+    windowMs: 3600000,
+    description: "10 verifications per hour",
+  },
+};
+```
 
-- **Card submissions** (`/api/submissions`): 10 requests per hour
-- **Suggest edits** (`/api/cards/<id>/suggest-edit`): 10 requests per hour
-- **File uploads** (`/api/upload`): 20 requests per hour
+#### API Implementation
 
-**Default Limits:**
+**Route Protection** - Apply to any authentication endpoint:
 
-- All other endpoints: 200 requests per day, 50 per hour
+```typescript
+// Example: src/app/api/auth/login/route.ts
+import { withAuthRateLimit } from "@/lib/auth/rateLimit";
 
-#### Rate Limit Responses
+const loginHandler = async (request: NextRequest) => {
+  // Your login logic here
+  return NextResponse.json({ success: true });
+};
 
-When rate limit is exceeded, the API returns:
+export const POST = withAuthRateLimit("login", loginHandler);
+```
+
+**Manual Rate Limit Checking:**
+
+```typescript
+import {
+  checkAuthRateLimit,
+  createRateLimitResponse,
+} from "@/lib/auth/rateLimit";
+
+export async function POST(request: NextRequest) {
+  const rateLimitResult = checkAuthRateLimit(request, "login");
+
+  if (!rateLimitResult.allowed) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
+  // Continue with normal request processing
+}
+```
+
+#### Rate Limit Response Format
+
+When rate limit is exceeded, the API returns HTTP 429 with:
 
 ```json
 {
   "error": {
-    "message": "Rate limit exceeded. Please try again later.",
-    "code": 429,
-    "details": {
-      "description": "5 per 1 minute"
-    }
+    "message": "Too many login attempts. Please try again in 45 seconds.",
+    "type": "RATE_LIMIT_EXCEEDED",
+    "retryAfter": 45
   }
 }
 ```
 
-#### Storage
+**HTTP Headers:**
 
-Rate limits use in-memory storage (`memory://`) for simplicity. For production deployments with multiple backend instances, consider using Redis:
-
-```python
-# backend/app/__init__.py
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://redis-host:6379"
-)
 ```
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1640995200
+Retry-After: 45
+```
+
+#### IP Address Detection
+
+The rate limiting system automatically detects client IPs from:
+
+1. `X-Forwarded-For` header (first IP in chain)
+2. `X-Real-IP` header
+3. `X-Client-IP` header
+4. Fallback to `127.0.0.1` for development
+
+#### Memory Management
+
+**Automatic Cleanup:**
+
+- Rate limit entries expire automatically after window period
+- Memory usage scales with number of unique IPs, not total requests
+- No background processes required
+
+**Testing Utilities:**
+
+- `clearRateLimitStore()` - Clear all rate limit data for tests
+- `getRateLimitStatus()` - Get current rate limit status for debugging
+
+#### Testing
+
+Comprehensive test suite with 24 test cases covering:
+
+- **Core functionality**: Allow/deny within limits, window expiration
+- **Multi-endpoint isolation**: Different endpoints tracked independently
+- **IP handling**: Multiple IPs, header extraction, forwarded IPs
+- **Middleware integration**: Automatic response creation, header preservation
+- **Configuration validation**: All endpoints properly configured
+- **Memory management**: No leaks, proper cleanup
+
+Run tests: `npm test tests/utils/auth-rate-limit.test.ts`
+
+#### Production Considerations
+
+**For High-Traffic Production Deployments:**
+
+Consider replacing in-memory storage with Redis for multi-instance deployments:
+
+```typescript
+// Future enhancement - Redis-backed rate limiting
+// Would require implementing Redis adapter for the rate limiting system
+```
+
+**Current Implementation Benefits:**
+
+- ✅ Zero external dependencies
+- ✅ No Redis/database required
+- ✅ Automatic memory cleanup
+- ✅ High performance (in-memory)
+- ✅ Suitable for most production deployments
 
 ### Security Headers
 
