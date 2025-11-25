@@ -5,6 +5,7 @@ import {
   createMockUser,
   parseJsonResponse,
 } from "../../__tests__/setup";
+import { clearRateLimitStore } from "@/lib/auth/rateLimit";
 
 // Mock dependencies
 vi.mock("@/lib/db/client", () => ({
@@ -35,6 +36,7 @@ import { verifyPassword } from "@/lib/auth/password";
 describe("POST /api/auth/login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRateLimitStore();
   });
 
   it("should successfully login with valid credentials", async () => {
