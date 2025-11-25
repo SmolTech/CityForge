@@ -85,6 +85,11 @@ services:
   nginx:
     image: nginx:alpine
     container_name: cityforge-nginx
+    environment:
+      # CORS allowed origins - comma separated list
+      # For development: localhost:3000,127.0.0.1:3000
+      # For production: community.community,cityforge.cityforge
+      CORS_ALLOWED_ORIGINS: "localhost:3000,127.0.0.1:3000,community.community,cityforge.cityforge"
     ports:
       - "80:80"
     volumes:

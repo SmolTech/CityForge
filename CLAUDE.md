@@ -475,8 +475,124 @@ Previous versions stored tokens in localStorage. The new httpOnly cookie approac
 - ✅ Protects against XSS attacks (JavaScript cannot read cookies)
 - ✅ Automatic token transmission (no manual header setting)
 - ✅ Better security posture for production deployments
-- ⚠️ Requires CORS configuration for cross-origin requests
-- ⚠️ May need adjustments for mobile app support
+- ✅ Comprehensive CORS configuration with multi-layer security
+- ✅ Mobile app support with Authorization headers
+
+### CORS Configuration
+
+The application implements comprehensive Cross-Origin Resource Sharing (CORS) protection with multiple layers of security:
+
+#### Multi-Layer CORS Architecture
+
+**1. nginx Proxy Layer (Primary - Production)**
+
+The nginx reverse proxy (`nginx.conf`) provides the primary CORS handling for production deployments:
+
+```nginx
+# Dynamic origin validation with regex patterns
+set $cors_origin "";
+if ($http_origin ~* ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$) {
+    set $cors_origin $http_origin;
+}
+if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*community\.community$) {
+    set $cors_origin $http_origin;
+}
+```
+
+**2. Next.js Middleware Layer (Fallback - Development)**
+
+The Next.js middleware (`src/middleware.ts` and `src/lib/cors.ts`) provides CORS handling when nginx is not available:
+
+- Automatic preflight request handling
+- Dynamic origin validation
+- Development-friendly defaults
+- Seamless API route integration
+
+#### Configuration Management
+
+**Environment Variables:**
+
+- `CORS_ALLOWED_ORIGINS`: Comma-separated list of allowed domains
+- Supports environment-specific configuration
+- Automatic subdomain support for configured domains
+
+**Examples:**
+
+```bash
+# Development
+CORS_ALLOWED_ORIGINS=localhost:3000,127.0.0.1:3000
+
+# Production
+CORS_ALLOWED_ORIGINS=community.community,cityforge.cityforge
+```
+
+#### Security Features
+
+**Origin Validation:**
+
+- Exact domain matching with subdomain support
+- Localhost/IP development access
+- Regex-based pattern matching for security
+
+**Headers Configuration:**
+
+- Methods: `GET, POST, PUT, DELETE, OPTIONS`
+- Headers: `Authorization, Content-Type, X-Requested-With`
+- Credentials: `true` (supports cookie authentication)
+- Max Age: `86400` seconds (24 hours)
+
+**Mobile App Support:**
+
+- CORS headers provided but not required for mobile HTTP clients
+- Direct API access with Authorization headers
+- No same-origin policy restrictions
+
+#### Testing and Validation
+
+Use the provided test script to verify CORS configuration:
+
+```bash
+# Test local development
+./scripts/test-cors.sh http://localhost:3000
+
+# Test production
+./scripts/test-cors.sh https://your-domain.com
+```
+
+#### Deployment Configurations
+
+**Docker Compose** (`docker-compose.yml`):
+
+```yaml
+environment:
+  CORS_ALLOWED_ORIGINS: "localhost:3000,127.0.0.1:3000,community.community,cityforge.cityforge"
+```
+
+**Kubernetes** (`k8s/config.yaml`):
+
+```yaml
+data:
+  CORS_ALLOWED_ORIGINS: "community.community,www.community.community"
+```
+
+**API Route Integration:**
+
+Individual routes can override CORS settings using the `withCORS` wrapper:
+
+```typescript
+import { withCORS } from "@/lib/cors";
+
+export const GET = withCORS(
+  async (request) => {
+    return NextResponse.json({ data: "response" });
+  },
+  {
+    allowedOrigins: ["https://special-client.com"],
+  }
+);
+```
+
+See `docs/CORS_CONFIGURATION.md` for complete documentation and troubleshooting guide.
 
 ### JWT Token Management
 
