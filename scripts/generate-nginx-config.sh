@@ -1,3 +1,41 @@
+#!/bin/bash
+
+# Generate nginx.conf with proper CORS origins based on environment
+# Usage: ./generate-nginx-config.sh [output-file]
+
+OUTPUT_FILE="${1:-nginx.conf}"
+TEMP_FILE="/tmp/nginx.conf.tmp"
+
+# Set default values if environment variables are not set
+CORS_ORIGINS="${CORS_ALLOWED_ORIGINS:-localhost:3000,127.0.0.1:3000,community.community,cityforge.cityforge}"
+
+# Convert comma-separated origins to nginx regex pattern
+generate_cors_pattern() {
+    local origins="$1"
+    local pattern=""
+    
+    IFS=',' read -ra ORIGIN_ARRAY <<< "$origins"
+    for origin in "${ORIGIN_ARRAY[@]}"; do
+        # Escape dots for regex
+        escaped_origin=$(echo "$origin" | sed 's/\./\\./g')
+        
+        # Handle localhost and IP patterns
+        if [[ "$origin" =~ ^(localhost|127\.0\.0\.1) ]]; then
+            pattern="${pattern}if (\$http_origin ~* ^https?://${escaped_origin}(\$|:[0-9]+\$)) { set \$cors_origin \$http_origin; }\n            "
+        else
+            # Handle domain patterns (allow subdomains)
+            pattern="${pattern}if (\$http_origin ~* ^https://([a-zA-Z0-9-]+\.)*${escaped_origin}\$) { set \$cors_origin \$http_origin; }\n            "
+        fi
+    done
+    
+    echo -e "$pattern"
+}
+
+# Generate CORS origin pattern
+CORS_PATTERN=$(generate_cors_pattern "$CORS_ORIGINS")
+
+# Create nginx.conf with dynamic CORS origins
+cat > "$TEMP_FILE" << 'EOF'
 events {
     worker_connections 1024;
 }
@@ -55,18 +93,9 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_cache_bypass $http_upgrade;
 
-            # CORS Configuration
-            # Set allowed origins based on request origin
+            # CORS Configuration - Dynamic origins based on environment
             set $cors_origin "";
-            if ($http_origin ~* ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$) {
-                set $cors_origin $http_origin;
-            }
-            if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*community\.community$) {
-                set $cors_origin $http_origin;
-            }
-            if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*cityforge\.cityforge$) {
-                set $cors_origin $http_origin;
-            }
+            CORS_ORIGIN_PATTERNS
             
             # Add CORS headers if origin is allowed
             add_header 'Access-Control-Allow-Origin' $cors_origin always;
@@ -114,3 +143,13 @@ http {
         }
     }
 }
+EOF
+
+# Replace the CORS_ORIGIN_PATTERNS placeholder with generated patterns
+sed "s|CORS_ORIGIN_PATTERNS|$CORS_PATTERN|g" "$TEMP_FILE" > "$OUTPUT_FILE"
+
+# Clean up temp file
+rm "$TEMP_FILE"
+
+echo "Generated nginx.conf with CORS origins: $CORS_ORIGINS"
+echo "Output file: $OUTPUT_FILE"

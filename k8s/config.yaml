@@ -19,3 +19,6 @@ data:
   SITE_URL: "https://www.community.community"
   # NEXT_PUBLIC_SITE_URL: Build-time configuration for client-side code (embedded in bundle)
   NEXT_PUBLIC_SITE_URL: "https://www.community.community"
+  # CORS Configuration - allowed origins for API requests
+  # Production domains only - localhost is handled separately in development
+  CORS_ALLOWED_ORIGINS: "community.community,www.community.community,cityforge.cityforge,www.cityforge.cityforge"

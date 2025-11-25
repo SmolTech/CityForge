@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { handleCORSPreflight, addCORSHeaders } from "@/lib/cors";
 
 /**
  * Request timeout configuration for different endpoint types
@@ -32,10 +33,19 @@ function getServerTimeout(pathname: string): number {
 
 /**
  * Global middleware for all requests
+ * - Handles CORS for API routes when nginx proxy is not available
  * - Enforces request body size limits to prevent DoS attacks
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
 export async function middleware(request: NextRequest) {
+  // Handle CORS preflight requests for API routes
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const preflightResponse = handleCORSPreflight(request);
+    if (preflightResponse) {
+      return preflightResponse;
+    }
+  }
+
   // Server-side timeout protection
   const timeoutMs = getServerTimeout(request.nextUrl.pathname);
 
@@ -82,7 +92,14 @@ export async function middleware(request: NextRequest) {
     // Race between request processing and timeout
     const nextPromise = Promise.resolve(NextResponse.next());
 
-    return await Promise.race([nextPromise, timeoutPromise]);
+    const response = await Promise.race([nextPromise, timeoutPromise]);
+
+    // Add CORS headers to API responses when nginx proxy is not available
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return addCORSHeaders(response, request);
+    }
+
+    return response;
   } catch (error) {
     // Handle timeout errors
     if (error instanceof Error && error.message.includes("timeout")) {
