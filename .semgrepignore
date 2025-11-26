@@ -9,3 +9,6 @@ backend/tests/
 cookies.txt
 scripts/seed-test-data.mjs
 scripts/update-passwords.mjs
+
+# Ignore search API tests - contains legitimate SSL bypass for testing HTTPS configurations
+tests/integration/api/search.test.ts
