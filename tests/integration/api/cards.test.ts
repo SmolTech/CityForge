@@ -28,6 +28,15 @@ import {
   cleanDatabase,
   getTestPrisma,
 } from "../setup";
+import { Card } from "@/lib/api/types";
+
+// Types for test responses
+interface CardsListResponse {
+  cards: Card[];
+  total: number;
+  offset: number;
+  limit: number;
+}
 
 describe("Cards API Routes", () => {
   let prisma: ReturnType<typeof getTestPrisma>;
@@ -78,7 +87,7 @@ describe("Cards API Routes", () => {
         expect(data.total).toBe(2);
 
         const restaurant = data.cards.find(
-          (c: any) => c.name === "Test Restaurant"
+          (c: Card) => c.name === "Test Restaurant"
         );
         expect(restaurant).toBeDefined();
         expect(restaurant.tags).toContain("restaurant");
@@ -150,7 +159,7 @@ describe("Cards API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/cards");
       const response = await cardsListRoute(request);
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: CardsListResponse) => {
         expect(data.cards).toBeDefined();
         expect(Array.isArray(data.cards)).toBe(true);
         expect(data.cards).toHaveLength(0);
@@ -196,10 +205,14 @@ describe("Cards API Routes", () => {
       );
       const nameSearchResponse = await cardsListRoute(nameSearchRequest);
 
-      await assertApiResponse(nameSearchResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Coffee Shop");
-      });
+      await assertApiResponse(
+        nameSearchResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
+          expect(data.cards[0]?.name).toBe("Coffee Shop");
+        }
+      );
 
       // Test search by description
       const descSearchRequest = createTestRequest(
@@ -207,10 +220,14 @@ describe("Cards API Routes", () => {
       );
       const descSearchResponse = await cardsListRoute(descSearchRequest);
 
-      await assertApiResponse(descSearchResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Restaurant");
-      });
+      await assertApiResponse(
+        descSearchResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
+          expect(data.cards[0]?.name).toBe("Restaurant");
+        }
+      );
 
       // Test case-insensitive search
       const caseInsensitiveRequest = createTestRequest(
@@ -220,10 +237,14 @@ describe("Cards API Routes", () => {
         caseInsensitiveRequest
       );
 
-      await assertApiResponse(caseInsensitiveResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Coffee Shop");
-      });
+      await assertApiResponse(
+        caseInsensitiveResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
+          expect(data.cards[0]?.name).toBe("Coffee Shop");
+        }
+      );
     });
 
     it("should handle tag filtering with AND logic (default)", async () => {
@@ -303,21 +324,25 @@ describe("Cards API Routes", () => {
       );
       const featuredResponse = await cardsListRoute(featuredRequest);
 
-      await assertApiResponse(featuredResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Featured Business");
-        expect(data.cards[0].featured).toBe(true);
-      });
+      await assertApiResponse(
+        featuredResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
+          expect(data.cards[0]?.name).toBe("Featured Business");
+          expect(data.cards[0]?.featured).toBe(true);
+        }
+      );
 
       // Test without featured filter (should return all, featured first)
       const allRequest = createTestRequest("http://localhost:3000/api/cards");
       const allResponse = await cardsListRoute(allRequest);
 
-      await assertApiResponse(allResponse, 200, (data: any) => {
+      await assertApiResponse(allResponse, 200, (data: CardsListResponse) => {
         expect(data.cards).toHaveLength(2);
         // Featured cards should be sorted first
-        expect(data.cards[0].featured).toBe(true);
-        expect(data.cards[1].featured).toBe(false);
+        expect(data.cards[0]?.featured).toBe(true);
+        expect(data.cards[1]?.featured).toBe(false);
       });
     });
 
@@ -343,25 +368,29 @@ describe("Cards API Routes", () => {
       );
       const shareUrlsResponse = await cardsListRoute(shareUrlsRequest);
 
-      await assertApiResponse(shareUrlsResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
+      await assertApiResponse(
+        shareUrlsResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
 
-        const cardData = data.cards[0];
-        expect(cardData.slug).toBe("test-business-co");
-        expect(cardData.share_url).toBe(
-          `/business/${card.id}/test-business-co`
-        );
-        expect(cardData.creator).toEqual({
-          id: creator.id,
-          first_name: creator.firstName,
-          last_name: creator.lastName,
-        });
-        expect(cardData.approver).toEqual({
-          id: approver.id,
-          first_name: approver.firstName,
-          last_name: approver.lastName,
-        });
-      });
+          const cardData = data.cards[0];
+          expect(cardData?.slug).toBe("test-business-co");
+          expect(cardData?.share_url).toBe(
+            `/business/${card.id}/test-business-co`
+          );
+          expect(cardData?.creator).toEqual({
+            id: creator.id,
+            first_name: creator.firstName,
+            last_name: creator.lastName,
+          });
+          expect(cardData?.approver).toEqual({
+            id: approver.id,
+            first_name: approver.firstName,
+            last_name: approver.lastName,
+          });
+        }
+      );
 
       // Test without share URLs (should not include extra fields)
       const noShareUrlsRequest = createTestRequest(
@@ -369,13 +398,17 @@ describe("Cards API Routes", () => {
       );
       const noShareUrlsResponse = await cardsListRoute(noShareUrlsRequest);
 
-      await assertApiResponse(noShareUrlsResponse, 200, (data: any) => {
-        const cardData = data.cards[0];
-        expect(cardData.slug).toBeUndefined();
-        expect(cardData.share_url).toBeUndefined();
-        expect(cardData.creator).toBeUndefined();
-        expect(cardData.approver).toBeUndefined();
-      });
+      await assertApiResponse(
+        noShareUrlsResponse,
+        200,
+        (data: CardsListResponse) => {
+          const cardData = data.cards[0];
+          expect(cardData?.slug).toBeUndefined();
+          expect(cardData?.share_url).toBeUndefined();
+          expect(cardData?.creator).toBeUndefined();
+          expect(cardData?.approver).toBeUndefined();
+        }
+      );
     });
 
     it("should handle ratings aggregation", async () => {
@@ -430,24 +463,28 @@ describe("Cards API Routes", () => {
       );
       const ratingsResponse = await cardsListRoute(ratingsRequest);
 
-      await assertApiResponse(ratingsResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(2);
+      await assertApiResponse(
+        ratingsResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(2);
 
-        const ratedCard = data.cards.find(
-          (c: any) => c.name === "Rated Business"
-        );
-        const unratedCard = data.cards.find(
-          (c: any) => c.name === "Unrated Business"
-        );
+          const ratedCard = data.cards.find(
+            (c: Card) => c.name === "Rated Business"
+          );
+          const unratedCard = data.cards.find(
+            (c: Card) => c.name === "Unrated Business"
+          );
 
-        // Card with reviews should have aggregated ratings
-        expect(ratedCard.average_rating).toBe(4); // (5 + 4 + 3) / 3 = 4
-        expect(ratedCard.review_count).toBe(3);
+          // Card with reviews should have aggregated ratings
+          expect(ratedCard?.average_rating).toBe(4); // (5 + 4 + 3) / 3 = 4
+          expect(ratedCard?.review_count).toBe(3);
 
-        // Card without reviews should have null/0 ratings
-        expect(unratedCard.average_rating).toBeNull();
-        expect(unratedCard.review_count).toBe(0);
-      });
+          // Card without reviews should have null/0 ratings
+          expect(unratedCard?.average_rating).toBeNull();
+          expect(unratedCard?.review_count).toBe(0);
+        }
+      );
 
       // Test without ratings (should not include rating fields)
       const noRatingsRequest = createTestRequest(
@@ -455,12 +492,16 @@ describe("Cards API Routes", () => {
       );
       const noRatingsResponse = await cardsListRoute(noRatingsRequest);
 
-      await assertApiResponse(noRatingsResponse, 200, (data: any) => {
-        data.cards.forEach((card: any) => {
-          expect(card.average_rating).toBeUndefined();
-          expect(card.review_count).toBeUndefined();
-        });
-      });
+      await assertApiResponse(
+        noRatingsResponse,
+        200,
+        (data: CardsListResponse) => {
+          data.cards.forEach((card: Card) => {
+            expect(card.average_rating).toBeUndefined();
+            expect(card.review_count).toBeUndefined();
+          });
+        }
+      );
     });
 
     it("should enforce pagination limits", async () => {
@@ -470,9 +511,13 @@ describe("Cards API Routes", () => {
       );
       const exceedMaxResponse = await cardsListRoute(exceedMaxRequest);
 
-      await assertApiResponse(exceedMaxResponse, 200, (data: any) => {
-        expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_MAX_LIMIT);
-      });
+      await assertApiResponse(
+        exceedMaxResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_MAX_LIMIT);
+        }
+      );
 
       // Test with invalid parameters
       const invalidRequest = createTestRequest(
@@ -480,10 +525,14 @@ describe("Cards API Routes", () => {
       );
       const invalidResponse = await cardsListRoute(invalidRequest);
 
-      await assertApiResponse(invalidResponse, 200, (data: any) => {
-        expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_DEFAULT_LIMIT);
-        expect(data.offset).toBe(0);
-      });
+      await assertApiResponse(
+        invalidResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_DEFAULT_LIMIT);
+          expect(data.offset).toBe(0);
+        }
+      );
 
       // Test with negative values
       const negativeRequest = createTestRequest(
@@ -491,10 +540,14 @@ describe("Cards API Routes", () => {
       );
       const negativeResponse = await cardsListRoute(negativeRequest);
 
-      await assertApiResponse(negativeResponse, 200, (data: any) => {
-        expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_DEFAULT_LIMIT);
-        expect(data.offset).toBe(0);
-      });
+      await assertApiResponse(
+        negativeResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.limit).toBe(PAGINATION_LIMITS.CARDS_DEFAULT_LIMIT);
+          expect(data.offset).toBe(0);
+        }
+      );
     });
 
     it("should handle complex filtering combinations", async () => {
@@ -552,13 +605,17 @@ describe("Cards API Routes", () => {
       );
       const complexResponse = await cardsListRoute(complexRequest);
 
-      await assertApiResponse(complexResponse, 200, (data: any) => {
-        expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Featured Tech Business");
-        expect(data.cards[0].featured).toBe(true);
-        expect(data.cards[0].tags).toContain("Technology");
-        expect(data.cards[0].tags).toContain("Business");
-      });
+      await assertApiResponse(
+        complexResponse,
+        200,
+        (data: CardsListResponse) => {
+          expect(data.cards).toHaveLength(1);
+          expect(data.cards[0]?.name).toBe("Featured Tech Business");
+          expect(data.cards[0]?.featured).toBe(true);
+          expect(data.cards[0]?.tags).toContain("Technology");
+          expect(data.cards[0]?.tags).toContain("Business");
+        }
+      );
     });
 
     it("should handle sorting correctly", async () => {
@@ -599,18 +656,18 @@ describe("Cards API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/cards");
       const response = await cardsListRoute(request);
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: CardsListResponse) => {
         expect(data.cards).toHaveLength(3);
 
         // Should be sorted: featured first, then alphabetical
-        expect(data.cards[0].name).toBe("Beta Featured");
-        expect(data.cards[0].featured).toBe(true);
+        expect(data.cards[0]?.name).toBe("Beta Featured");
+        expect(data.cards[0]?.featured).toBe(true);
 
-        expect(data.cards[1].name).toBe("Alpha Business");
-        expect(data.cards[1].featured).toBe(false);
+        expect(data.cards[1]?.name).toBe("Alpha Business");
+        expect(data.cards[1]?.featured).toBe(false);
 
-        expect(data.cards[2].name).toBe("Zebra Company");
-        expect(data.cards[2].featured).toBe(false);
+        expect(data.cards[2]?.name).toBe("Zebra Company");
+        expect(data.cards[2]?.featured).toBe(false);
       });
     });
 
@@ -667,10 +724,10 @@ describe("Cards API Routes", () => {
       );
       const response = await cardsListRoute(request);
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: CardsListResponse) => {
         expect(data.cards).toHaveLength(3);
 
-        const slugs = data.cards.map((card: any) => ({
+        const slugs = data.cards.map((card: Card) => ({
           name: card.name,
           slug: card.slug,
         }));
@@ -684,7 +741,7 @@ describe("Cards API Routes", () => {
         );
 
         // Verify share URLs are correctly formed
-        data.cards.forEach((card: any) => {
+        data.cards.forEach((card: Card) => {
           expect(card.share_url).toBe(`/business/${card.id}/${card.slug}`);
         });
       });
@@ -717,10 +774,10 @@ describe("Cards API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/cards");
       const response = await cardsListRoute(request);
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: CardsListResponse) => {
         expect(data.cards).toHaveLength(1);
-        expect(data.cards[0].name).toBe("Approved Business");
-        expect(data.cards[0].approved).toBe(true);
+        expect(data.cards[0]?.name).toBe("Approved Business");
+        expect(data.cards[0]?.approved).toBe(true);
       });
     });
   });

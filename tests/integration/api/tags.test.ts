@@ -19,6 +19,7 @@ import {
   cleanDatabase,
   getTestPrisma,
 } from "../setup";
+import { Tag } from "@/lib/api/types";
 
 describe("Tags API Routes", () => {
   let prisma: ReturnType<typeof getTestPrisma>;
@@ -44,7 +45,7 @@ describe("Tags API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/tags");
       const response = await tagsRoute(request);
 
-      await assertApiResponse(response, 200, (data: any[]) => {
+      await assertApiResponse(response, 200, (data: Tag[]) => {
         expect(Array.isArray(data)).toBe(true);
         expect(data).toHaveLength(0);
       });
@@ -109,14 +110,14 @@ describe("Tags API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/tags");
       const response = await tagsRoute(request);
 
-      await assertApiResponse(response, 200, (data: any[]) => {
+      await assertApiResponse(response, 200, (data: Tag[]) => {
         expect(Array.isArray(data)).toBe(true);
         expect(data).toHaveLength(3);
 
         // Tags should be sorted alphabetically by name
-        expect(data[0].name).toBe("Art");
-        expect(data[1].name).toBe("Business");
-        expect(data[2].name).toBe("Technology");
+        expect(data[0]?.name).toBe("Art");
+        expect(data[1]?.name).toBe("Business");
+        expect(data[2]?.name).toBe("Technology");
 
         // Check tag format and counts
         expect(data[0]).toEqual({ name: "Art", count: 1 });
@@ -141,11 +142,11 @@ describe("Tags API Routes", () => {
       );
       const response1 = await tagsRoute(request1);
 
-      await assertApiResponse(response1, 200, (data: any[]) => {
+      await assertApiResponse(response1, 200, (data: Tag[]) => {
         expect(data).toHaveLength(3);
-        expect(data[0].name).toBe("Tag01");
-        expect(data[1].name).toBe("Tag02");
-        expect(data[2].name).toBe("Tag03");
+        expect(data[0]?.name).toBe("Tag01");
+        expect(data[1]?.name).toBe("Tag02");
+        expect(data[2]?.name).toBe("Tag03");
       });
 
       // Test pagination with limit=3, offset=3
@@ -154,10 +155,10 @@ describe("Tags API Routes", () => {
       );
       const response2 = await tagsRoute(request2);
 
-      await assertApiResponse(response2, 200, (data: any[]) => {
+      await assertApiResponse(response2, 200, (data: Tag[]) => {
         expect(data).toHaveLength(2);
-        expect(data[0].name).toBe("Tag04");
-        expect(data[1].name).toBe("Tag05");
+        expect(data[0]?.name).toBe("Tag04");
+        expect(data[1]?.name).toBe("Tag05");
       });
     });
 
@@ -190,7 +191,7 @@ describe("Tags API Routes", () => {
       const request = createTestRequest("http://localhost:3000/api/tags");
       const response = await tagsRoute(request);
 
-      await assertApiResponse(response, 200, (data: any[]) => {
+      await assertApiResponse(response, 200, (data: Tag[]) => {
         expect(Array.isArray(data)).toBe(true);
         expect(data).toHaveLength(0); // No tags in clean database
       });
@@ -239,7 +240,7 @@ describe("Tags API Routes", () => {
       // Should complete within reasonable time (under 1 second)
       expect(endTime - startTime).toBeLessThan(1000);
 
-      await assertApiResponse(response, 200, (data: any[]) => {
+      await assertApiResponse(response, 200, (data: Tag[]) => {
         // Should use default limit
         expect(data.length).toBeLessThanOrEqual(
           PAGINATION_LIMITS.TAGS_DEFAULT_LIMIT
@@ -247,9 +248,9 @@ describe("Tags API Routes", () => {
 
         // Should be properly sorted
         for (let i = 1; i < data.length; i++) {
-          expect(data[i].name.localeCompare(data[i - 1].name)).toBeGreaterThan(
-            0
-          );
+          expect(
+            data[i]?.name?.localeCompare(data[i - 1]?.name ?? "")
+          ).toBeGreaterThan(0);
         }
       });
     });

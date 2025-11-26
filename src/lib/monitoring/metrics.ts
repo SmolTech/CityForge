@@ -62,9 +62,17 @@ class MetricsCollector {
    * Record a counter metric (increments)
    */
   incrementCounter(name: string, value = 1, labels?: Record<string, string>) {
-    if (this.isValidMetricName(name)) {
-      (this.metrics as any)[name] =
-        ((this.metrics as any)[name] as number) + value;
+    // Handle specific counter metrics with proper typing
+    if (name === "httpRequestTotal") {
+      this.metrics.httpRequestTotal += value;
+    } else if (name === "userRegistrations") {
+      this.metrics.userRegistrations += value;
+    } else if (name === "businessSubmissions") {
+      this.metrics.businessSubmissions += value;
+    } else if (name === "searchQueries") {
+      this.metrics.searchQueries += value;
+    } else if (name === "sitemapGenerations") {
+      this.metrics.sitemapGenerations += value;
     }
 
     this.addEvent({
@@ -80,8 +88,15 @@ class MetricsCollector {
    * Record a gauge metric (absolute value)
    */
   setGauge(name: string, value: number, labels?: Record<string, string>) {
-    if (this.isValidMetricName(name)) {
-      (this.metrics as any)[name] = value;
+    // Handle specific gauge metrics with proper typing
+    if (name === "httpErrorRate") {
+      this.metrics.httpErrorRate = value;
+    } else if (name === "memoryUsage") {
+      this.metrics.memoryUsage = value;
+    } else if (name === "responseTime") {
+      this.metrics.responseTime = value;
+    } else if (name === "databaseConnections") {
+      this.metrics.databaseConnections = value;
     }
 
     this.addEvent({
