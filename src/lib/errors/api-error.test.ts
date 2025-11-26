@@ -17,7 +17,7 @@ describe("ApiError", () => {
     const error = new ApiError("Test error");
     expect(error.message).toBe("Test error");
     expect(error.statusCode).toBe(500);
-    expect(error.code).toBe("INTERNAL_ERROR");
+    expect(error.code).toBe("INTERNAL_SERVER_ERROR");
     expect(error.details).toBeUndefined();
   });
 
@@ -151,7 +151,7 @@ describe("handleApiError", () => {
 
     const body = await response.json();
     expect(body.error.message).toBe("Internal server error");
-    expect(body.error.code).toBe("INTERNAL_ERROR");
+    expect(body.error.code).toBe("INTERNAL_SERVER_ERROR");
     expect(body.error.details).toBeUndefined();
 
     vi.unstubAllEnvs();
@@ -167,7 +167,7 @@ describe("handleApiError", () => {
 
     const body = await response.json();
     expect(body.error.message).toBe("Database connection failed");
-    expect(body.error.code).toBe("INTERNAL_ERROR");
+    expect(body.error.code).toBe("INTERNAL_SERVER_ERROR");
     expect(body.error.details).toBeDefined();
     expect(body.error.details).toHaveProperty("name", "Error");
     expect(body.error.details).toHaveProperty("stack");
