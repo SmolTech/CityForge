@@ -15,6 +15,24 @@ import {
   cleanDatabase,
 } from "../setup";
 
+interface HealthResponse {
+  status: string;
+  timestamp: string;
+  services: {
+    database: string;
+    server: string;
+  };
+  metrics?: {
+    uptime: number;
+    requestCount: number;
+    errorRate: number;
+    memoryUsage: number;
+    avgResponseTime: number;
+  };
+  databaseUrl?: string;
+  error?: string;
+}
+
 describe("Health API Routes", () => {
   beforeAll(async () => {
     await setupIntegrationTests();
@@ -35,7 +53,7 @@ describe("Health API Routes", () => {
     it("should return healthy status with database connected", async () => {
       const response = await healthRoute();
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: HealthResponse) => {
         // Basic structure
         expect(data.status).toBe("ok");
         expect(data.timestamp).toMatch(
@@ -49,16 +67,16 @@ describe("Health API Routes", () => {
 
         // Metrics
         expect(data.metrics).toBeDefined();
-        expect(typeof data.metrics.uptime).toBe("number");
-        expect(data.metrics.uptime).toBeGreaterThan(0);
-        expect(typeof data.metrics.requestCount).toBe("number");
-        expect(data.metrics.requestCount).toBeGreaterThanOrEqual(0);
-        expect(typeof data.metrics.errorRate).toBe("number");
-        expect(data.metrics.errorRate).toBeGreaterThanOrEqual(0);
-        expect(typeof data.metrics.memoryUsage).toBe("number");
-        expect(data.metrics.memoryUsage).toBeGreaterThanOrEqual(0);
-        expect(typeof data.metrics.avgResponseTime).toBe("number");
-        expect(data.metrics.avgResponseTime).toBeGreaterThanOrEqual(0);
+        expect(typeof data.metrics!.uptime).toBe("number");
+        expect(data.metrics!.uptime).toBeGreaterThan(0);
+        expect(typeof data.metrics!.requestCount).toBe("number");
+        expect(data.metrics!.requestCount).toBeGreaterThanOrEqual(0);
+        expect(typeof data.metrics!.errorRate).toBe("number");
+        expect(data.metrics!.errorRate).toBeGreaterThanOrEqual(0);
+        expect(typeof data.metrics!.memoryUsage).toBe("number");
+        expect(data.metrics!.memoryUsage).toBeGreaterThanOrEqual(0);
+        expect(typeof data.metrics!.avgResponseTime).toBe("number");
+        expect(data.metrics!.avgResponseTime).toBeGreaterThanOrEqual(0);
 
         // Security
         expect(data.databaseUrl).toBe("redacted");

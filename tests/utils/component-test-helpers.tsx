@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { User } from "@/lib/api/types";
 
 // Type definitions for better TypeScript support
 interface MockRouterMethods {
@@ -59,7 +60,7 @@ export function mockUseRouter(routerOverrides = {}) {
 export function mockFetchResponses(
   responses: Array<{
     url: string | RegExp;
-    response: any;
+    response: unknown;
     status?: number;
     headers?: Record<string, string>;
   }>
@@ -92,7 +93,7 @@ export function mockFetchResponses(
  * Mock AuthContext for testing
  */
 const MockAuthContext = React.createContext({
-  user: null,
+  user: null as User | null,
   loading: false,
   error: null,
   refreshUser: vi.fn(),
@@ -103,14 +104,14 @@ const MockAuthContext = React.createContext({
 /**
  * Helper to create a mock authentication context provider
  */
-export function createMockAuthProvider(user: any = null) {
+export function createMockAuthProvider(user: User | null = null) {
   const mockAuthValue = {
     user,
     loading: false,
     error: null,
     refreshUser: vi.fn().mockResolvedValue(undefined),
     isAuthenticated: !!user,
-    isEmailVerified: user?.emailVerified ?? false,
+    isEmailVerified: user?.email_verified ?? false,
   };
 
   const MockAuthProvider = ({ children }: { children: React.ReactNode }) => (
@@ -141,7 +142,7 @@ const MockConfigContext = React.createContext({
 /**
  * Helper to create a mock configuration context provider
  */
-export function createMockConfigProvider(config: any = {}) {
+export function createMockConfigProvider(config: Record<string, unknown> = {}) {
   const defaultConfig = {
     site: {
       title: "Test Site",
@@ -178,9 +179,9 @@ export function createMockConfigProvider(config: any = {}) {
 export function renderWithProviders(
   component: React.ReactElement,
   options: {
-    user?: any;
-    config?: any;
-    router?: any;
+    user?: User | null;
+    config?: Record<string, unknown>;
+    router?: Partial<MockRouter>;
   } = {}
 ) {
   const { user = null, config = {}, router = createMockRouter() } = options;

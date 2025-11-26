@@ -295,9 +295,17 @@ export async function createUniqueTestAdmin(
 }
 
 /**
- * Convert database user to API test helper format
+ * Convert a database user object to API user format for tests
  */
-export function toApiUser(dbUser: any): {
+export function toApiUser(dbUser: {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  isActive?: boolean | null;
+  emailVerified?: boolean | null;
+}): {
   id: number;
   email: string;
   firstName: string;
@@ -305,6 +313,7 @@ export function toApiUser(dbUser: any): {
   role: "admin" | "supporter" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
+  isSupporterFlag?: boolean;
 } {
   return {
     id: dbUser.id,
@@ -312,8 +321,12 @@ export function toApiUser(dbUser: any): {
     firstName: dbUser.firstName,
     lastName: dbUser.lastName,
     role: dbUser.role as "admin" | "supporter" | "user",
-    isActive: dbUser.isActive,
-    emailVerified: dbUser.emailVerified,
+    ...(dbUser.isActive !== null && { isActive: Boolean(dbUser.isActive) }),
+    ...(dbUser.emailVerified !== null && {
+      emailVerified: Boolean(dbUser.emailVerified),
+    }),
+    // Add isSupporterFlag based on role
+    ...(dbUser.role === "supporter" && { isSupporterFlag: true }),
   };
 }
 

@@ -9,7 +9,7 @@ export function createTestRequest(
   url: string,
   options: {
     method?: string;
-    body?: any;
+    body?: unknown;
     headers?: Record<string, string>;
     cookies?: Record<string, string>;
   } = {}
@@ -92,7 +92,7 @@ export function createAuthenticatedRequest(
   },
   options: {
     method?: string;
-    body?: any;
+    body?: unknown;
     headers?: Record<string, string>;
   } = {}
 ): NextRequest {
@@ -112,7 +112,7 @@ export function createAuthenticatedRequest(
 /**
  * Helper to parse JSON response from Response object
  */
-export async function parseJsonResponse(response: Response): Promise<any> {
+export async function parseJsonResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   try {
     return JSON.parse(text);
@@ -173,7 +173,7 @@ export function createTestAdmin(
 export function mockFetch(
   responses: Array<{
     url: string | RegExp;
-    response: any;
+    response: unknown;
     status?: number;
   }>
 ) {
@@ -204,15 +204,15 @@ export function mockFetch(
 /**
  * Assert that response has expected status and structure
  */
-export async function assertApiResponse(
+export async function assertApiResponse<T = any>(
   response: Response,
   expectedStatus: number,
-  assertions?: (data: any) => void
+  assertions?: (data: T) => void
 ) {
   expect(response.status).toBe(expectedStatus);
 
   if (assertions) {
-    const data = await parseJsonResponse(response);
+    const data = (await parseJsonResponse(response)) as T;
     assertions(data);
   }
 }

@@ -15,6 +15,29 @@ import {
   cleanDatabase,
 } from "../setup";
 
+interface SiteConfig {
+  title: string;
+  description: string;
+  tagline: string;
+  directoryDescription: string;
+  copyright: string;
+  copyrightHolder: string;
+  copyrightUrl: string;
+  domain: string;
+  shortName: string;
+  fullName: string;
+  themeColor: string;
+  backgroundColor: string;
+  googleAnalyticsId: string;
+}
+
+interface ConfigResponse {
+  site: SiteConfig;
+  pagination: {
+    defaultLimit: number;
+  };
+}
+
 describe("Config API Routes", () => {
   beforeAll(async () => {
     await setupIntegrationTests();
@@ -35,7 +58,7 @@ describe("Config API Routes", () => {
     it("should return site configuration with default values", async () => {
       const response = await configRoute();
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: ConfigResponse) => {
         expect(data).toHaveProperty("site");
         expect(data).toHaveProperty("pagination");
 
@@ -84,7 +107,7 @@ describe("Config API Routes", () => {
       try {
         const response = await configRoute();
 
-        await assertApiResponse(response, 200, (data: any) => {
+        await assertApiResponse(response, 200, (data: ConfigResponse) => {
           expect(data).toHaveProperty("site");
           expect(data).toHaveProperty("pagination");
 
@@ -110,7 +133,7 @@ describe("Config API Routes", () => {
     it("should have proper JSON structure", async () => {
       const response = await configRoute();
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: ConfigResponse) => {
         // Verify the exact structure matches what frontend expects
         expect(Object.keys(data)).toEqual(["site", "pagination"]);
 
@@ -140,7 +163,7 @@ describe("Config API Routes", () => {
     it("should handle configuration parsing correctly", async () => {
       const response = await configRoute();
 
-      await assertApiResponse(response, 200, (data: any) => {
+      await assertApiResponse(response, 200, (data: ConfigResponse) => {
         // Pagination defaultLimit should be parsed as integer
         expect(typeof data.pagination.defaultLimit).toBe("number");
         expect(Number.isInteger(data.pagination.defaultLimit)).toBe(true);

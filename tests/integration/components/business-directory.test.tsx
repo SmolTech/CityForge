@@ -137,7 +137,7 @@ vi.mock("@/components/shared", () => ({
 }));
 
 vi.mock("@/components/search", () => ({
-  SearchBar: ({ value, onChange, placeholder }: any) => (
+  SearchBar: ({ value, onChange, placeholder }: SearchBarProps) => (
     <input
       data-testid="search-input"
       type="text"
@@ -149,9 +149,9 @@ vi.mock("@/components/search", () => ({
 }));
 
 vi.mock("@/components/filters", () => ({
-  TagCloud: ({ tags, onTagClick }: any) => (
+  TagCloud: ({ tags, onTagClick }: TagCloudProps) => (
     <div data-testid="tag-cloud">
-      {tags.map((tag: any) => (
+      {tags.map((tag: Tag) => (
         <button
           key={tag.name}
           data-testid={`tag-${tag.name}`}
@@ -162,7 +162,11 @@ vi.mock("@/components/filters", () => ({
       ))}
     </div>
   ),
-  FilterPanel: ({ onFeaturedChange, onTagRemove, selectedTags }: any) => (
+  FilterPanel: ({
+    onFeaturedChange,
+    onTagRemove,
+    selectedTags,
+  }: FilterPanelProps) => (
     <div data-testid="filter-panel">
       <button
         data-testid="featured-toggle"
@@ -184,7 +188,7 @@ vi.mock("@/components/filters", () => ({
 }));
 
 vi.mock("@/components/shared", () => ({
-  Navigation: ({ currentPage, siteTitle }: any) => (
+  Navigation: ({ currentPage, siteTitle }: NavigationProps) => (
     <nav data-testid="navigation">
       {currentPage} - {siteTitle}
     </nav>
@@ -194,7 +198,7 @@ vi.mock("@/components/shared", () => ({
     totalItems,
     itemsPerPage,
     onPageChange,
-  }: any) => {
+  }: PaginationProps) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     return (
       <div data-testid="pagination">
