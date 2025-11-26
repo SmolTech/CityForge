@@ -21,6 +21,12 @@ import {
 import { CardEditForm } from "@/components/cards";
 import { Navigation } from "@/components/shared";
 import { logger } from "@/lib/logger";
+import { AdminSubmissions } from "@/components/admin/AdminSubmissions";
+import AdminCards from "@/components/admin/AdminCards";
+import AdminModifications from "@/components/admin/AdminModifications";
+import AdminUsers from "@/components/admin/AdminUsers";
+import AdminTags from "@/components/admin/AdminTags";
+import AdminResources from "@/components/admin/AdminResources";
 
 export default function AdminPage() {
   const [, setUser] = useState<User | null>(null);
@@ -381,9 +387,11 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateQuickAccess = async (data: QuickAccessItemInput) => {
+  const handleCreateQuickAccess = async (
+    data: Partial<QuickAccessItemInput>
+  ) => {
     try {
-      await apiClient.adminCreateQuickAccessItem(data);
+      await apiClient.adminCreateQuickAccessItem(data as QuickAccessItemInput);
       setShowAddQuickAccess(false);
       await loadQuickAccessItems();
     } catch (error) {
@@ -414,9 +422,9 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateResourceItem = async (data: ResourceItemInput) => {
+  const handleCreateResourceItem = async (data: Partial<ResourceItemInput>) => {
     try {
-      await apiClient.adminCreateResourceItem(data);
+      await apiClient.adminCreateResourceItem(data as ResourceItemInput);
       setShowAddResourceItem(false);
       await loadResourceItems();
     } catch (error) {
@@ -964,754 +972,56 @@ export default function AdminPage() {
         {/* Content */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           {(activeTab === "pending" || activeTab === "submissions") && (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {submissions.length === 0 ? (
-                <div className="p-6 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No submissions
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No submissions to review at this time.
-                  </p>
-                </div>
-              ) : (
-                submissions
-                  .filter((s) =>
-                    activeTab === "pending" ? s.status === "pending" : true
-                  )
-                  .map((submission) => (
-                    <div key={submission.id} className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                              {submission.name}
-                            </h3>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}
-                            >
-                              {submission.status.charAt(0).toUpperCase() +
-                                submission.status.slice(1)}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            <div>
-                              <span className="font-medium">Submitted by:</span>{" "}
-                              {submission.submitter?.first_name}{" "}
-                              {submission.submitter?.last_name}
-                            </div>
-                            <div>
-                              <span className="font-medium">Date:</span>{" "}
-                              {new Date(
-                                submission.created_date
-                              ).toLocaleDateString()}
-                            </div>
-                            {submission.phone_number && (
-                              <div>
-                                <span className="font-medium">Phone:</span>{" "}
-                                {submission.phone_number}
-                              </div>
-                            )}
-                          </div>
-
-                          {submission.description && (
-                            <p className="text-gray-700 dark:text-gray-300 mb-3">
-                              {submission.description}
-                            </p>
-                          )}
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            {submission.email && (
-                              <div>
-                                <span className="font-medium text-gray-600 dark:text-gray-400">
-                                  Email:
-                                </span>
-                                <div>{submission.email}</div>
-                              </div>
-                            )}
-                            {submission.website_url && (
-                              <div>
-                                <span className="font-medium text-gray-600 dark:text-gray-400">
-                                  Website:
-                                </span>
-                                <div>
-                                  <a
-                                    href={submission.website_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    {submission.website_url}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-                            {submission.address && (
-                              <div>
-                                <span className="font-medium text-gray-600 dark:text-gray-400">
-                                  Address:
-                                </span>
-                                <div>{submission.address}</div>
-                              </div>
-                            )}
-                          </div>
-
-                          {submission.tags_text && (
-                            <div className="mt-3">
-                              <span className="font-medium text-gray-600 dark:text-gray-400 text-sm">
-                                Tags:
-                              </span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {submission.tags_text
-                                  .split(",")
-                                  .map((tag, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                    >
-                                      {tag.trim()}
-                                    </span>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {submission.review_notes && (
-                            <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-                              <span className="font-medium text-gray-600 dark:text-gray-400 text-sm">
-                                Review notes:
-                              </span>
-                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                                {submission.review_notes}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {submission.status === "pending" && (
-                          <div className="ml-4 flex flex-col space-y-2">
-                            <button
-                              onClick={() =>
-                                handleApproveSubmission(submission.id, false)
-                              }
-                              disabled={processingSubmission === submission.id}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleApproveSubmission(submission.id, true)
-                              }
-                              disabled={processingSubmission === submission.id}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50"
-                            >
-                              Approve & Feature
-                            </button>
-                            <button
-                              onClick={() => {
-                                setRejectingSubmissionId(submission.id);
-                                setRejectionNotes("");
-                              }}
-                              disabled={processingSubmission === submission.id}
-                              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
+            <AdminSubmissions
+              activeTab={activeTab}
+              submissions={submissions}
+              processingSubmission={processingSubmission}
+              onApproveSubmission={handleApproveSubmission}
+              onRejectSubmission={handleRejectSubmission}
+            />
           )}
 
           {activeTab === "cards" && (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {cards.length === 0 ? (
-                <div className="p-6 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No cards
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No published cards found.
-                  </p>
-                </div>
-              ) : (
-                cards.map((card) => (
-                  <div key={card.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                            {card.name}
-                          </h3>
-                          {card.featured && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-
-                        {card.description && (
-                          <p className="text-gray-700 dark:text-gray-300 mb-3">
-                            {card.description}
-                          </p>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          {card.email && (
-                            <div>
-                              <span className="font-medium text-gray-600 dark:text-gray-400">
-                                Email:
-                              </span>
-                              <div>{card.email}</div>
-                            </div>
-                          )}
-                          {card.website_url && (
-                            <div>
-                              <span className="font-medium text-gray-600 dark:text-gray-400">
-                                Website:
-                              </span>
-                              <div>
-                                <a
-                                  href={card.website_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  {card.website_url}
-                                </a>
-                              </div>
-                            </div>
-                          )}
-                          {card.address && (
-                            <div>
-                              <span className="font-medium text-gray-600 dark:text-gray-400">
-                                Address:
-                              </span>
-                              <div>{card.address}</div>
-                            </div>
-                          )}
-                        </div>
-
-                        {card.tags.length > 0 && (
-                          <div className="mt-3">
-                            <span className="font-medium text-gray-600 dark:text-gray-400 text-sm">
-                              Tags:
-                            </span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {card.tags.map((tag, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                          Created:{" "}
-                          {new Date(card.created_date).toLocaleDateString()} •
-                          Last updated:{" "}
-                          {new Date(card.updated_date).toLocaleDateString()}
-                          {card.creator && (
-                            <>
-                              {" "}
-                              • Created by: {card.creator.first_name}{" "}
-                              {card.creator.last_name}
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="ml-4 flex flex-col space-y-2">
-                        <button
-                          onClick={() =>
-                            handleToggleFeatured(card.id, !card.featured)
-                          }
-                          className={`px-3 py-1 text-sm font-medium rounded ${
-                            card.featured
-                              ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                              : "bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white"
-                          }`}
-                        >
-                          {card.featured ? "Unfeature" : "Feature"}
-                        </button>
-                        <button
-                          onClick={() => setEditingCard(card)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeletingCard(card)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <AdminCards
+              cards={cards}
+              onToggleFeatured={handleToggleFeatured}
+              onEditCard={setEditingCard}
+              onDeleteCard={setDeletingCard}
+            />
           )}
 
           {activeTab === "modifications" && (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {modifications.length === 0 ? (
-                <div className="p-6 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No modifications
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No card modifications pending review.
-                  </p>
-                </div>
-              ) : (
-                modifications.map((modification) => (
-                  <div key={modification.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                            {modification.name}
-                          </h3>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(modification.status)}`}
-                          >
-                            {modification.status.charAt(0).toUpperCase() +
-                              modification.status.slice(1)}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          <div>
-                            <span className="font-medium">Original Card:</span>{" "}
-                            {modification.card?.name}
-                          </div>
-                          <div>
-                            <span className="font-medium">Submitted by:</span>{" "}
-                            {modification.submitter?.first_name}{" "}
-                            {modification.submitter?.last_name}
-                          </div>
-                          <div>
-                            <span className="font-medium">Date:</span>{" "}
-                            {new Date(
-                              modification.created_date
-                            ).toLocaleDateString()}
-                          </div>
-                          {modification.card?.phone_number && (
-                            <div>
-                              <span className="font-medium">Phone:</span>{" "}
-                              {modification.phone_number}
-                            </div>
-                          )}
-                        </div>
-
-                        {modification.description && (
-                          <p className="text-gray-700 dark:text-gray-300 mb-3">
-                            {modification.description}
-                          </p>
-                        )}
-
-                        {modification.tags_text && (
-                          <div className="mb-3">
-                            <span className="font-medium text-gray-600 dark:text-gray-400 text-sm">
-                              Tags:
-                            </span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {modification.tags_text
-                                .split(",")
-                                .map((tag, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                  >
-                                    {tag.trim()}
-                                  </span>
-                                ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {modification.review_notes && (
-                          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                              <span className="font-medium">Review notes:</span>{" "}
-                              {modification.review_notes}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {modification.status === "pending" && (
-                        <div className="ml-4 flex flex-col space-y-2">
-                          <button
-                            onClick={() =>
-                              handleApproveModification(modification.id)
-                            }
-                            disabled={
-                              processingModification === modification.id
-                            }
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processingModification === modification.id
-                              ? "Processing..."
-                              : "Approve"}
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleRejectModification(modification.id)
-                            }
-                            disabled={
-                              processingModification === modification.id
-                            }
-                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processingModification === modification.id
-                              ? "Processing..."
-                              : "Reject"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <AdminModifications
+              modifications={modifications}
+              processingModification={processingModification}
+              onApproveModification={handleApproveModification}
+              onRejectModification={handleRejectModification}
+              getStatusColor={getStatusColor}
+            />
           )}
 
           {activeTab === "users" && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Users
-                </h2>
-                <div className="flex space-x-4">
-                  <input
-                    type="text"
-                    placeholder="Search users..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  <button
-                    onClick={loadUsers}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                  >
-                    Search
-                  </button>
-                </div>
-              </div>
-
-              {users.length === 0 ? (
-                <div className="text-center py-12">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No users found
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No users match your search criteria.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Email
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Role
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Joined
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {users.map((user) => (
-                          <tr key={user.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                              {user.first_name} {user.last_name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {user.email}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  user.role === "admin"
-                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                    : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                                }`}
-                              >
-                                {user.role}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  user.is_active
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                }`}
-                              >
-                                {user.is_active ? "Active" : "Inactive"}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {new Date(user.created_date).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <button
-                                onClick={() => setEditingUser(user)}
-                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => setShowPasswordReset(user)}
-                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                              >
-                                Reset Password
-                              </button>
-                              <button
-                                onClick={() => setDeletingUser(user)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Pagination */}
-                  {totalUsers > 20 && (
-                    <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 sm:px-6 mt-4">
-                      <div className="flex flex-1 justify-between sm:hidden">
-                        <button
-                          onClick={() =>
-                            setCurrentPage(Math.max(1, currentPage - 1))
-                          }
-                          disabled={currentPage === 1}
-                          className="relative inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
-                        >
-                          Previous
-                        </button>
-                        <button
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          disabled={currentPage * 20 >= totalUsers}
-                          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
-                        >
-                          Next
-                        </button>
-                      </div>
-                      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">
-                            Showing{" "}
-                            <span className="font-medium">
-                              {(currentPage - 1) * 20 + 1}
-                            </span>{" "}
-                            to{" "}
-                            <span className="font-medium">
-                              {Math.min(currentPage * 20, totalUsers)}
-                            </span>{" "}
-                            of <span className="font-medium">{totalUsers}</span>{" "}
-                            results
-                          </p>
-                        </div>
-                        <div>
-                          <nav
-                            className="isolate inline-flex -space-x-px rounded-md shadow-sm"
-                            aria-label="Pagination"
-                          >
-                            <button
-                              onClick={() =>
-                                setCurrentPage(Math.max(1, currentPage - 1))
-                              }
-                              disabled={currentPage === 1}
-                              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0"
-                            >
-                              Previous
-                            </button>
-                            <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-600">
-                              Page {currentPage}
-                            </span>
-                            <button
-                              onClick={() => setCurrentPage(currentPage + 1)}
-                              disabled={currentPage * 20 >= totalUsers}
-                              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0"
-                            >
-                              Next
-                            </button>
-                          </nav>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <AdminUsers
+              users={users}
+              searchQuery={searchQuery}
+              currentPage={currentPage}
+              totalUsers={totalUsers}
+              onSearchQueryChange={setSearchQuery}
+              onLoadUsers={loadUsers}
+              onSetCurrentPage={setCurrentPage}
+              onSetEditingUser={setEditingUser}
+              onSetShowPasswordReset={setShowPasswordReset}
+              onSetDeletingUser={setDeletingUser}
+            />
           )}
 
           {activeTab === "tags" && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Tags
-                </h2>
-                <button
-                  onClick={() => setShowAddTag(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Add Tag
-                </button>
-              </div>
-
-              {tags.length === 0 ? (
-                <div className="text-center py-12">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No tags
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Get started by creating your first tag.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Tag Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Usage Count
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {tags.map((tag) => (
-                        <tr key={tag.name}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                              {tag.name}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {tag.count} {tag.count === 1 ? "card" : "cards"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => setEditingTag(tag)}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeletingTag(tag)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <AdminTags
+              tags={tags}
+              onShowAddTag={() => setShowAddTag(true)}
+              onSetEditingTag={setEditingTag}
+              onSetDeletingTag={setDeletingTag}
+            />
           )}
 
           {activeTab === "reviews" && (
@@ -1939,192 +1249,32 @@ export default function AdminPage() {
           )}
 
           {activeTab === "resources" && (
-            <div className="p-6">
-              <div className="mb-4">
-                <nav className="flex space-x-4">
-                  <button
-                    onClick={() => setResourcesTab("quick-access")}
-                    className={`px-4 py-2 text-sm font-medium rounded ${
-                      resourcesTab === "quick-access"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    Quick Access
-                  </button>
-                  <button
-                    onClick={() => setResourcesTab("items")}
-                    className={`px-4 py-2 text-sm font-medium rounded ${
-                      resourcesTab === "items"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    Resource Items
-                  </button>
-                </nav>
-              </div>
-
-              {resourcesTab === "quick-access" && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Quick Access Items
-                    </h2>
-                    <button
-                      onClick={() => setShowAddQuickAccess(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Add Quick Access
-                    </button>
-                  </div>
-
-                  {showAddQuickAccess && (
-                    <QuickAccessForm
-                      onSubmit={handleCreateQuickAccess}
-                      onCancel={() => setShowAddQuickAccess(false)}
-                    />
-                  )}
-
-                  {quickAccessItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded p-4"
-                    >
-                      {editingQuickAccess?.id === item.id ? (
-                        <QuickAccessForm
-                          item={item}
-                          onSubmit={(data) =>
-                            handleUpdateQuickAccess(index + 1, data)
-                          }
-                          onCancel={() => setEditingQuickAccess(null)}
-                        />
-                      ) : (
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              {item.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {item.subtitle}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Phone: {item.phone}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500">
-                              Color: {item.color} | Icon: {item.icon}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => setEditingQuickAccess(item)}
-                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeletingQuickAccessId(item.id)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {resourcesTab === "items" && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Resource Items
-                    </h2>
-                    <button
-                      onClick={() => setShowAddResourceItem(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Add Resource Item
-                    </button>
-                  </div>
-
-                  {showAddResourceItem && (
-                    <ResourceItemForm
-                      onSubmit={handleCreateResourceItem}
-                      onCancel={() => setShowAddResourceItem(false)}
-                    />
-                  )}
-
-                  {resourceItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded p-4"
-                    >
-                      {editingResourceItem?.id === item.id ? (
-                        <ResourceItemForm
-                          item={item}
-                          onSubmit={(data) =>
-                            handleUpdateResourceItem(item.id, data)
-                          }
-                          onCancel={() => setEditingResourceItem(null)}
-                        />
-                      ) : (
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              {item.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {item.description}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Category: {item.category}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              URL:{" "}
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {item.url}
-                              </a>
-                            </p>
-                            {item.phone && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Phone: {item.phone}
-                              </p>
-                            )}
-                            {item.address && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Address: {item.address}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => setEditingResourceItem(item)}
-                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeletingResourceItemId(item.id)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <AdminResources
+              resourcesTab={resourcesTab}
+              quickAccessItems={quickAccessItems}
+              resourceItems={resourceItems}
+              showAddQuickAccess={showAddQuickAccess}
+              editingQuickAccess={editingQuickAccess}
+              showAddResourceItem={showAddResourceItem}
+              editingResourceItem={editingResourceItem}
+              onSetResourcesTab={(tab: string) =>
+                setResourcesTab(tab as "quick-access" | "items")
+              }
+              onSetShowAddQuickAccess={setShowAddQuickAccess}
+              onSetEditingQuickAccess={setEditingQuickAccess}
+              onSetDeletingQuickAccessId={setDeletingQuickAccessId}
+              onHandleCreateQuickAccess={handleCreateQuickAccess}
+              onHandleUpdateQuickAccess={handleUpdateQuickAccess}
+              onSetShowAddResourceItem={setShowAddResourceItem}
+              onSetEditingResourceItem={setEditingResourceItem}
+              onSetDeletingResourceItemId={setDeletingResourceItemId}
+              onHandleCreateResourceItem={handleCreateResourceItem}
+              onHandleUpdateResourceItem={handleUpdateResourceItem}
+              onHandleDeleteQuickAccess={handleDeleteQuickAccess}
+              onHandleDeleteResourceItem={handleDeleteResourceItem}
+              QuickAccessForm={QuickAccessForm}
+              ResourceItemForm={ResourceItemForm}
+            />
           )}
         </div>
       </main>
