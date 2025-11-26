@@ -124,13 +124,13 @@ function createMockRequest(
     ...headers,
   };
 
-  const requestInit: any = {
+  const requestInit: Record<string, unknown> = {
     method,
     headers: requestHeaders,
   };
 
   if (body && (method === "POST" || method === "PUT")) {
-    requestInit.body = JSON.stringify(body);
+    requestInit["body"] = JSON.stringify(body);
   }
 
   return new NextRequest(url, requestInit);

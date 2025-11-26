@@ -204,6 +204,7 @@ export function mockFetch(
 /**
  * Assert that response has expected status and structure
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function assertApiResponse<T = any>(
   response: Response,
   expectedStatus: number,
