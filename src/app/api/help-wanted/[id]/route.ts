@@ -145,7 +145,7 @@ export async function GET(
     });
 
     if (!post) {
-      throw new NotFoundError("Help wanted post not found");
+      throw new NotFoundError("Help wanted post");
     }
 
     // Transform comments
@@ -241,7 +241,7 @@ export const PUT = withAuth(
       // Validate input data
       const validation = validateHelpWantedPostUpdate(data);
       if (!validation.isValid) {
-        throw new ValidationError("Validation failed", {
+        throw new ValidationError(validation.errors.join(". "), {
           errors: validation.errors,
         });
       }
@@ -253,10 +253,10 @@ export const PUT = withAuth(
       });
 
       if (!existingPost) {
-        throw new NotFoundError("Help wanted post not found");
+        throw new NotFoundError("Help wanted post");
       }
 
-      if (existingPost.createdBy !== user.id) {
+      if (existingPost.createdBy !== user.id && user.role !== "admin") {
         throw new ForbiddenError("You can only edit your own posts");
       }
 
@@ -361,20 +361,39 @@ export const DELETE = withAuth(
       });
 
       if (!existingPost) {
-        throw new NotFoundError("Help wanted post not found");
+        throw new NotFoundError("Help wanted post");
       }
 
-      if (existingPost.createdBy !== user.id) {
+      if (existingPost.createdBy !== user.id && user.role !== "admin") {
         throw new ForbiddenError("You can only delete your own posts");
       }
 
-      // Delete the post (this will cascade to comments and reports)
-      await prisma.helpWantedPost.delete({
-        where: { id: postId },
+      // Delete the post using transaction for cascade delete with counts
+      const result = await prisma.$transaction(async (tx) => {
+        // Delete related comments first and count them
+        const deletedComments = await tx.helpWantedComment.deleteMany({
+          where: { postId: postId },
+        });
+
+        // Delete related reports and count them
+        const deletedReports = await tx.helpWantedReport.deleteMany({
+          where: { postId: postId },
+        });
+
+        // Finally delete the post itself
+        await tx.helpWantedPost.delete({
+          where: { id: postId },
+        });
+
+        return {
+          comments: deletedComments.count,
+          reports: deletedReports.count,
+        };
       });
 
       return NextResponse.json({
         message: "Help wanted post deleted successfully",
+        deletedCounts: result,
       });
     } catch (error: unknown) {
       return handleApiError(error, "DELETE /api/help-wanted/[id]");

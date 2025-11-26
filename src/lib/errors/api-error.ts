@@ -30,7 +30,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public statusCode: number = 500,
-    public code: string = "INTERNAL_ERROR",
+    public code: string = "INTERNAL_SERVER_ERROR",
     public details?: unknown
   ) {
     super(message);
@@ -183,7 +183,7 @@ export function handleApiError(
       {
         error: {
           message,
-          code: "INTERNAL_ERROR",
+          code: "INTERNAL_SERVER_ERROR",
           details,
         },
       },

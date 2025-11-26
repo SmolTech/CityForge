@@ -13,6 +13,7 @@ import {
   teardownIntegrationTests,
   cleanDatabase,
 } from "../setup";
+import { clearRateLimitStore } from "@/lib/auth/rateLimit";
 
 describe("Authentication API Routes", () => {
   beforeAll(async () => {
@@ -20,6 +21,8 @@ describe("Authentication API Routes", () => {
   }, 60000);
 
   afterEach(async () => {
+    // Clear rate limit store to prevent rate limit issues between tests
+    clearRateLimitStore();
     // Clean database after each test to ensure isolation
     await cleanDatabase();
   });

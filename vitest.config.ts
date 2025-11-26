@@ -12,8 +12,8 @@ export default defineConfig({
       // Test environment variables
       NODE_ENV: "test",
       JWT_SECRET_KEY: "test-secret-key-for-testing-only",
-      DATABASE_URL:
-        "postgresql://postgres:postgres@localhost:5432/cityforge_test",
+      // Note: DATABASE_URL is set dynamically by integration test containers
+      // Don't set a default here to avoid conflicts with testcontainers
       // Disable external dependencies in tests
       OPENSEARCH_HOST: "",
       OPENSEARCH_PORT: "",
