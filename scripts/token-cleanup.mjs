@@ -6,14 +6,13 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import { logger } from "../src/lib/logger.js";
 
 async function cleanupExpiredTokens() {
   const prisma = new PrismaClient();
 
   try {
     await prisma.$connect();
-    logger.info("Starting expired token cleanup...");
+    console.log("Starting expired token cleanup...");
 
     // Get JWT configuration to calculate expiration time
     const JWT_EXPIRY_HOURS = 24; // Default JWT expiry time
@@ -29,18 +28,14 @@ async function cleanupExpiredTokens() {
       },
     });
 
-    logger.info(`Cleaned up ${result.count} expired tokens from blacklist`, {
-      expiredBefore: expiredBefore.toISOString(),
-      deletedCount: result.count,
-    });
+    console.log(
+      `Cleaned up ${result.count} expired tokens from blacklist (expired before ${expiredBefore.toISOString()})`
+    );
 
     await prisma.$disconnect();
     process.exit(0);
   } catch (error) {
-    logger.error("Error cleaning up expired tokens:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error("Error cleaning up expired tokens:", error);
 
     await prisma.$disconnect();
     process.exit(1);
