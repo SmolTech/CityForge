@@ -17,8 +17,6 @@ The project is now structured as a three-component application:
 - **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
 - **Infrastructure**: Docker containers with automated builds via GitHub Actions
 
-**Migration Status**: Currently migrating existing Flask-based deployments to the new Next.js architecture without database re-initialization.
-
 ### Key Components
 
 - **Full-Stack Next.js App** (`src/app/`): Next.js pages and API routes for business directory, resources, admin dashboard, authentication, and search
@@ -26,8 +24,6 @@ The project is now structured as a three-component application:
 - **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
 - **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources (managed via Prisma ORM in Next.js)
 - **GitHub Actions** (`.github/workflows/`): Automated Docker image builds for all components
-
-**Migration Note**: The Flask backend and its SQLAlchemy models have been replaced by Next.js API routes with Prisma ORM. Database schema and data remain compatible.
 
 ## Development Commands
 
@@ -59,7 +55,7 @@ npx prisma studio     # Open Prisma Studio (database GUI)
 
 ### Mobile App Development
 
-```bash
+`````bash
 # From mobile/ directory
 npm install
 
@@ -80,63 +76,27 @@ cp .env.example .env
 # Edit .env with appropriate API URL:
 #   iOS Simulator: http://localhost:5000
 #   Android Emulator: http://10.0.2.2:5000
-#   Physical Device: http://YOUR_COMPUTER_IP:5000
-```
-
-### Backend Development
-
-For any locally run python, use python from the venv located in .venv/bin of the root of the project
-
-```bash
-# From backend/ directory
-pip install -r requirements.txt
-
-# Initialize fresh database
-python initialize_db.py
-
-# Create admin user (separate step after initialization)
-python create_admin_user.py
-
-# OR for existing databases (run pending migrations only)
-export FLASK_APP=app:create_app
-flask db upgrade
-
-# OR seed default data only (if database already initialized)
-python seed_data.py
-
-# Development server
-python app/__init__.py  # Runs on port 5000
-
-# Run tests
-./run_tests.sh
-pytest
-
-# Production deployment uses gunicorn
-gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
-```
 
 ### Indexer Development
 
-```bash
+````bash
 # From indexer/ directory
 pip install -r requirements.txt
 
 # Run indexer (requires OpenSearch and backend API to be running)
 python indexer.py
-```
+`````
 
 ### Docker & Deployment
 
 Docker images are automatically built and pushed to GitHub Container Registry when code is pushed to `main` or `develop` branches:
 
 - `ghcr.io/smoltech/cityforge/cityforge-frontend`
-- `ghcr.io/smoltech/cityforge/cityforge-backend`
 - `ghcr.io/smoltech/cityforge/cityforge-indexer`
 
 ```bash
 # Manual Docker builds for local testing
 docker build -t cityforge-frontend .
-docker build -t cityforge-backend ./backend
 docker build -t cityforge-indexer ./indexer
 ```
 
@@ -149,88 +109,6 @@ The project enforces code quality through automated git hooks:
 
 ## Key Development Notes
 
-### Database Migrations
-
-The project uses **Flask-Migrate** (Alembic wrapper) for database schema version control and migrations.
-
-#### Migration Workflow
-
-**After making model changes:**
-
-```bash
-cd backend
-export FLASK_APP=app:create_app
-
-# Generate migration from model changes
-flask db migrate -m "Description of changes"
-
-# Review the generated migration file in migrations/versions/
-
-# Apply migration to database
-flask db upgrade
-
-# To rollback last migration
-flask db downgrade
-```
-
-#### Common Migration Commands
-
-```bash
-# View current migration version
-flask db current
-
-# View migration history
-flask db history
-
-# Upgrade to specific version
-flask db upgrade <revision>
-
-# Downgrade to specific version
-flask db downgrade <revision>
-
-# Show SQL without executing
-flask db upgrade --sql
-```
-
-#### Deployment
-
-**Docker Compose:**
-Migrations run automatically on container startup via:
-
-```bash
-flask db upgrade && gunicorn ...
-```
-
-**Kubernetes:**
-
-Database initialization runs automatically via init container before backend pods start:
-
-- Init container runs `python initialize_db.py --non-interactive`
-- Handles both fresh databases and migrations for existing databases
-- Main container starts only after successful initialization
-- See: `k8s/backend-deployment.yaml`
-
-**Manual Database Initialization (Kubernetes):**
-
-For fresh deployments:
-
-```bash
-# Initialize fresh database with admin user
-kubectl apply -f k8s/init-fresh-db-job.yaml
-kubectl logs job/init-fresh-db -n cityforge
-
-# Check job status
-kubectl get job init-fresh-db -n cityforge
-```
-
-For running migrations on existing databases:
-
-```bash
-# Legacy migration job (use init-fresh-db-job.yaml for new deployments)
-kubectl apply -f k8s/migration-job.yaml
-kubectl logs job/db-migration -n cityforge
-```
-
 #### Migration Best Practices
 
 1. **Always review** generated migrations before committing
@@ -239,55 +117,6 @@ kubectl logs job/db-migration -n cityforge
 4. **Never edit** applied migrations - create new ones instead
 5. **Commit migrations** to version control with your model changes
 
-#### Database Initialization
-
-The project provides multiple initialization scripts for different use cases:
-
-**For Fresh Databases (Recommended):**
-
-```bash
-cd backend
-export FLASK_APP=app:create_app
-
-# Initialize fresh database with tables, migrations, and default data
-python initialize_db.py
-
-# Create admin user (separate step)
-python create_admin_user.py
-
-# The initialize_db.py script will:
-# 1. Detect if database is empty
-# 2. Create all tables if empty
-# 3. Stamp database with current migration version
-# 4. Seed default configuration data
-# 5. Check for existing admin user and provide guidance
-```
-
-**For Existing Databases:**
-
-```bash
-cd backend
-export FLASK_APP=app:create_app
-
-# Run pending migrations only
-flask db upgrade
-
-# Optionally seed default data (safe to run multiple times)
-python seed_data.py
-```
-
-**For Non-Interactive Environments (Kubernetes, Docker):**
-
-```bash
-# Initialize database
-python initialize_db.py
-
-# Create admin user (separate command)
-export ADMIN_EMAIL=admin@example.com
-export ADMIN_PASSWORD=SecurePassword123!
-python create_admin_user.py --non-interactive
-```
-
 **Scripts Overview:**
 
 - `initialize_db.py` - Master initialization script (handles both fresh and existing databases)
@@ -295,27 +124,6 @@ python create_admin_user.py --non-interactive
 - `init_fresh_db.py` - Legacy fresh database initialization (use `initialize_db.py` instead)
 - `seed_data.py` - Seed default data only (idempotent, safe to run multiple times)
 - `init_db.py` - **DEPRECATED** - Old initialization script (do not use)
-
-**Important:**
-
-- `initialize_db.py` is idempotent and safe to run multiple times
-- It detects database state and chooses the correct initialization path
-- Admin user creation is now separate - run `create_admin_user.py` after database initialization
-- For existing databases with tables but no migrations, see troubleshooting in script output
-- All scripts respect Flask-Migrate migration tracking
-
-### Database Schema
-
-The Flask backend defines the following main models:
-
-**Core Models:**
-
-- `User`: User authentication and authorization (admin/user roles)
-- `Card`: Business cards in the directory (name, description, contact info, tags, images)
-- `Tag`: Tags for categorizing cards
-- `CardSubmission`: User-submitted cards pending admin approval
-- `CardModification`: User-suggested edits to existing cards
-- `TokenBlacklist`: Revoked JWT tokens (logout implementation)
 
 **Resource Models:**
 
@@ -331,69 +139,6 @@ The Flask backend defines the following main models:
 - `ForumPost`: Individual posts within threads
 - `ForumCategoryRequest`: User requests for new forum categories (pending admin approval)
 - `ForumReport`: User reports of inappropriate content (pending admin resolution)
-
-### Database Connection Pooling
-
-The application uses SQLAlchemy's connection pooling with optimized settings for production reliability:
-
-**Configuration** (`backend/app/__init__.py`):
-
-The connection pool is configured automatically based on the `FLASK_ENV` environment variable:
-
-**Development Settings** (default):
-
-```python
-pool_size: 5          # Maximum connections in pool
-max_overflow: 10      # Additional connections beyond pool_size
-pool_recycle: 3600    # Recycle connections after 1 hour
-pool_pre_ping: True   # Test connections before using
-pool_timeout: 30      # Timeout waiting for connection (seconds)
-```
-
-**Production Settings** (`FLASK_ENV=production`):
-
-```python
-pool_size: 10         # Larger pool for higher traffic
-max_overflow: 20      # More overflow connections
-pool_recycle: 3600    # Recycle connections after 1 hour
-pool_pre_ping: True   # Test connections before using
-pool_timeout: 30      # Timeout waiting for connection (seconds)
-```
-
-**Key Features:**
-
-- **pool_pre_ping**: Detects and recovers from broken database connections automatically
-- **pool_recycle**: Prevents MySQL "has gone away" errors by recycling stale connections
-- **Environment-based sizing**: Smaller pools in development to conserve resources, larger in production for traffic
-- **Connection timeout**: Prevents indefinite waits when pool is exhausted
-
-**Setting Environment for Production:**
-
-```bash
-export FLASK_ENV=production
-# Then start the application
-gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
-```
-
-**Docker/Kubernetes:**
-
-Set the environment variable in your deployment configuration:
-
-```yaml
-env:
-  - name: FLASK_ENV
-    value: "production"
-```
-
-**Monitoring Pool Usage:**
-
-To enable detailed connection pool logging for debugging:
-
-```python
-import logging
-logging.basicConfig()
-logging.getLogger('sqlalchemy.pool').setLevel(logging.DEBUG)
-```
 
 ### Authentication Security
 
@@ -416,25 +161,7 @@ The application supports **dual authentication modes** for web and mobile client
 **Shared Security Features:**
 
 - **Database-backed blacklist**: Logout immediately invalidates tokens via database blacklist
-- **Same token format**: Both web and mobile use identical JWT tokens
-- **Unified validation**: Backend validates tokens regardless of delivery method
-
-**Backend Configuration** (`backend/app/__init__.py`):
-
-```python
-# Support both cookies (web) and headers (mobile)
-app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
-
-# Cookie configuration (for web)
-app.config["JWT_COOKIE_HTTPONLY"] = True  # Prevents JavaScript access
-app.config["JWT_COOKIE_SECURE"] = is_production  # HTTPS only in production
-app.config["JWT_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Can enable with CSRF tokens
-
-# Header configuration (for mobile)
-app.config["JWT_HEADER_NAME"] = "Authorization"
-app.config["JWT_HEADER_TYPE"] = "Bearer"
-```
+- **Same token format**: Both web and mobile use identical J
 
 **CORS Configuration** (`backend/app/__init__.py`):
 
@@ -601,27 +328,6 @@ The application uses database-backed JWT token blacklisting for secure logout:
 - When users log out, their tokens are added to the `token_blacklist` table
 - Tokens are checked against the blacklist on every authenticated request
 - Expired tokens are automatically cleaned up by a Kubernetes CronJob
-
-**Kubernetes Deployment:**
-The token cleanup runs automatically as a CronJob (see `k8s/token-cleanup-cronjob.yaml`):
-
-- Runs daily at 3 AM Eastern Time
-- Uses the backend Docker image
-- Connects to the database to remove expired tokens
-- Resource limits: 256Mi memory, 200m CPU
-
-**Manual Cleanup (Local Development):**
-
-```bash
-cd backend
-python cleanup_expired_tokens.py
-```
-
-**Traditional Cron (Non-Kubernetes):**
-
-```bash
-0 3 * * * cd /path/to/backend && python cleanup_expired_tokens.py
-```
 
 ### API Rate Limiting
 
@@ -1262,32 +968,6 @@ The `/api/site-config` endpoint returns:
 }
 ```
 
-### API Response Caching
-
-The application implements multi-layer caching to improve performance and reduce server load:
-
-#### Backend Cache Headers (Flask)
-
-Flask routes set HTTP cache headers using `Cache-Control`:
-
-**Cache Durations:**
-
-- **Tags** (`/api/tags`): 5 minutes (300s)
-- **Site Config** (`/api/site-config`): 10 minutes (600s)
-- **Cards List** (`/api/cards`): 1 minute (60s)
-- **Individual Card** (`/api/cards/<id>`, `/api/business/<id>`): 5 minutes (300s)
-- **Resources** (`/api/resources`): 5 minutes (300s)
-
-**Implementation:**
-
-```python
-response = jsonify(data)
-response.headers["Cache-Control"] = "public, max-age=300"
-return response
-```
-
-**Important**: User-specific endpoints (auth, submissions, dashboard) are NOT cached to ensure fresh data.
-
 #### Frontend Caching (Next.js)
 
 The API client (`src/lib/api/client.ts`) implements Next.js fetch caching with `revalidate`:
@@ -1441,7 +1121,6 @@ See the respective `.env.example` files for detailed documentation of all availa
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection (required)
 - `DATABASE_URL` - Alternative to individual database params (optional)
 - `JWT_SECRET_KEY` - Secret key for JWT token generation (required)
-- `SECRET_KEY` - Flask session secret (required)
 - `UPLOAD_FOLDER` - Directory for uploaded files (optional, default: uploads)
 - `FLASK_ENV` - Environment mode: development or production (optional, default: development)
 - `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (optional, for search)
@@ -1456,34 +1135,6 @@ See the respective `.env.example` files for detailed documentation of all availa
 
 The application implements structured logging with environment-based configuration:
 
-#### Backend Logging (Python/Flask)
-
-**Configuration** (`backend/app/utils/logging_config.py`):
-
-The backend uses structured JSON logging with rotating file handlers:
-
-**Features:**
-
-- **JSON formatting** for production/staging (structured, parseable logs)
-- **Human-readable formatting** for development (easier to read in terminal)
-- **Rotating file handler**: 10MB log files, keep 10 backups
-- **Environment-based log levels**:
-  - Development: DEBUG
-  - Staging: INFO
-  - Production: WARNING
-
-**Log Files:**
-
-- Location: `backend/logs/cityforge.log`
-- Format: JSON (always, for easy parsing)
-- Rotation: 10MB files, 10 backups = ~100MB total
-
-**Environment Variables:**
-
-- `FLASK_ENV`: Sets environment (development/staging/production)
-- `LOG_LEVEL`: Override default log level (DEBUG/INFO/WARNING/ERROR)
-- `LOG_DIR`: Override log directory (default: logs)
-
 **Example Log Entry (JSON):**
 
 ```json
@@ -1496,20 +1147,6 @@ The backend uses structured JSON logging with rotating file handlers:
   "line": 42,
   "exception": "...stack trace..."
 }
-```
-
-**Usage in Backend Code:**
-
-```python
-import logging
-
-logger = logging.getLogger(__name__)
-
-# Logging examples
-logger.debug("Detailed debugging information")
-logger.info("General informational message")
-logger.warning("Warning message")
-logger.error("Error occurred", exc_info=True)  # Includes stack trace
 ```
 
 #### Frontend Logging (TypeScript/Next.js)
