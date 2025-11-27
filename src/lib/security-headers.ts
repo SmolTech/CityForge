@@ -113,7 +113,7 @@ function buildCSPDirectives(
 ): Record<string, string> {
   const baseDirectives: Record<string, string> = {
     "default-src": "'self'",
-    "script-src": "'self' 'unsafe-eval'", // unsafe-eval needed for Next.js development
+    "script-src": "'self' 'unsafe-inline'", // unsafe-inline needed for Next.js App Router hydration
     "style-src": "'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind CSS
     "img-src": "'self' data: blob:", // Allow data URLs for images and user uploads
     "font-src": "'self' data:",
