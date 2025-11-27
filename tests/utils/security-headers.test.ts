@@ -79,8 +79,9 @@ describe("Security Headers Utility", () => {
       });
       const csp = headers["Content-Security-Policy"];
 
-      // Should not include 'unsafe-inline' in script-src for production
-      expect(csp).toContain("script-src 'self' 'unsafe-eval'");
+      // Production uses 'unsafe-inline' for Next.js App Router hydration
+      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+      // Should not include 'unsafe-eval' in production (only development needs it)
       expect(csp).not.toContain(
         "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
       );
@@ -223,8 +224,9 @@ describe("Security Headers Utility", () => {
       const headers = securityModule.getSecurityHeaders();
       const csp = headers["Content-Security-Policy"];
 
-      // Should not include 'unsafe-inline' in script-src with production mode
-      expect(csp).toContain("script-src 'self' 'unsafe-eval'");
+      // Production mode uses 'unsafe-inline' for Next.js App Router hydration
+      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+      // Should not include 'unsafe-eval' in production (only development needs it)
       expect(csp).not.toContain(
         "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
       );
