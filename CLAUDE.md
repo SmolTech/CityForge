@@ -51,7 +51,12 @@ npx prisma generate   # Generate Prisma client
 npx prisma db push    # Push schema changes to database
 npx prisma migrate    # Create and apply migrations
 npx prisma studio     # Open Prisma Studio (database GUI)
+
+# Fix database sequence issues (if you get unique constraint errors)
+npm run fix-sequences # Reset auto-increment sequences to match data
 ```
+
+**Note:** If you encounter Prisma error P2002 (unique constraint violation on ID fields), run `npm run fix-sequences` to reset PostgreSQL sequences. See `docs/DATABASE_SEQUENCE_TROUBLESHOOTING.md` for details.
 
 ### Mobile App Development
 

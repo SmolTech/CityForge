@@ -536,9 +536,12 @@ async function resetSequences() {
   // Get all sequences and reset them to match imported data
   const sequences = await prisma.$queryRaw`
     SELECT sequence_name, sequence_schema
-    FROM information_schema.sequences 
+    FROM information_schema.sequences
     WHERE sequence_schema = 'public'
   `;
+
+  let resetCount = 0;
+  let errorCount = 0;
 
   for (const seq of sequences) {
     try {
@@ -547,21 +550,40 @@ async function resetSequences() {
 
       // Get max ID from the table
       const result = await prisma.$queryRawUnsafe(`
-        SELECT COALESCE(MAX(id), 0) + 1 as next_val FROM ${tableName}
+        SELECT MAX(id) as max_id FROM ${tableName}
       `);
 
       if (result.length > 0) {
-        const nextVal = result[0].next_val;
+        const maxId = result[0].max_id || 0;
+        // Set sequence to max_id with is_called=true, so next value will be max_id+1
         await prisma.$queryRawUnsafe(`
-          SELECT setval('${seq.sequence_name}', ${nextVal}, false)
+          SELECT setval('${seq.sequence_name}', ${maxId}, true)
         `);
-        console.log(`  ✅ Reset ${seq.sequence_name} to ${nextVal}`);
+        console.log(
+          `  ✅ Reset ${seq.sequence_name} to ${maxId} (next value: ${maxId + 1})`
+        );
+        resetCount++;
       }
     } catch (error) {
       console.warn(
         `  ⚠️  Could not reset sequence ${seq.sequence_name}: ${error.message}`
       );
+      errorCount++;
     }
+  }
+
+  console.log(
+    `\n✅ Sequence reset complete: ${resetCount} sequences updated, ${errorCount} errors`
+  );
+
+  // Warn if there were errors
+  if (errorCount > 0) {
+    console.warn(
+      `\n⚠️  WARNING: ${errorCount} sequences could not be reset. This may cause unique constraint errors.`
+    );
+    console.warn(
+      "   Run 'npm run fix-sequences' or see docs/DATABASE_SEQUENCE_TROUBLESHOOTING.md"
+    );
   }
 }
 

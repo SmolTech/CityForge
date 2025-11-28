@@ -426,6 +426,48 @@ export const POST = withAuth(
         }
       });
 
+      // Reset all sequences to prevent unique constraint violations
+      logger.info("Resetting database sequences...");
+      try {
+        const sequences = await prisma.$queryRaw<
+          Array<{ sequence_name: string }>
+        >`
+          SELECT sequence_name
+          FROM information_schema.sequences
+          WHERE sequence_schema = 'public'
+        `;
+
+        for (const seq of sequences) {
+          try {
+            // Extract table name from sequence name (assumes format: tablename_id_seq)
+            const tableName = seq.sequence_name.replace(/_id_seq$/, "");
+
+            // Get max ID from the table
+            const result = await prisma.$queryRawUnsafe<
+              Array<{ max_id: number | null }>
+            >(`SELECT MAX(id) as max_id FROM ${tableName}`);
+
+            if (result.length > 0 && result[0]) {
+              const maxId = result[0].max_id || 0;
+              // Set sequence to max_id, with is_called=true so next value will be max_id+1
+              await prisma.$queryRawUnsafe(
+                `SELECT setval('${seq.sequence_name}', ${maxId}, true)`
+              );
+              logger.info(
+                `Reset ${seq.sequence_name} to ${maxId} (next value: ${maxId + 1})`
+              );
+            }
+          } catch (error) {
+            logger.warn(
+              `Could not reset sequence ${seq.sequence_name}: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+          }
+        }
+      } catch (error) {
+        logger.error("Error resetting sequences:", error);
+        // Don't fail the import if sequence reset fails, just log it
+      }
+
       return NextResponse.json({
         message: "Data import completed successfully!",
         stats: importStats,
