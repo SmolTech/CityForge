@@ -731,7 +731,7 @@ describe("Search API Routes", () => {
 
         expect(response.status).toBe(500);
         expect(data.error).toMatchObject({
-          code: "INTERNAL_ERROR",
+          code: "INTERNAL_SERVER_ERROR",
           message: "Connection failed",
         });
       });
