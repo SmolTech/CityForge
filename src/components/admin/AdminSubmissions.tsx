@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CardSubmission } from "@/lib/api";
 
 interface AdminSubmissionsProps {
-  activeTab: "pending" | "submissions";
   submissions: CardSubmission[];
   processingSubmission: number | null;
   onApproveSubmission: (submissionId: number, featured?: boolean) => void;
@@ -10,7 +9,6 @@ interface AdminSubmissionsProps {
 }
 
 export function AdminSubmissions({
-  activeTab,
   submissions,
   processingSubmission,
   onApproveSubmission,
@@ -32,9 +30,8 @@ export function AdminSubmissions({
     }
   };
 
-  const filteredSubmissions = submissions.filter((s) =>
-    activeTab === "pending" ? s.status === "pending" : true
-  );
+  // Submissions are already filtered server-side, so we display all passed submissions
+  const filteredSubmissions = submissions;
 
   const handleRejectWithNotes = () => {
     if (rejectingSubmissionId) {
