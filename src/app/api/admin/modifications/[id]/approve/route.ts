@@ -6,7 +6,7 @@ import { handleApiError } from "@/lib/errors/api-error";
 export const POST = withAuth(
   async (
     request: NextRequest,
-    _context,
+    context,
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
@@ -50,8 +50,8 @@ export const POST = withAuth(
         );
       }
 
-      // Get the current user from request context
-      const user = (request as any).user as { id: number };
+      // Get the current user from context
+      const user = context.user;
       if (!user) {
         return NextResponse.json(
           { error: "User not found in request context" },
