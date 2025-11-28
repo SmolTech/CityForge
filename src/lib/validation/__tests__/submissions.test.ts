@@ -336,16 +336,18 @@ describe("validateCardSubmission", () => {
 
 describe("validateCardModification", () => {
   describe("valid modifications", () => {
-    it("should validate empty modification (all fields optional)", () => {
+    it("should require name field for modification", () => {
       const data = {};
       const result = validateCardModification(data);
 
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-      expect(result.data).toEqual({});
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContainEqual({
+        field: "name",
+        message: "Name is required",
+      });
     });
 
-    it("should validate partial modification", () => {
+    it("should validate modification with required name", () => {
       const data = {
         name: "Updated Name",
         description: "Updated description",
@@ -355,23 +357,28 @@ describe("validateCardModification", () => {
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.data).toEqual(data);
+      expect(result.data).toEqual({
+        name: "Updated Name",
+        description: "Updated description",
+      });
     });
 
-    it("should allow undefined values for all fields", () => {
+    it("should reject modification with undefined name", () => {
       const data = {
         name: undefined,
-        description: undefined,
-        websiteUrl: undefined,
-        phoneNumber: undefined,
-        email: undefined,
+        description: "Updated description",
+        websiteUrl: "https://example.com",
+        phoneNumber: "555-0123",
+        email: "test@example.com",
       };
 
       const result = validateCardModification(data);
 
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-      expect(result.data).toEqual({});
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContainEqual({
+        field: "name",
+        message: "Name is required",
+      });
     });
   });
 
@@ -391,17 +398,20 @@ describe("validateCardModification", () => {
       expect(result.isValid).toBe(false);
       expect(result.errors).toContainEqual({
         field: "name",
-        message: "Name must be a string",
+        message: "Name is required",
       });
     });
 
-    it("should handle empty string name", () => {
+    it("should reject empty string name", () => {
       const data = { name: "  " }; // Whitespace only
       const result = validateCardModification(data);
 
-      // Empty strings after sanitization are not included in the result
-      expect(result.isValid).toBe(true);
-      expect(result.data?.name).toBeUndefined();
+      // Empty strings after sanitization should be rejected since name is required
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContainEqual({
+        field: "name",
+        message: "Name cannot be empty",
+      });
     });
 
     it("should validate same constraints as submission for other fields", () => {
