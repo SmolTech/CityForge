@@ -80,7 +80,7 @@ export const POST = withAuth(
         tagIds = tags.map((tag) => tag.id);
       }
 
-      // Create the card
+      // Create the card first
       const card = await prisma.card.create({
         data: {
           name: submission.name,
@@ -97,12 +97,22 @@ export const POST = withAuth(
           createdBy: submission.submittedBy,
           approvedBy: user.id,
           approvedDate: new Date(),
-          card_tags: {
-            create: tagIds.map((tagId) => ({
-              tag_id: tagId,
-            })),
-          },
         },
+      });
+
+      // Create card_tags relationships
+      if (tagIds.length > 0) {
+        await prisma.card_tags.createMany({
+          data: tagIds.map((tagId) => ({
+            card_id: card.id,
+            tag_id: tagId,
+          })),
+        });
+      }
+
+      // Fetch the card with all relationships for the response
+      const cardWithRelations = await prisma.card.findUnique({
+        where: { id: card.id },
         include: {
           card_tags: {
             include: {
@@ -128,6 +138,13 @@ export const POST = withAuth(
         },
       });
 
+      if (!cardWithRelations) {
+        return NextResponse.json(
+          { error: { message: "Failed to fetch created card" } },
+          { status: 500 }
+        );
+      }
+
       // Update the submission
       const updatedSubmission = await prisma.cardSubmission.update({
         where: { id: submissionId },
@@ -136,7 +153,7 @@ export const POST = withAuth(
           reviewedBy: user.id,
           reviewedDate: new Date(),
           reviewNotes: notes,
-          cardId: card.id,
+          cardId: cardWithRelations.id,
         },
         include: {
           submitter: {
@@ -160,40 +177,40 @@ export const POST = withAuth(
 
       // Transform card to API format
       const transformedCard = {
-        id: card.id,
-        name: card.name,
-        description: card.description,
-        website_url: card.websiteUrl,
-        phone_number: card.phoneNumber,
-        email: card.email,
-        address: card.address,
-        address_override_url: card.addressOverrideUrl,
-        contact_name: card.contactName,
-        image_url: card.imageUrl,
-        featured: card.featured || false,
-        approved: card.approved || false,
-        created_date: card.createdDate?.toISOString(),
-        updated_date: card.updatedDate?.toISOString(),
-        created_by: card.createdBy,
-        creator: card.creator
+        id: cardWithRelations.id,
+        name: cardWithRelations.name,
+        description: cardWithRelations.description,
+        website_url: cardWithRelations.websiteUrl,
+        phone_number: cardWithRelations.phoneNumber,
+        email: cardWithRelations.email,
+        address: cardWithRelations.address,
+        address_override_url: cardWithRelations.addressOverrideUrl,
+        contact_name: cardWithRelations.contactName,
+        image_url: cardWithRelations.imageUrl,
+        featured: cardWithRelations.featured || false,
+        approved: cardWithRelations.approved || false,
+        created_date: cardWithRelations.createdDate?.toISOString(),
+        updated_date: cardWithRelations.updatedDate?.toISOString(),
+        created_by: cardWithRelations.createdBy,
+        creator: cardWithRelations.creator
           ? {
-              id: card.creator.id,
-              first_name: card.creator.firstName,
-              last_name: card.creator.lastName,
-              email: card.creator.email,
+              id: cardWithRelations.creator.id,
+              first_name: cardWithRelations.creator.firstName,
+              last_name: cardWithRelations.creator.lastName,
+              email: cardWithRelations.creator.email,
             }
           : null,
-        approved_by: card.approvedBy,
-        approver: card.approver
+        approved_by: cardWithRelations.approvedBy,
+        approver: cardWithRelations.approver
           ? {
-              id: card.approver.id,
-              first_name: card.approver.firstName,
-              last_name: card.approver.lastName,
-              email: card.approver.email,
+              id: cardWithRelations.approver.id,
+              first_name: cardWithRelations.approver.firstName,
+              last_name: cardWithRelations.approver.lastName,
+              email: cardWithRelations.approver.email,
             }
           : null,
-        approved_date: card.approvedDate?.toISOString(),
-        tags: card.card_tags.map((ct) => ct.tags.name),
+        approved_date: cardWithRelations.approvedDate?.toISOString(),
+        tags: cardWithRelations.card_tags.map((ct) => ct.tags.name),
       };
 
       // Transform submission to API format
