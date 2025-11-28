@@ -7,6 +7,7 @@ import { getIconComponent } from "@/lib/resources";
 import { apiClient, User } from "@/lib/api";
 import { MarkdownContent } from "@/components/shared";
 import { ReviewDisplay, ReviewForm } from "@/components/reviews";
+import SuggestEditModal from "./SuggestEditModal";
 import { logger } from "@/lib/logger";
 
 interface Business {
@@ -45,6 +46,7 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [suggestEditModalOpen, setSuggestEditModalOpen] = useState(false);
 
   const currentUrl =
     typeof window !== "undefined"
@@ -207,6 +209,29 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
                   </svg>
                   Edit
                 </Link>
+              )}
+
+              {/* Suggest Edit Button - Only shown to authenticated non-owners */}
+              {currentUser && !isOwner && (
+                <button
+                  onClick={() => setSuggestEditModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-green-300 dark:border-green-600 rounded-md shadow-sm text-sm font-medium text-green-700 dark:text-green-200 bg-green-50 dark:bg-green-900 hover:bg-green-100 dark:hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Suggest Edit
+                </button>
               )}
 
               {/* Share Button */}
@@ -512,6 +537,13 @@ export default function BusinessDetail({ business }: BusinessDetailProps) {
           onClick={() => setShareMenuOpen(false)}
         />
       )}
+
+      {/* Suggest Edit Modal */}
+      <SuggestEditModal
+        business={business}
+        isOpen={suggestEditModalOpen}
+        onClose={() => setSuggestEditModalOpen(false)}
+      />
     </main>
   );
 }
