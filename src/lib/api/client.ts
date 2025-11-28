@@ -5,6 +5,29 @@ const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] ||
   (typeof window !== "undefined" ? "" : "http://localhost:5000");
 
+// CSRF token cookie name (must match server-side constant)
+const CSRF_COOKIE_NAME = "csrf_token";
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+
+/**
+ * Get CSRF token from cookies (browser only)
+ */
+function getCsrfToken(): string | null {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return null; // Server-side rendering
+  }
+
+  const cookies = document.cookie.split(";");
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split("=");
+    if (name === CSRF_COOKIE_NAME) {
+      return value || null;
+    }
+  }
+
+  return null;
+}
+
 // Extend RequestInit to add custom options
 interface CustomRequestInit extends RequestInit {
   skipAuthRedirect?: boolean;
@@ -27,6 +50,17 @@ export class ApiClient {
       "Content-Type": "application/json",
       ...((fetchOptionsBase.headers as Record<string, string>) || {}),
     };
+
+    // Add CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
+    const method = options.method?.toUpperCase() || "GET";
+    const isStateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+
+    if (isStateChanging) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        headers[CSRF_HEADER_NAME] = csrfToken;
+      }
+    }
 
     // Configure Next.js fetch caching based on endpoint
     const fetchOptions: RequestInit = {

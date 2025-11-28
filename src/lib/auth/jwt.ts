@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { NextResponse } from "next/server";
 import { AuthenticatedUser } from "./middleware";
+import { generateCsrfToken, setCsrfCookie, clearCsrfCookie } from "./csrf";
 
 export interface JWTPayload {
   sub: string; // User ID
@@ -60,6 +61,11 @@ export function createAuthResponse(
     secure: isProduction,
   });
 
+  // Generate and set CSRF token for web clients
+  // Mobile clients using Bearer tokens don't need this
+  const csrfToken = generateCsrfToken();
+  setCsrfCookie(response, csrfToken);
+
   return response;
 }
 
@@ -79,6 +85,9 @@ export function createLogoutResponse(
     maxAge: 0,
     sameSite: "lax",
   });
+
+  // Clear CSRF token cookie
+  clearCsrfCookie(response);
 
   return response;
 }
