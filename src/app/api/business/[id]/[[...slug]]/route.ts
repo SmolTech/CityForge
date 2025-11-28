@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Check if slug matches (redirect if not)
     if (slug && card.slug && slug !== card.slug) {
       return NextResponse.json(
-        { redirect: `/api/business/${businessId}/${card.slug}` },
+        { redirect: `/business/${businessId}/${card.slug}` },
         { status: 301 }
       );
     }
