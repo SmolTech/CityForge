@@ -7,10 +7,11 @@ export const POST = withAuth(
   async (
     request: NextRequest,
     { user },
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
-      const submissionId = parseInt(params.id);
+      const { id } = await params;
+      const submissionId = parseInt(id);
 
       if (isNaN(submissionId)) {
         return NextResponse.json(
