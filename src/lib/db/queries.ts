@@ -126,8 +126,10 @@ export const cardQueries = {
           ...baseCard,
           averageRating:
             card.reviews.length > 0
-              ? card.reviews.reduce((sum, review) => sum + review.rating, 0) /
-                card.reviews.length
+              ? card.reviews.reduce(
+                  (sum, review) => sum + (review.rating ?? 0),
+                  0
+                ) / card.reviews.length
               : null,
           reviewCount: card.reviews.length,
         };
@@ -191,8 +193,10 @@ export const cardQueries = {
         ...(includeRatings && {
           averageRating:
             card.reviews.length > 0
-              ? card.reviews.reduce((sum, review) => sum + review.rating, 0) /
-                card.reviews.length
+              ? card.reviews.reduce(
+                  (sum, review) => sum + (review.rating ?? 0),
+                  0
+                ) / card.reviews.length
               : null,
           reviewCount: card.reviews.length,
         }),
