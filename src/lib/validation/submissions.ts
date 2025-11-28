@@ -165,7 +165,7 @@ export interface CardSubmissionData {
 }
 
 export interface CardModificationData {
-  name?: string;
+  name: string; // Required for modifications - specifies what to change name TO
   description?: string;
   websiteUrl?: string;
   phoneNumber?: string;
@@ -314,7 +314,8 @@ export function validateCardSubmission(
 
 /**
  * Validate card modification data
- * Same validation as submission but allows all fields to be optional
+ * Name is required for modifications (to specify what to change to)
+ * Other fields are optional
  */
 export function validateCardModification(
   data: ValidationInput
@@ -322,20 +323,20 @@ export function validateCardModification(
   const errors: ValidationError[] = [];
   const sanitizedData: Partial<CardModificationData> = {};
 
-  // Optional field: name
-  if (data.name !== undefined) {
-    if (typeof data.name !== "string") {
-      errors.push({ field: "name", message: "Name must be a string" });
+  // Required field: name (for modifications, we need to know what to change it TO)
+  if (!data.name || typeof data.name !== "string") {
+    errors.push({ field: "name", message: "Name is required" });
+  } else {
+    const name = sanitizeString(data.name);
+    if (name.length === 0) {
+      errors.push({ field: "name", message: "Name cannot be empty" });
+    } else if (name.length > 255) {
+      errors.push({
+        field: "name",
+        message: "Name must not exceed 255 characters",
+      });
     } else {
-      const name = sanitizeString(data.name);
-      if (name.length > 255) {
-        errors.push({
-          field: "name",
-          message: "Name must not exceed 255 characters",
-        });
-      } else if (name) {
-        sanitizedData.name = name;
-      }
+      sanitizedData.name = name;
     }
   }
 

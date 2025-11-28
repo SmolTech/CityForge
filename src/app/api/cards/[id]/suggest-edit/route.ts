@@ -108,7 +108,7 @@ export const POST = withAuth(
         submitted_by: number;
       } = {
         card_id: cardId,
-        name: validation.data.name ?? "", // Default to empty string if not provided
+        name: validation.data.name, // Now guaranteed to exist and be non-empty
         submitted_by: user.id,
       };
 
