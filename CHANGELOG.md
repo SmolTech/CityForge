@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2025-11-28
+
+### Fixed
+
+- Suggest edit feature validation error preventing users from submitting edits to business listings
+- Card modification validation schema to require name field consistently with database schema
+- Test assertions for card modification validation to match updated requirements
+
+### Changed
+
+- Made name field required for all card modifications to ensure data consistency
+- Updated validation tests to reflect new required field validation logic
+
 ## [0.9.4] - 2025-11-21
 
 ### Added
