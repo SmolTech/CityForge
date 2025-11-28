@@ -703,6 +703,8 @@ export const submissionQueries = {
         imageUrl: data.image_url || null,
         tagsText: data.tags_text || null,
         submittedBy: data.submitted_by,
+        status: "pending",
+        createdDate: new Date(),
       },
       include: {
         submitter: {
@@ -862,6 +864,8 @@ export const submissionQueries = {
         imageUrl: data.image_url || null,
         tagsText: data.tags_text || null,
         submittedBy: data.submitted_by,
+        status: "pending",
+        createdDate: new Date(),
       },
       include: {
         submitter: {

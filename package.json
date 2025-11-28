@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit",
     "semgrep": ".venv/bin/semgrep --config=auto --error .",
     "semgrep:ci": ".venv/bin/semgrep --config=auto --error --quiet .",
+    "fix-sequences": "node scripts/fix-sequences.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
