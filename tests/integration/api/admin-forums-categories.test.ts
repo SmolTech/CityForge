@@ -203,8 +203,9 @@ describe("Admin Forums Categories API", () => {
       expect(response.status).toBe(200);
       const data = await response.json();
 
-      expect(data).toHaveLength(2);
-      expect(data[0]).toMatchObject({
+      expect(data.categories).toHaveLength(2);
+      expect(data.total).toBe(2);
+      expect(data.categories[0]).toMatchObject({
         id: 1,
         name: "General Discussion",
         description: "General community discussion",
@@ -220,7 +221,7 @@ describe("Admin Forums Categories API", () => {
         post_count: 25,
       });
 
-      expect(data[1]).toMatchObject({
+      expect(data.categories[1]).toMatchObject({
         id: 2,
         name: "Announcements",
         description: "Official announcements",
@@ -263,7 +264,7 @@ describe("Admin Forums Categories API", () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toEqual([]);
+      expect(data).toEqual({ categories: [], total: 0 });
     });
 
     it("should handle database errors gracefully", async () => {
