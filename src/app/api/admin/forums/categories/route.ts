@@ -69,7 +69,10 @@ export const GET = withAuth(
         count: categoriesWithStats.length,
       });
 
-      return NextResponse.json(categoriesWithStats);
+      return NextResponse.json({
+        categories: categoriesWithStats,
+        total: categoriesWithStats.length,
+      });
     } catch (error) {
       logger.error("Error fetching admin forum categories", {
         error: error instanceof Error ? error.message : "Unknown error",
