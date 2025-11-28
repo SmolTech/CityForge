@@ -71,6 +71,26 @@ spec:
           volumeMounts:
             - name: opensearch-data
               mountPath: /usr/share/opensearch/data
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9200
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?local=true
+              port: 9200
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
       volumes:
         - name: opensearch-data
           persistentVolumeClaim:
