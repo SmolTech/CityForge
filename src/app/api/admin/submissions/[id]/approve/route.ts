@@ -50,17 +50,32 @@ export const POST = withAuth(
           .map((tag) => tag.trim())
           .filter((tag) => tag.length > 0);
 
-        // Find or create tags
-        const tags = await Promise.all(
-          tagNames.map(async (name) => {
+        // Find or create tags sequentially to avoid race conditions
+        const tags = [];
+        for (const name of tagNames) {
+          try {
             const tag = await prisma.tag.upsert({
               where: { name },
               create: { name },
               update: {},
             });
-            return tag;
-          })
-        );
+            tags.push(tag);
+          } catch (error: any) {
+            // If upsert fails due to race condition, try to find existing tag
+            if (error.code === "P2002") {
+              const existingTag = await prisma.tag.findUnique({
+                where: { name },
+              });
+              if (existingTag) {
+                tags.push(existingTag);
+              } else {
+                throw error; // Re-throw if it's a different error
+              }
+            } else {
+              throw error;
+            }
+          }
+        }
 
         tagIds = tags.map((tag) => tag.id);
       }
