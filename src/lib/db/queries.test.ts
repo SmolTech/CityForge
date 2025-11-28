@@ -351,6 +351,35 @@ describe("Database Queries", () => {
         expect(cardWithRatings?.reviewCount).toBe(3);
       });
 
+      it("should handle null ratings in average calculation", async () => {
+        const mockCards = [
+          {
+            id: 1,
+            name: "Test Business",
+            approved: true,
+            featured: false,
+            card_tags: [],
+            creator: { firstName: "John", lastName: "Doe" },
+            reviews: [
+              { rating: null }, // Null rating should be treated as 0
+              { rating: 4 },
+              { rating: 5 },
+            ],
+            createdDate: new Date(),
+          },
+        ];
+
+        mockFindMany.mockResolvedValue(mockCards);
+        mockCount.mockResolvedValue(1);
+
+        const result = await cardQueries.getCards({ includeRatings: true });
+
+        // (0 + 4 + 5) / 3 = 3.0 (null treated as 0)
+        const cardWithRatings = result.cards[0] as any;
+        expect(cardWithRatings?.averageRating).toBe(3.0);
+        expect(cardWithRatings?.reviewCount).toBe(3);
+      });
+
       it("should handle combined filters (tags + search + featured)", async () => {
         mockFindMany.mockResolvedValue([]);
         mockCount.mockResolvedValue(0);
@@ -472,6 +501,28 @@ describe("Database Queries", () => {
         const result = await cardQueries.getCardById(1, false, true);
 
         expect(result?.averageRating).toBe(4.0); // (5+4+3)/3 = 4.0
+        expect(result?.reviewCount).toBe(3);
+      });
+
+      it("should handle null ratings when including ratings", async () => {
+        const mockCard = {
+          id: 1,
+          name: "Test Business",
+          card_tags: [],
+          reviews: [
+            { rating: null, comment: "No rating given" },
+            { rating: 4, comment: "Good" },
+            { rating: 5, comment: "Excellent" },
+          ],
+          creator: { firstName: "John", lastName: "Doe" },
+          approver: { firstName: "Admin", lastName: "User" },
+        };
+
+        mockFindUnique.mockResolvedValue(mockCard);
+
+        const result = await cardQueries.getCardById(1, false, true);
+
+        expect(result?.averageRating).toBe(3.0); // (0+4+5)/3 = 3.0 (null treated as 0)
         expect(result?.reviewCount).toBe(3);
       });
 
