@@ -76,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
 
     const offset = (page - 1) * size;
-    const namespace = process.env["OPENSEARCH_NAMESPACE"] || "community";
+    const namespace = process.env["NAMESPACE"] || "community";
     const indexName = `${namespace}-resources`;
 
     // Create OpenSearch client
