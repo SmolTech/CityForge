@@ -6,7 +6,6 @@ import {
   CardModification,
   SubmissionsResponse,
   ModificationsResponse,
-  Tag,
   User,
 } from "./types";
 
@@ -189,30 +188,70 @@ export class AdminApi extends ApiClient {
   }
 
   // Tag management
-  async getTags(): Promise<Tag[]> {
-    return this.request<Tag[]>("/api/admin/tags");
+  async getTags(): Promise<{
+    tags: Array<{
+      id: number;
+      name: string;
+      created_date: string;
+      card_count: number;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    return this.request("/api/admin/tags");
   }
 
-  async createTag(data: { name: string }): Promise<Tag> {
-    return this.request<Tag>("/api/admin/tags", {
+  async getTag(tagId: number): Promise<{
+    tag: {
+      id: number;
+      name: string;
+      created_date: string;
+      card_count: number;
+    };
+  }> {
+    return this.request(`/api/admin/tags/${tagId}`);
+  }
+
+  async createTag(data: { name: string }): Promise<{
+    tag: {
+      id: number;
+      name: string;
+      created_date: string;
+      card_count: number;
+    };
+    message: string;
+  }> {
+    return this.request("/api/admin/tags", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateTag(tagName: string, data: { name: string }): Promise<Tag> {
-    return this.request<Tag>(`/api/admin/tags/${encodeURIComponent(tagName)}`, {
+  async updateTag(
+    tagId: number,
+    data: { name: string }
+  ): Promise<{
+    tag: {
+      id: number;
+      name: string;
+      created_date: string;
+      card_count: number;
+    };
+    message: string;
+  }> {
+    return this.request(`/api/admin/tags/${tagId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
-  async deleteTag(tagName: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(
-      `/api/admin/tags/${encodeURIComponent(tagName)}`,
-      {
-        method: "DELETE",
-      }
-    );
+  async deleteTag(tagId: number): Promise<{
+    message: string;
+    cards_affected: number;
+  }> {
+    return this.request(`/api/admin/tags/${tagId}`, {
+      method: "DELETE",
+    });
   }
 }
