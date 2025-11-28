@@ -1,10 +1,10 @@
-import { Tag } from "@/lib/api";
+import { AdminTag } from "@/lib/api";
 
 interface AdminTagsProps {
-  tags: Tag[];
+  tags: AdminTag[];
   onShowAddTag: () => void;
-  onSetEditingTag: (tag: Tag) => void;
-  onSetDeletingTag: (tag: Tag) => void;
+  onSetEditingTag: (tag: AdminTag) => void;
+  onSetDeletingTag: (tag: AdminTag) => void;
 }
 
 export default function AdminTags({
@@ -61,20 +61,26 @@ export default function AdminTags({
                   Usage Count
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Created Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {tags.map((tag) => (
-                <tr key={tag.name}>
+                <tr key={tag.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                       {tag.name}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {tag.count} {tag.count === 1 ? "card" : "cards"}
+                    {tag.card_count} {tag.card_count === 1 ? "card" : "cards"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(tag.created_date).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button

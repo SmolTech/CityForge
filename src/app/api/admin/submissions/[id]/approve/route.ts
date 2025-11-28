@@ -60,9 +60,14 @@ export const POST = withAuth(
               update: {},
             });
             tags.push(tag);
-          } catch (error: any) {
+          } catch (error: unknown) {
             // If upsert fails due to race condition, try to find existing tag
-            if (error.code === "P2002") {
+            if (
+              error &&
+              typeof error === "object" &&
+              "code" in error &&
+              error.code === "P2002"
+            ) {
               const existingTag = await prisma.tag.findUnique({
                 where: { name },
               });

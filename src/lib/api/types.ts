@@ -88,6 +88,13 @@ export interface Tag {
   count: number;
 }
 
+export interface AdminTag {
+  id: number;
+  name: string;
+  created_date: string;
+  card_count: number;
+}
+
 export interface CardsResponse {
   cards: Card[];
   total: number;
