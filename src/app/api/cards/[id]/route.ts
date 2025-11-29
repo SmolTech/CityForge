@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       includeRatings,
     });
 
-    // Get the card data
+    // Get the card data (already in snake_case format from getCardById)
     const cardData = await cardQueries.getCardById(
       cardId,
       includeShareUrls,
@@ -44,78 +44,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       throw new NotFoundError("Card");
     }
 
-    // Transform to snake_case format to match Flask API
-    const transformedCard: Record<string, unknown> = {
-      id: cardData.id,
-      name: cardData.name,
-      description: cardData.description,
-      website_url: cardData.websiteUrl,
-      phone_number: cardData.phoneNumber,
-      email: cardData.email,
-      address: cardData.address,
-      address_override_url: cardData.addressOverrideUrl,
-      contact_name: cardData.contactName,
-      featured: cardData.featured,
-      image_url: cardData.imageUrl,
-      approved: cardData.approved,
-      created_date: cardData.createdDate?.toISOString(),
-      updated_date: cardData.updatedDate?.toISOString(),
-      approved_date: cardData.approvedDate?.toISOString() || null,
-      tags: cardData.card_tags.map((ct) => ct.tags.name),
-    };
-
-    // Add optional fields if requested
-    if (includeShareUrls) {
-      const cardWithUrls = cardData as typeof cardData & {
-        slug?: string;
-        shareUrl?: string;
-      };
-      if (cardWithUrls.slug && cardWithUrls.shareUrl) {
-        transformedCard["slug"] = cardWithUrls.slug;
-        transformedCard["share_url"] = cardWithUrls.shareUrl;
-      }
-    }
-
-    if (cardData.creator) {
-      transformedCard["creator"] = {
-        first_name: cardData.creator.firstName,
-        last_name: cardData.creator.lastName,
-      };
-    }
-
-    if (cardData.approver) {
-      transformedCard["approver"] = {
-        first_name: cardData.approver.firstName,
-        last_name: cardData.approver.lastName,
-      };
-    }
-
-    if (includeRatings) {
-      const cardWithRatings = cardData as typeof cardData & {
-        averageRating?: number;
-        reviewCount?: number;
-      };
-      transformedCard["average_rating"] = cardWithRatings.averageRating;
-      transformedCard["review_count"] = cardWithRatings.reviewCount;
-
-      // Include reviews if present
-      if (cardData.reviews && Array.isArray(cardData.reviews)) {
-        transformedCard["reviews"] = cardData.reviews.map((review) => ({
-          rating: review.rating,
-          comment: review.comment,
-          created_date: review.createdDate?.toISOString(),
-          user: review.user
-            ? {
-                first_name: review.user.firstName,
-                last_name: review.user.lastName,
-              }
-            : null,
-        }));
-      }
-    }
-
     // Return response matching Flask API format
-    const response = NextResponse.json(transformedCard);
+    const response = NextResponse.json(cardData);
 
     // Set cache headers to match Flask API
     response.headers.set("Cache-Control", "public, max-age=300");
