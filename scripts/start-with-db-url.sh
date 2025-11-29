@@ -8,7 +8,7 @@ echo "Starting with DATABASE_URL: postgresql://${POSTGRES_USER}:***@${POSTGRES_H
 
 # Run database migrations/schema updates
 echo "Applying database schema changes..."
-npx prisma db push --accept-data-loss
+npx prisma db push
 
 # Start the Next.js server
 exec node server.js
