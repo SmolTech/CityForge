@@ -56,6 +56,9 @@ export default function AdminForumsPage() {
   );
   const [rejectReason, setRejectReason] = useState("");
 
+  // Delete thread state
+  const [deletingThreadId, setDeletingThreadId] = useState<number | null>(null);
+
   useEffect(() => {
     loadData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -208,6 +211,20 @@ export default function AdminForumsPage() {
     } catch (error) {
       logger.error("Failed to lock thread:", error);
       alert("Failed to lock thread. Please try again.");
+    }
+  };
+
+  const confirmDeleteThread = async () => {
+    if (!deletingThreadId) return;
+
+    try {
+      await apiClient.adminDeleteForumThread(deletingThreadId);
+      setDeletingThreadId(null);
+      await loadReports(); // Reload reports since the thread is deleted
+      alert("Thread deleted successfully");
+    } catch (error) {
+      logger.error("Failed to delete thread:", error);
+      alert("Failed to delete thread. Please try again.");
     }
   };
 
@@ -798,6 +815,14 @@ export default function AdminForumsPage() {
                               >
                                 Lock Thread
                               </button>
+                              <button
+                                onClick={() =>
+                                  setDeletingThreadId(report.thread_id!)
+                                }
+                                className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-black text-sm"
+                              >
+                                Delete Thread
+                              </button>
                             </>
                           )}
                         </div>
@@ -874,6 +899,35 @@ export default function AdminForumsPage() {
                     setRejectingRequestId(null);
                     setRejectReason("");
                   }}
+                  className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Thread Confirmation Modal */}
+        {deletingThreadId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Delete Thread
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this thread? All posts in this
+                thread will also be deleted. This action cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmDeleteThread}
+                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                >
+                  Delete Thread
+                </button>
+                <button
+                  onClick={() => setDeletingThreadId(null)}
                   className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Cancel
