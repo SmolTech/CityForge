@@ -33,11 +33,11 @@ export const POST = withAuth(
           {
             error: {
               message: "Validation failed",
-              code: 400,
+              code: 422,
               details: validation.errors,
             },
           },
-          { status: 400 }
+          { status: 422 }
         );
       }
 
@@ -144,7 +144,18 @@ export const POST = withAuth(
         },
       };
 
-      return NextResponse.json(responseData, { status: 201 });
+      return NextResponse.json(
+        {
+          post: responseData,
+          thread: {
+            id: post.thread.id,
+            title: post.thread.title,
+            slug: post.thread.slug,
+            category_id: post.thread.categoryId,
+          },
+        },
+        { status: 201 }
+      );
     } catch (error) {
       logger.error("Error creating forum post", {
         error: error instanceof Error ? error.message : "Unknown error",

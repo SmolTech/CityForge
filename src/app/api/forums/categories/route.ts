@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
             id: category.creator.id,
             first_name: category.creator.firstName,
             last_name: category.creator.lastName,
+            username: `${category.creator.firstName} ${category.creator.lastName}`,
           }
         : null,
     }));
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
       count: transformedCategories.length,
     });
 
-    const response = NextResponse.json(transformedCategories);
+    const response = NextResponse.json({ categories: transformedCategories });
     response.headers.set("Cache-Control", "public, max-age=300");
     return response;
   } catch (error) {

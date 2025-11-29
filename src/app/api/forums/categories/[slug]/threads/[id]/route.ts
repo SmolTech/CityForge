@@ -100,6 +100,11 @@ export const GET = withAuth(
           first_name: post.creator.firstName,
           last_name: post.creator.lastName,
         },
+        author: {
+          id: post.creator.id,
+          first_name: post.creator.firstName,
+          last_name: post.creator.lastName,
+        },
       }));
 
       // Transform thread to match Flask API format
@@ -108,8 +113,8 @@ export const GET = withAuth(
         category_id: thread.categoryId,
         title: thread.title,
         slug: thread.slug,
-        is_pinned: thread.isPinned,
-        is_locked: thread.isLocked,
+        is_pinned: thread.isPinned ?? false,
+        is_locked: thread.isLocked ?? false,
         report_count: thread.reportCount,
         created_by: thread.createdBy,
         created_date:
@@ -139,7 +144,7 @@ export const GET = withAuth(
         categorySlug: slug,
       });
 
-      const response = NextResponse.json(responseData);
+      const response = NextResponse.json({ thread: responseData });
 
       // Cache for 2 minutes (individual threads are viewed frequently)
       response.headers.set("Cache-Control", "public, max-age=120");

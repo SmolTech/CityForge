@@ -88,7 +88,7 @@ export async function GET(
       postCount,
     });
 
-    const response = NextResponse.json(categoryData);
+    const response = NextResponse.json({ category: categoryData });
 
     // Cache for 5 minutes
     response.headers.set("Cache-Control", "public, max-age=300");
