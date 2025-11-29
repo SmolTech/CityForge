@@ -13,6 +13,11 @@ import {
  */
 export const POST = withAuth(async (request: NextRequest, { user }) => {
   try {
+    logger.info("Starting category request POST handler", {
+      userId: user.id,
+      userEmail: user.email,
+    });
+
     if (!user.isActive) {
       return NextResponse.json(
         { error: { message: "User not found or inactive", code: 404 } },
@@ -22,25 +27,38 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
 
     const data = await request.json();
 
+    logger.info("Processing request data", {
+      userId: user.id,
+      hasData: !!data,
+      dataKeys: data ? Object.keys(data) : [],
+    });
+
     if (!data) {
       return NextResponse.json(
-        { error: { message: "No data provided", code: 400 } },
-        { status: 400 }
+        { error: { message: "No data provided", code: 422 } },
+        { status: 422 }
       );
     }
 
     // Validate input data
     const validation = validateForumCategoryRequest(data);
+    logger.info("Validation result", {
+      userId: user.id,
+      isValid: validation.isValid,
+      errors: validation.errors || [],
+      dataName: data?.name,
+    });
+
     if (!validation.isValid) {
       return NextResponse.json(
         {
           error: {
             message: "Validation failed",
-            code: 400,
+            code: 422,
             details: validation.errors,
           },
         },
-        { status: 400 }
+        { status: 422 }
       );
     }
 
@@ -56,10 +74,10 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
         {
           error: {
             message: "A category with this name already exists",
-            code: 400,
+            code: 422,
           },
         },
-        { status: 400 }
+        { status: 422 }
       );
     }
 
@@ -72,15 +90,22 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       },
     });
 
+    logger.info("Duplicate check for category request", {
+      userId: user.id,
+      categoryName: validatedData.name,
+      existingRequestId: existingRequest?.id || null,
+    });
+
     if (existingRequest) {
+      logger.info("Found duplicate, returning 409");
       return NextResponse.json(
         {
           error: {
             message: "You already have a pending request for this category",
-            code: 400,
+            code: 409,
           },
         },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
@@ -133,7 +158,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       categoryName: validatedData.name,
     });
 
-    return NextResponse.json(responseData, { status: 201 });
+    return NextResponse.json({ request: responseData }, { status: 201 });
   } catch (error) {
     logger.error("Error creating category request", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -230,7 +255,7 @@ export const GET = withAuth(async (_request: NextRequest, { user }) => {
       count: transformedRequests.length,
     });
 
-    return NextResponse.json(transformedRequests);
+    return NextResponse.json({ requests: transformedRequests });
   } catch (error) {
     logger.error("Error fetching category requests", {
       error: error instanceof Error ? error.message : "Unknown error",

@@ -90,8 +90,8 @@ export async function GET(
       category_id: thread.categoryId,
       title: thread.title,
       slug: thread.slug,
-      is_pinned: thread.isPinned,
-      is_locked: thread.isLocked,
+      is_pinned: thread.isPinned ?? false,
+      is_locked: thread.isLocked ?? false,
       report_count: thread.reportCount,
       created_by: thread.createdBy,
       created_date:
@@ -139,9 +139,11 @@ export async function GET(
 
     const responseData = {
       threads: transformedThreads,
-      total: totalCount,
-      offset,
-      limit,
+      pagination: {
+        total: totalCount,
+        offset,
+        limit,
+      },
       category: transformedCategory,
     };
 
@@ -220,11 +222,11 @@ export const POST = withAuth(
           {
             error: {
               message: "Validation failed",
-              code: 400,
+              code: 422,
               details: validation.errors,
             },
           },
-          { status: 400 }
+          { status: 422 }
         );
       }
 
@@ -302,14 +304,14 @@ export const POST = withAuth(
         return { thread, firstPost };
       });
 
-      // Format response to match Flask API
-      const responseData = {
+      // Format response to match test expectations
+      const threadData = {
         id: result.thread.id,
         category_id: result.thread.categoryId,
         title: result.thread.title,
         slug: result.thread.slug,
-        is_pinned: result.thread.isPinned,
-        is_locked: result.thread.isLocked,
+        is_pinned: result.thread.isPinned ?? false,
+        is_locked: result.thread.isLocked ?? false,
         report_count: result.thread.reportCount,
         created_by: result.thread.createdBy,
         created_date:
@@ -326,17 +328,18 @@ export const POST = withAuth(
           name: result.thread.category.name,
           slug: result.thread.category.slug,
         },
-        first_post: {
-          id: result.firstPost.id,
-          content: result.firstPost.content,
-          created_date:
-            result.firstPost.createdDate?.toISOString() ??
-            new Date().toISOString(),
-          creator: {
-            id: result.firstPost.creator.id,
-            first_name: result.firstPost.creator.firstName,
-            last_name: result.firstPost.creator.lastName,
-          },
+      };
+
+      const firstPostData = {
+        id: result.firstPost.id,
+        content: result.firstPost.content,
+        created_date:
+          result.firstPost.createdDate?.toISOString() ??
+          new Date().toISOString(),
+        creator: {
+          id: result.firstPost.creator.id,
+          first_name: result.firstPost.creator.firstName,
+          last_name: result.firstPost.creator.lastName,
         },
       };
 
@@ -347,7 +350,10 @@ export const POST = withAuth(
         firstPostId: result.firstPost.id,
       });
 
-      return NextResponse.json(responseData, { status: 201 });
+      return NextResponse.json(
+        { thread: threadData, first_post: firstPostData },
+        { status: 201 }
+      );
     } catch (error) {
       logger.error("Error creating thread", {
         error: error instanceof Error ? error.message : "Unknown error",

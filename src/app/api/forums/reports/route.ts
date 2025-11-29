@@ -30,17 +30,42 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
 
     const reportData = validation.data!;
 
-    // Validate required fields for report
-    if (!body.thread_id || typeof body.thread_id !== "number") {
+    // Validate required fields for report - either thread_id or post_id must be provided
+    if (
+      (!body.thread_id || typeof body.thread_id !== "number") &&
+      (!body.post_id || typeof body.post_id !== "number")
+    ) {
       return NextResponse.json(
-        { error: { message: "Thread ID is required", code: 400 } },
-        { status: 400 }
+        {
+          error: {
+            message: "Either thread_id or post_id is required",
+            code: 422,
+          },
+        },
+        { status: 422 }
       );
     }
 
-    const threadId = body.thread_id;
+    let threadId = body.thread_id;
     const postId =
       body.post_id && typeof body.post_id === "number" ? body.post_id : null;
+
+    // If only post_id is provided, look up the thread_id
+    if (!threadId && postId) {
+      const post = await prisma.forumPost.findFirst({
+        where: { id: postId },
+        select: { threadId: true },
+      });
+
+      if (!post) {
+        return NextResponse.json(
+          { error: { message: "Post not found", code: 404 } },
+          { status: 404 }
+        );
+      }
+
+      threadId = post.threadId;
+    }
 
     logger.info(`Creating forum report`, {
       userId: user.id,
@@ -125,6 +150,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
         reason: reportData.reason,
         details: reportData.details || null,
         reportedBy: user.id,
+        status: "pending",
       },
       include: {
         reporter: {
@@ -194,7 +220,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
         : null,
     };
 
-    return NextResponse.json(responseData, { status: 201 });
+    return NextResponse.json({ report: responseData }, { status: 201 });
   } catch (error) {
     logger.error("Error creating forum report", {
       error: error instanceof Error ? error.message : "Unknown error",
