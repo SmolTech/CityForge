@@ -30,24 +30,35 @@ function getPrisma(): PrismaClient {
 export async function cleanDatabase() {
   const db = getPrisma();
 
-  // Clean up in reverse order of dependencies
-  await db.forumPost.deleteMany({});
-  await db.forumThread.deleteMany({});
-  await db.forumCategory.deleteMany({});
-  await db.forumCategoryRequest.deleteMany({});
-  await db.forumReport.deleteMany({});
-  await db.cardModification.deleteMany({});
-  await db.cardSubmission.deleteMany({});
-  await db.card_tags.deleteMany({});
-  await db.review.deleteMany({});
-  await db.tag.deleteMany({});
-  await db.card.deleteMany({});
-  await db.resourceItem.deleteMany({});
-  await db.resourceCategory.deleteMany({});
-  await db.quickAccessItem.deleteMany({});
-  await db.resourceConfig.deleteMany({});
-  await db.tokenBlacklist.deleteMany({});
-  await db.user.deleteMany({});
+  try {
+    // Clean up in reverse order of dependencies
+    // Use transaction to ensure all deletes succeed or rollback
+    await db.$transaction([
+      db.forumPost.deleteMany({}),
+      db.forumThread.deleteMany({}),
+      db.forumCategory.deleteMany({}),
+      db.forumCategoryRequest.deleteMany({}),
+      db.forumReport.deleteMany({}),
+      db.cardModification.deleteMany({}),
+      db.cardSubmission.deleteMany({}),
+      db.card_tags.deleteMany({}),
+      db.review.deleteMany({}),
+      db.tag.deleteMany({}),
+      db.card.deleteMany({}),
+      db.resourceItem.deleteMany({}),
+      db.resourceCategory.deleteMany({}),
+      db.quickAccessItem.deleteMany({}),
+      db.resourceConfig.deleteMany({}),
+      db.tokenBlacklist.deleteMany({}),
+      db.user.deleteMany({}),
+    ]);
+
+    // Small delay to ensure cleanup completes
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } catch (error) {
+    console.error("Database cleanup failed:", error);
+    throw error;
+  }
 }
 
 /**
@@ -66,17 +77,26 @@ export async function createTestUser(userData: {
   const db = getPrisma();
   const bcrypt = await import("bcrypt");
 
-  return await db.user.create({
+  // Hash the password first and ensure it completes
+  const passwordHash = await bcrypt.hash(userData.password, 10);
+
+  // Create the user
+  const user = await db.user.create({
     data: {
       email: userData.email,
       firstName: userData.firstName,
       lastName: userData.lastName,
-      passwordHash: await bcrypt.hash(userData.password, 10),
+      passwordHash,
       role: userData.role || "user",
       isActive: userData.isActive ?? true,
       emailVerified: userData.emailVerified ?? true, // Auto-verify for E2E tests
     },
   });
+
+  // Small delay to ensure user is fully committed to database
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  return user;
 }
 
 /**
