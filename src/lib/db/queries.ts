@@ -173,32 +173,57 @@ export const cardQueries = {
 
       if (!card) return null;
 
-      // Transform data to match Flask API format
+      // Transform data to match Flask API format (snake_case)
       const transformedCard = {
-        ...card,
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        website_url: card.websiteUrl,
+        phone_number: card.phoneNumber,
+        email: card.email,
+        address: card.address,
+        address_override_url: card.addressOverrideUrl,
+        contact_name: card.contactName,
+        image_url: card.imageUrl,
+        featured: card.featured || false,
+        approved: card.approved || false,
+        created_date: card.createdDate?.toISOString(),
+        updated_date: card.updatedDate?.toISOString(),
+        created_by: card.createdBy,
+        approved_by: card.approvedBy,
+        approved_date: card.approvedDate?.toISOString(),
         // Transform card_tags to simple tags array
         tags: card.card_tags?.map((ct) => ct.tags.name) || [],
+        // Include creator info if available
+        creator: card.creator
+          ? {
+              first_name: card.creator.firstName,
+              last_name: card.creator.lastName,
+            }
+          : undefined,
+        // Include reviews if requested
+        reviews: card.reviews,
         // Generate slug if includeShareUrls
         ...(includeShareUrls && {
           slug: card.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/(^-|-$)/g, ""),
-          shareUrl: `/business/${card.id}/${card.name
+          share_url: `/business/${card.id}/${card.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/(^-|-$)/g, "")}`,
         }),
         // Add rating info if includeRatings
         ...(includeRatings && {
-          averageRating:
+          average_rating:
             card.reviews.length > 0
               ? card.reviews.reduce(
                   (sum, review) => sum + (review.rating ?? 0),
                   0
                 ) / card.reviews.length
               : null,
-          reviewCount: card.reviews.length,
+          review_count: card.reviews.length,
         }),
       };
 
