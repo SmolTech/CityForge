@@ -8,6 +8,7 @@ import {
   RateLimitError,
   ValidationError,
 } from "@/lib/errors";
+import { sendSubmissionNotification } from "@/lib/email/admin-notifications";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -111,6 +112,22 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       submissionData.tags_text = validation.data.tagsText;
 
     const submission = await submissionQueries.createSubmission(submissionData);
+
+    // Send email notification to admins
+    try {
+      await sendSubmissionNotification(submission, {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      });
+    } catch (emailError) {
+      // Log email error but don't fail the submission
+      console.error(
+        "Failed to send submission notification email:",
+        emailError
+      );
+    }
 
     // Return the submission data directly (already in Flask API format from queries.ts)
     return NextResponse.json(submission, { status: 201 });

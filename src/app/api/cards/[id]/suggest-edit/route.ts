@@ -9,6 +9,7 @@ import {
   RateLimitError,
   ValidationError,
 } from "@/lib/errors";
+import { sendModificationNotification } from "@/lib/email/admin-notifications";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -134,6 +135,29 @@ export const POST = withAuth(
 
       const modification =
         await submissionQueries.createModification(modificationData);
+
+      // Send email notification to admins
+      try {
+        await sendModificationNotification(
+          modification,
+          {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+          },
+          {
+            id: existingCard.id,
+            name: existingCard.name,
+          }
+        );
+      } catch (emailError) {
+        // Log email error but don't fail the modification
+        console.error(
+          "Failed to send modification notification email:",
+          emailError
+        );
+      }
 
       // Return the modification data directly (already in Flask API format from queries.ts)
       return NextResponse.json(modification, { status: 201 });
