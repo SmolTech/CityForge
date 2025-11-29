@@ -2,9 +2,26 @@ import { getEmailService } from "@/lib/email";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
+// Type definitions for submission and modification data
+interface SubmissionData {
+  id: number;
+  name: string;
+  description?: string | null;
+  website_url?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
+  address?: string | null;
+  contact_name?: string | null;
+  tags_text?: string | null;
+  created_date?: Date | string;
+}
+
+// Modification data has the same structure as submission data
+type ModificationData = SubmissionData;
+
 export interface AdminNotificationData {
   type: "submission" | "modification";
-  data: any;
+  data: SubmissionData | ModificationData;
   user: {
     id: number;
     firstName: string;
@@ -44,7 +61,7 @@ async function getAdminEmails(): Promise<string[]> {
  * Send email notification to all admins for new submissions
  */
 export async function sendSubmissionNotification(
-  submission: any,
+  submission: SubmissionData,
   submitter: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
   const emailService = getEmailService();
@@ -287,7 +304,7 @@ Review submission: ${adminUrl}
  * Send email notification to all admins for card modification suggestions
  */
 export async function sendModificationNotification(
-  modification: any,
+  modification: ModificationData,
   submitter: { id: number; firstName: string; lastName: string; email: string },
   card: { id: number; name: string }
 ): Promise<void> {

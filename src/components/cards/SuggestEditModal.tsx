@@ -88,17 +88,23 @@ export default function SuggestEditModal({
         setSuccess(false);
         onClose();
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Failed to submit suggestion:", error);
 
+      // Type guard for error object with statusCode
+      const apiError = error as {
+        statusCode?: number;
+        message?: { errors?: Record<string, string[]> };
+      };
+
       // Handle rate limit and validation errors
-      if (error.statusCode === 429) {
+      if (apiError.statusCode === 429) {
         setError(
           "You've reached the rate limit (10 suggestions per hour). Please try again later."
         );
-      } else if (error.statusCode === 422 && error.message?.errors) {
+      } else if (apiError.statusCode === 422 && apiError.message?.errors) {
         // Handle validation errors
-        const validationErrors = Object.values(error.message.errors).flat();
+        const validationErrors = Object.values(apiError.message.errors).flat();
         setError(validationErrors.join(". "));
       } else {
         setError("Failed to submit suggestion. Please try again.");

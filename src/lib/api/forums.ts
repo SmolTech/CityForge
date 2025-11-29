@@ -137,8 +137,9 @@ export class ForumsApi extends ApiClient {
 
   // Admin forum methods
   async adminGetForumCategories(): Promise<ForumCategory[]> {
-    const response: any = await this.request("/api/admin/forums/categories");
-    return response.categories || response; // Handle both wrapped and direct response formats
+    const response: { categories?: ForumCategory[] } | ForumCategory[] =
+      await this.request("/api/admin/forums/categories");
+    return Array.isArray(response) ? response : response.categories || [];
   }
 
   async adminCreateForumCategory(data: {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   checkAuthRateLimit,
@@ -27,9 +27,16 @@ function createMockRequest(ip?: string): NextRequest {
 
 describe("Authentication Rate Limiting", () => {
   beforeEach(() => {
+    // Enable rate limiting for testing
+    process.env["TEST_RATE_LIMITING"] = "true";
     // Clear rate limit store and mocks between tests
     clearRateLimitStore();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Clean up environment variable
+    delete process.env["TEST_RATE_LIMITING"];
   });
 
   describe("checkAuthRateLimit", () => {
