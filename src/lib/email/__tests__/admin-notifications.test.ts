@@ -4,6 +4,16 @@ import {
   sendModificationNotification,
 } from "../admin-notifications";
 
+// Define a minimal email service interface for testing
+interface EmailService {
+  sendEmail: (params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }) => Promise<void>;
+}
+
 // Mock the dependencies
 vi.mock("../index", () => ({
   getEmailService: vi.fn(),
@@ -67,18 +77,46 @@ describe("Admin Notifications", () => {
     it("should send emails to admin users when email service is configured", async () => {
       // Mock email service
       const mockSendEmail = vi.fn().mockResolvedValue(undefined);
-      const mockEmailService = {
+      const mockEmailService: EmailService = {
         sendEmail: mockSendEmail,
       };
 
       const { getEmailService } = await import("../index");
-      vi.mocked(getEmailService).mockReturnValue(mockEmailService);
+      vi.mocked(getEmailService).mockReturnValue(mockEmailService as any);
 
-      // Mock admin users
+      // Mock admin users - include minimal required fields for Prisma User type
       const { prisma } = await import("../../db/client");
       vi.mocked(prisma.user.findMany).mockResolvedValue([
-        { email: "admin1@example.com" },
-        { email: "admin2@example.com" },
+        {
+          id: 1,
+          email: "admin1@example.com",
+          passwordHash: "",
+          firstName: "",
+          lastName: "",
+          role: "admin",
+          isActive: true,
+          createdDate: new Date(),
+          lastLogin: null,
+          isSupporterFlag: false,
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationSentAt: null,
+        },
+        {
+          id: 2,
+          email: "admin2@example.com",
+          passwordHash: "",
+          firstName: "",
+          lastName: "",
+          role: "admin",
+          isActive: true,
+          createdDate: new Date(),
+          lastLogin: null,
+          isSupporterFlag: false,
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationSentAt: null,
+        },
       ]);
 
       const submission = {
@@ -145,16 +183,30 @@ describe("Admin Notifications", () => {
 
     it("should send emails to admin users for modification notifications", async () => {
       const mockSendEmail = vi.fn().mockResolvedValue(undefined);
-      const mockEmailService = {
+      const mockEmailService: EmailService = {
         sendEmail: mockSendEmail,
       };
 
       const { getEmailService } = await import("../index");
-      vi.mocked(getEmailService).mockReturnValue(mockEmailService);
+      vi.mocked(getEmailService).mockReturnValue(mockEmailService as any);
 
       const { prisma } = await import("../../db/client");
       vi.mocked(prisma.user.findMany).mockResolvedValue([
-        { email: "admin@example.com" },
+        {
+          id: 1,
+          email: "admin@example.com",
+          passwordHash: "",
+          firstName: "",
+          lastName: "",
+          role: "admin",
+          isActive: true,
+          createdDate: new Date(),
+          lastLogin: null,
+          isSupporterFlag: false,
+          emailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationSentAt: null,
+        },
       ]);
 
       const modification = {
