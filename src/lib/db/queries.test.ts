@@ -479,7 +479,7 @@ describe("Database Queries", () => {
         const result = await cardQueries.getCardById(1, true);
 
         expect(result?.slug).toBe("test-business-caf");
-        expect(result?.shareUrl).toBe("/business/1/test-business-caf");
+        expect(result?.share_url).toBe("/business/1/test-business-caf");
       });
 
       it("should include ratings when requested", async () => {
@@ -500,8 +500,8 @@ describe("Database Queries", () => {
 
         const result = await cardQueries.getCardById(1, false, true);
 
-        expect(result?.averageRating).toBe(4.0); // (5+4+3)/3 = 4.0
-        expect(result?.reviewCount).toBe(3);
+        expect(result?.average_rating).toBe(4.0); // (5+4+3)/3 = 4.0
+        expect(result?.review_count).toBe(3);
       });
 
       it("should handle null ratings when including ratings", async () => {
@@ -522,8 +522,8 @@ describe("Database Queries", () => {
 
         const result = await cardQueries.getCardById(1, false, true);
 
-        expect(result?.averageRating).toBe(3.0); // (0+4+5)/3 = 3.0 (null treated as 0)
-        expect(result?.reviewCount).toBe(3);
+        expect(result?.average_rating).toBe(3.0); // (0+4+5)/3 = 3.0 (null treated as 0)
+        expect(result?.review_count).toBe(3);
       });
 
       it("should handle cards with no reviews when including ratings", async () => {
@@ -540,8 +540,8 @@ describe("Database Queries", () => {
 
         const result = await cardQueries.getCardById(1, false, true);
 
-        expect(result?.averageRating).toBeNull();
-        expect(result?.reviewCount).toBe(0);
+        expect(result?.average_rating).toBeNull();
+        expect(result?.review_count).toBe(0);
       });
 
       it("should handle database errors gracefully", async () => {
