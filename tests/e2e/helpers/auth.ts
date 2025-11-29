@@ -25,17 +25,30 @@ export async function registerUser(
   await page.fill('input[name="password"]', userData.password);
   await page.fill('input[name="confirmPassword"]', userData.password);
 
+  // Wait for the API response after clicking submit
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/register") && response.status() !== 0,
+    { timeout: 10000 }
+  );
+
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait a bit for any potential error messages to appear
-  await page.waitForTimeout(2000);
+  // Wait for the registration API response
+  const response = await responsePromise;
+  const statusCode = response.status();
 
-  // Check if there are any error messages first
-  const errorElement = page.locator('[data-testid="register-error"]');
-  if (await errorElement.isVisible()) {
-    const errorText = await errorElement.textContent();
-    throw new Error("Registration failed with error: " + errorText);
+  // Check if registration failed
+  if (statusCode !== 200 && statusCode !== 201) {
+    // Wait a bit for error message to render
+    await page.waitForTimeout(500);
+    const errorElement = page.locator('[data-testid="register-error"]');
+    if (await errorElement.isVisible()) {
+      const errorText = await errorElement.textContent();
+      throw new Error("Registration failed with error: " + errorText);
+    }
+    throw new Error(`Registration failed with status code: ${statusCode}`);
   }
 
   // Wait for successful authentication and dashboard access
@@ -58,17 +71,30 @@ export async function loginUser(
   await page.fill('input[name="email"]', credentials.email);
   await page.fill('input[name="password"]', credentials.password);
 
+  // Wait for the API response after clicking submit
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/login") && response.status() !== 0,
+    { timeout: 10000 }
+  );
+
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait a bit for any potential error messages to appear
-  await page.waitForTimeout(2000);
+  // Wait for the login API response
+  const response = await responsePromise;
+  const statusCode = response.status();
 
-  // Check if there are any error messages first
-  const errorElement = page.locator('[data-testid="login-error"]');
-  if (await errorElement.isVisible()) {
-    const errorText = await errorElement.textContent();
-    throw new Error("Login failed with error: " + errorText);
+  // Check if login failed
+  if (statusCode !== 200) {
+    // Wait a bit for error message to render
+    await page.waitForTimeout(500);
+    const errorElement = page.locator('[data-testid="login-error"]');
+    if (await errorElement.isVisible()) {
+      const errorText = await errorElement.textContent();
+      throw new Error("Login failed with error: " + errorText);
+    }
+    throw new Error(`Login failed with status code: ${statusCode}`);
   }
 
   // Wait for successful authentication and dashboard access
