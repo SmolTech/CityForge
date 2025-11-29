@@ -14,7 +14,9 @@ export class ForumsApi extends ApiClient {
   // Public forum methods
   async getForumCategories(includeStats = false): Promise<ForumCategory[]> {
     const params = includeStats ? "?include_stats=true" : "";
-    return this.request(`/api/forums/categories${params}`);
+    const response: { categories?: ForumCategory[] } | ForumCategory[] =
+      await this.request(`/api/forums/categories${params}`);
+    return Array.isArray(response) ? response : response.categories || [];
   }
 
   async getForumCategory(slug: string): Promise<ForumCategory> {
