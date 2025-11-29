@@ -51,7 +51,7 @@ export default function ThreadPage() {
     try {
       const [categoryData, threadData] = await Promise.all([
         apiClient.getForumCategory(categorySlug),
-        apiClient.getForumThread(threadId),
+        apiClient.getForumThread(threadId, categorySlug),
       ]);
 
       setCategory(categoryData);

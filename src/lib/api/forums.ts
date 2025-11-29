@@ -35,8 +35,13 @@ export class ForumsApi extends ApiClient {
     );
   }
 
-  async getForumThread(threadId: number): Promise<ForumThread> {
-    return this.request(`/api/forums/threads/${threadId}`);
+  async getForumThread(
+    threadId: number,
+    categorySlug: string
+  ): Promise<ForumThread> {
+    return this.request(
+      `/api/forums/categories/${categorySlug}/threads/${threadId}`
+    );
   }
 
   async createForumThread(
