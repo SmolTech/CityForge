@@ -137,6 +137,16 @@ export function checkAuthRateLimit(
     return { allowed: true, config: defaultConfig };
   }
 
+  // Disable rate limiting in test/CI environments to allow E2E tests to run
+  if (process.env["NODE_ENV"] === "test" || process.env["CI"] === "true") {
+    return {
+      allowed: true,
+      remainingRequests: config.maxRequests,
+      resetTime: Date.now() + config.windowMs,
+      config,
+    };
+  }
+
   const clientIP = getClientIP(request);
   const now = Date.now();
   const key = `auth:${endpoint}:${clientIP}`;
