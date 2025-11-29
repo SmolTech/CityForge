@@ -743,6 +743,8 @@ describe("Authentication API Routes", () => {
 
   describe("Rate Limiting", () => {
     it("should enforce rate limits on login endpoint", async () => {
+      // Enable rate limiting for this test
+      process.env["TEST_RATE_LIMITING"] = "true";
       const uniqueEmail = `ratelimit-${Date.now()}@example.com`;
 
       // Make 6 requests (exceeding 5 per minute limit)
@@ -770,9 +772,15 @@ describe("Authentication API Routes", () => {
           expect(data.error.code).toBe("RATE_LIMIT_EXCEEDED");
         }
       }
+
+      // Clean up environment variable
+      delete process.env["TEST_RATE_LIMITING"];
     });
 
     it("should enforce rate limits on registration endpoint", async () => {
+      // Enable rate limiting for this test
+      process.env["TEST_RATE_LIMITING"] = "true";
+
       // Make 4 registration requests (exceeding 3 per hour limit)
       for (let i = 0; i < 4; i++) {
         const uniqueEmail = `ratelimit-reg-${Date.now()}-${i}@example.com`;
@@ -801,9 +809,15 @@ describe("Authentication API Routes", () => {
           expect(data.error.code).toBe("RATE_LIMIT_EXCEEDED");
         }
       }
+
+      // Clean up environment variable
+      delete process.env["TEST_RATE_LIMITING"];
     });
 
     it("should enforce rate limits on forgot password endpoint", async () => {
+      // Enable rate limiting for this test
+      process.env["TEST_RATE_LIMITING"] = "true";
+
       // Make 6 forgot password requests (exceeding 5 per hour limit)
       for (let i = 0; i < 6; i++) {
         const request = createTestRequest(
@@ -828,6 +842,9 @@ describe("Authentication API Routes", () => {
           expect(data.error.code).toBe("RATE_LIMIT_EXCEEDED");
         }
       }
+
+      // Clean up environment variable
+      delete process.env["TEST_RATE_LIMITING"];
     });
   });
 });

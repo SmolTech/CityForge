@@ -138,7 +138,11 @@ export function checkAuthRateLimit(
   }
 
   // Disable rate limiting in test/CI environments to allow E2E tests to run
-  if (process.env["NODE_ENV"] === "test" || process.env["CI"] === "true") {
+  // Unless explicitly enabled for testing rate limiting functionality
+  if (
+    (process.env["NODE_ENV"] === "test" || process.env["CI"] === "true") &&
+    process.env["TEST_RATE_LIMITING"] !== "true"
+  ) {
     return {
       allowed: true,
       remainingRequests: config.maxRequests,
