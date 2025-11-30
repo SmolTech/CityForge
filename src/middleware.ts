@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleCORSPreflight, addCORSHeaders } from "@/lib/cors";
 import { addSecurityHeaders } from "@/lib/security-headers";
+import { createTimingMiddleware } from "@/lib/monitoring/metrics";
 
 /**
  * Request timeout configuration for different endpoint types
@@ -34,16 +35,24 @@ function getServerTimeout(pathname: string): number {
 
 /**
  * Global middleware for all requests
+ * - Tracks HTTP request metrics (timing, status codes, error rates)
  * - Handles CORS for API routes when nginx proxy is not available
  * - Enforces comprehensive security headers (CSP, HSTS, X-Frame-Options, etc.)
  * - Enforces request body size limits to prevent DoS attacks
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
 export async function middleware(request: NextRequest) {
+  // Initialize metrics tracking for all requests
+  const timing = createTimingMiddleware();
+  const requestStart = timing.start();
+  const path = request.nextUrl.pathname;
+
   // Handle CORS preflight requests for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
     const preflightResponse = handleCORSPreflight(request);
     if (preflightResponse) {
+      // Track preflight requests in metrics
+      timing.end(requestStart, preflightResponse.status, `${path}:OPTIONS`);
       // Apply security headers to CORS preflight responses
       return addSecurityHeaders(preflightResponse, request);
     }
@@ -89,6 +98,8 @@ export async function middleware(request: NextRequest) {
             { status: 413 }
           );
 
+          // Track error in metrics
+          timing.end(requestStart, 413, path);
           // Apply security headers to error responses
           return addSecurityHeaders(bodyErrorResponse, request);
         }
@@ -99,6 +110,9 @@ export async function middleware(request: NextRequest) {
     const nextPromise = Promise.resolve(NextResponse.next());
 
     let response = await Promise.race([nextPromise, timeoutPromise]);
+
+    // Track successful request in metrics
+    timing.end(requestStart, response.status, path);
 
     // Add security headers to all responses
     response = addSecurityHeaders(response, request);
@@ -125,6 +139,8 @@ export async function middleware(request: NextRequest) {
         { status: 504 } // Gateway Timeout
       );
 
+      // Track timeout in metrics
+      timing.end(requestStart, 504, path);
       // Apply security headers to error responses
       return addSecurityHeaders(timeoutResponse, request);
     }
@@ -140,6 +156,8 @@ export async function middleware(request: NextRequest) {
       { status: 500 }
     );
 
+    // Track error in metrics
+    timing.end(requestStart, 500, path);
     // Apply security headers to error responses
     return addSecurityHeaders(errorResponse, request);
   }

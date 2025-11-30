@@ -9,6 +9,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { sendSubmissionNotification } from "@/lib/email/admin-notifications";
+import { metrics } from "@/lib/monitoring/metrics";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -112,6 +113,9 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       submissionData.tags_text = validation.data.tagsText;
 
     const submission = await submissionQueries.createSubmission(submissionData);
+
+    // Track business submission in metrics
+    metrics.incrementCounter("businessSubmissions");
 
     // Send email notification to admins
     try {

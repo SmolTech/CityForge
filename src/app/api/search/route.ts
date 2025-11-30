@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@opensearch-project/opensearch";
 import { handleApiError, BadRequestError } from "@/lib/errors";
+import { metrics } from "@/lib/monitoring/metrics";
 
 // Rate limiting could be added here similar to other endpoints
 // For now, we'll implement the core search functionality
@@ -108,6 +109,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       index: indexName,
       body: searchBody,
     });
+
+    // Track search query in metrics
+    metrics.incrementCounter("searchQueries");
 
     // Process results (matching Flask response format)
     const results: SearchResult[] = [];
