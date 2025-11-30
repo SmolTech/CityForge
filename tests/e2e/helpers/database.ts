@@ -144,6 +144,41 @@ export async function createTestCard(cardData: {
 }
 
 /**
+ * Get or create a default system user for test data creation
+ * This user is used for creating forum categories and other system data
+ */
+export async function getOrCreateSystemUser() {
+  const db = getPrisma();
+
+  const existingUser = await db.user.findFirst({
+    where: { email: "system@test.local" },
+  });
+
+  if (existingUser) {
+    return existingUser;
+  }
+
+  const bcrypt = await import("bcrypt");
+  const passwordHash = await bcrypt.hash("SystemUser123!", 10);
+
+  const systemUser = await db.user.create({
+    data: {
+      email: "system@test.local",
+      firstName: "System",
+      lastName: "User",
+      passwordHash,
+      role: "admin",
+      isActive: true,
+      emailVerified: true,
+    },
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  return systemUser;
+}
+
+/**
  * Disconnect Prisma client
  * Call this in afterAll to clean up
  */
