@@ -50,10 +50,13 @@ export class ForumsApi extends ApiClient {
     categorySlug: string,
     data: { title: string; content: string }
   ): Promise<ForumThread> {
-    return this.request(`/api/forums/categories/${categorySlug}/threads`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    const response: { thread: ForumThread; first_post: any } =
+      await this.request(`/api/forums/categories/${categorySlug}/threads`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    // Return the thread object from the response
+    return response.thread;
   }
 
   async updateForumThread(
