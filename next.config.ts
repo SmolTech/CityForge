@@ -41,10 +41,7 @@ const nextConfig: NextConfig = {
         source: "/api/admin/resources/:path*",
         destination: `${backendUrl}/api/admin/resources/:path*`,
       },
-      {
-        source: "/api/admin/forums/:path*",
-        destination: `${backendUrl}/api/admin/forums/:path*`,
-      },
+      // NOTE: /api/admin/forums/* has been migrated to Next.js - no longer proxied
     ];
   },
 
