@@ -91,6 +91,8 @@ export const GET = withAuth(
         reason: report.reason,
         details: report.details,
         status: report.status,
+        thread_id: report.threadId,
+        post_id: report.postId,
         created_date:
           report.createdDate?.toISOString() ?? new Date().toISOString(),
         reviewed_date: report.reviewedDate?.toISOString() ?? null,
