@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { validateForumReport } from "@/lib/validation/forums";
 import { logger } from "@/lib/logger";
+import { sendForumReportNotification } from "@/lib/email";
 
 /**
  * POST /api/forums/reports
@@ -193,6 +194,71 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       userId: user.id,
       reason: report.reason,
     });
+
+    // Send email notification to admins
+    try {
+      // Get the category information that we need for the email
+      const thread = await prisma.forumThread.findUnique({
+        where: { id: report.threadId },
+        include: {
+          category: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      });
+
+      if (thread) {
+        const reportData = {
+          id: report.id,
+          thread: {
+            id: report.thread.id,
+            title: report.thread.title,
+            slug: report.thread.slug,
+            categoryId: report.thread.categoryId,
+            category: {
+              name: thread.category.name,
+              slug: thread.category.slug,
+            },
+          },
+          post: report.post
+            ? {
+                id: report.post.id,
+                content: report.post.content,
+              }
+            : null,
+          reason: report.reason,
+          details: report.details,
+          created_date:
+            report.createdDate?.toISOString() ?? new Date().toISOString(),
+        };
+
+        const reporter = {
+          id: report.reporter.id,
+          firstName: report.reporter.firstName,
+          lastName: report.reporter.lastName,
+          email: user.email, // Use the authenticated user's email
+        };
+
+        await sendForumReportNotification(reportData, reporter);
+        logger.info("Forum report notification email sent", {
+          reportId: report.id,
+          threadId: report.threadId,
+          postId: report.postId,
+        });
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the report creation
+      logger.error("Failed to send forum report notification email", {
+        reportId: report.id,
+        threadId: report.threadId,
+        postId: report.postId,
+        error:
+          emailError instanceof Error ? emailError.message : "Unknown error",
+      });
+    }
 
     // Transform response to match Flask API format
     const responseData = {

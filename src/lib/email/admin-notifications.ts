@@ -19,9 +19,31 @@ interface SubmissionData {
 // Modification data has the same structure as submission data
 type ModificationData = SubmissionData;
 
+// Forum report data interface
+interface ForumReportData {
+  id: number;
+  thread: {
+    id: number;
+    title: string;
+    slug: string;
+    categoryId: number;
+    category: {
+      name: string;
+      slug: string;
+    };
+  };
+  post?: {
+    id: number;
+    content: string;
+  } | null;
+  reason: string;
+  details?: string | null;
+  created_date?: Date | string;
+}
+
 export interface AdminNotificationData {
-  type: "submission" | "modification";
-  data: SubmissionData | ModificationData;
+  type: "submission" | "modification" | "forum_report";
+  data: SubmissionData | ModificationData | ForumReportData;
   user: {
     id: number;
     firstName: string;
@@ -555,6 +577,285 @@ Review modification: ${adminUrl}
         adminEmail,
         modificationId: modification.id,
         cardId: card.id,
+        error,
+      });
+    }
+  }
+}
+
+/**
+ * Send email notification to all admins for forum reports
+ */
+export async function sendForumReportNotification(
+  report: ForumReportData,
+  reporter: { id: number; firstName: string; lastName: string; email: string }
+): Promise<void> {
+  const emailService = getEmailService();
+
+  if (!emailService) {
+    logger.info(
+      "Email service not configured, logging forum report notification",
+      {
+        reportId: report.id,
+        threadId: report.thread.id,
+        reporterEmail: reporter.email,
+      }
+    );
+    console.log(`\n🚨 Forum Report Notification:`);
+    console.log(`   Report ID: ${report.id}`);
+    console.log(`   Thread: ${report.thread.title}`);
+    console.log(`   Category: ${report.thread.category.name}`);
+    if (report.post) {
+      console.log(`   Reported Post: ${report.post.id}`);
+    } else {
+      console.log(`   Reported: Entire Thread`);
+    }
+    console.log(`   Reason: ${report.reason}`);
+    console.log(
+      `   Reported by: ${reporter.firstName} ${reporter.lastName} (${reporter.email})`
+    );
+    console.log(`   Admin Action Required\n`);
+    return;
+  }
+
+  const adminEmails = await getAdminEmails();
+
+  if (adminEmails.length === 0) {
+    logger.warn("No admin emails found for forum report notification", {
+      reportId: report.id,
+    });
+    return;
+  }
+
+  const reportType = report.post ? "Post" : "Thread";
+  const subject = `🚨 Forum ${reportType} Reported: ${report.thread.title}`;
+  const baseUrl =
+    process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+  const adminUrl = `${baseUrl}/admin/forums`;
+  const contentUrl = report.post
+    ? `${baseUrl}/forums/${report.thread.category.slug}/${report.thread.id}#post-${report.post.id}`
+    : `${baseUrl}/forums/${report.thread.category.slug}/${report.thread.id}`;
+
+  // Truncate post content for preview (max 200 characters)
+  const contentPreview = report.post
+    ? report.post.content.length > 200
+      ? `${report.post.content.substring(0, 200)}...`
+      : report.post.content
+    : null;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .container {
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          padding: 30px;
+          margin: 20px 0;
+        }
+        .header {
+          background-color: #dc2626;
+          color: white;
+          padding: 20px;
+          border-radius: 8px 8px 0 0;
+          margin: -30px -30px 20px -30px;
+        }
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 8px;
+          margin: 20px 0;
+        }
+        .detail-label {
+          font-weight: bold;
+          color: #666;
+        }
+        .detail-value {
+          color: #333;
+          word-break: break-word;
+        }
+        .content-preview {
+          background-color: #fee2e2;
+          border-left: 4px solid #dc2626;
+          padding: 12px;
+          margin: 20px 0;
+          font-style: italic;
+        }
+        .alert-box {
+          background-color: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 6px;
+          padding: 16px;
+          margin: 20px 0;
+        }
+        .button {
+          display: inline-block;
+          padding: 12px 24px;
+          background-color: #dc2626;
+          color: white;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 8px 8px 8px 0;
+        }
+        .button.secondary {
+          background-color: #6b7280;
+        }
+        .footer {
+          font-size: 14px;
+          color: #666;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>🚨 Forum ${reportType} Reported</h2>
+          <p>A forum ${reportType.toLowerCase()} has been reported and requires immediate attention.</p>
+        </div>
+        
+        <div class="alert-box">
+          <strong>⚠️ Action Required:</strong> This report needs to be reviewed and appropriate action taken.
+        </div>
+
+        <h3>${reportType} Details:</h3>
+        <div class="detail-grid">
+          <div class="detail-label">Thread:</div>
+          <div class="detail-value"><a href="${contentUrl}">${report.thread.title}</a></div>
+          
+          <div class="detail-label">Category:</div>
+          <div class="detail-value">${report.thread.category.name}</div>
+          
+          ${
+            report.post
+              ? `
+          <div class="detail-label">Post ID:</div>
+          <div class="detail-value">${report.post.id}</div>
+          `
+              : ""
+          }
+        </div>
+
+        ${
+          contentPreview
+            ? `
+        <h3>Reported Content Preview:</h3>
+        <div class="content-preview">
+          "${contentPreview}"
+        </div>
+        `
+            : ""
+        }
+
+        <h3>Report Details:</h3>
+        <div class="detail-grid">
+          <div class="detail-label">Reason:</div>
+          <div class="detail-value">${report.reason}</div>
+          
+          ${
+            report.details
+              ? `
+          <div class="detail-label">Additional Details:</div>
+          <div class="detail-value">${report.details}</div>
+          `
+              : ""
+          }
+        </div>
+
+        <h3>Reported By:</h3>
+        <div class="detail-grid">
+          <div class="detail-label">Name:</div>
+          <div class="detail-value">${reporter.firstName} ${reporter.lastName}</div>
+          
+          <div class="detail-label">Email:</div>
+          <div class="detail-value">${reporter.email}</div>
+          
+          <div class="detail-label">Date:</div>
+          <div class="detail-value">${report.created_date ? new Date(report.created_date).toLocaleString() : "Just now"}</div>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <a href="${adminUrl}" class="button">Admin Dashboard</a>
+          <a href="${contentUrl}" class="button secondary">View ${reportType}</a>
+        </div>
+
+        <div class="footer">
+          <p><strong>Priority:</strong> Forum reports require prompt attention to maintain community standards.</p>
+          <p>Please review this report and take appropriate action (resolve, delete post, delete thread).</p>
+          <p>This is an automated notification email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+🚨 Forum ${reportType} Reported: ${report.thread.title}
+
+${reportType} Details:
+- Thread: ${report.thread.title}
+- Category: ${report.thread.category.name}
+${report.post ? `- Post ID: ${report.post.id}` : ""}
+
+${
+  contentPreview
+    ? `
+Reported Content Preview:
+"${contentPreview}"
+`
+    : ""
+}
+
+Report Details:
+- Reason: ${report.reason}
+${report.details ? `- Additional Details: ${report.details}` : ""}
+
+Reported By: ${reporter.firstName} ${reporter.lastName} (${reporter.email})
+Date: ${report.created_date ? new Date(report.created_date).toLocaleString() : "Just now"}
+
+Actions:
+- Admin Dashboard: ${adminUrl}
+- View ${reportType}: ${contentUrl}
+
+⚠️ Priority: Forum reports require prompt attention to maintain community standards.
+Please review this report and take appropriate action.
+  `;
+
+  // Send email to all admins
+  for (const adminEmail of adminEmails) {
+    try {
+      await emailService.sendEmail({
+        to: adminEmail,
+        subject,
+        html,
+        text,
+      });
+
+      logger.info("Forum report notification sent to admin", {
+        adminEmail,
+        reportId: report.id,
+        threadId: report.thread.id,
+        postId: report.post?.id,
+      });
+    } catch (error) {
+      logger.error("Failed to send forum report notification to admin", {
+        adminEmail,
+        reportId: report.id,
+        threadId: report.thread.id,
+        postId: report.post?.id,
         error,
       });
     }
