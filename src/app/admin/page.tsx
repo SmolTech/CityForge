@@ -12,6 +12,7 @@ interface DashboardStats {
   pendingSubmissions: number;
   pendingModifications: number;
   reportedReviews: number;
+  pendingForumReports: number;
   totalCards: number;
   totalUsers: number;
   totalTags: number;
@@ -23,6 +24,7 @@ export default function AdminDashboard() {
     pendingSubmissions: 0,
     pendingModifications: 0,
     reportedReviews: 0,
+    pendingForumReports: 0,
     totalCards: 0,
     totalUsers: 0,
     totalTags: 0,
@@ -53,15 +55,23 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const [submissions, modifications, reviews, cards, users, tags] =
-        await Promise.all([
-          apiClient.adminGetSubmissions({ limit: 1000 }),
-          apiClient.adminGetModifications({ limit: 1000 }),
-          apiClient.adminGetReviews({ limit: 1000 }),
-          apiClient.adminGetCards({ limit: 1 }),
-          apiClient.adminGetUsers({ limit: 1 }),
-          apiClient.getTags(),
-        ]);
+      const [
+        submissions,
+        modifications,
+        reviews,
+        forumReports,
+        cards,
+        users,
+        tags,
+      ] = await Promise.all([
+        apiClient.adminGetSubmissions({ limit: 1000 }),
+        apiClient.adminGetModifications({ limit: 1000 }),
+        apiClient.adminGetReviews({ limit: 1000 }),
+        apiClient.adminGetForumReports("pending"),
+        apiClient.adminGetCards({ limit: 1 }),
+        apiClient.adminGetUsers({ limit: 1 }),
+        apiClient.getTags(),
+      ]);
 
       setStats({
         pendingSubmissions:
@@ -75,6 +85,7 @@ export default function AdminDashboard() {
         reportedReviews:
           reviews.reviews?.filter((r: { reported: boolean }) => r.reported)
             .length || 0,
+        pendingForumReports: forumReports.reports?.length || 0,
         totalCards: cards.total || 0,
         totalUsers: users.total || 0,
         totalTags: tags.length || 0,
@@ -116,12 +127,13 @@ export default function AdminDashboard() {
         {/* Priority Actions */}
         {(stats.pendingSubmissions > 0 ||
           stats.pendingModifications > 0 ||
-          stats.reportedReviews > 0) && (
+          stats.reportedReviews > 0 ||
+          stats.pendingForumReports > 0) && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Needs Attention
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {stats.pendingSubmissions > 0 && (
                 <Link
                   href="/admin/submissions"
@@ -214,6 +226,39 @@ export default function AdminDashboard() {
                           strokeLinejoin="round"
                           strokeWidth={2}
                           d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
+              )}
+
+              {stats.pendingForumReports > 0 && (
+                <Link
+                  href="/admin/forums"
+                  className="block bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-lg p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                        Forum Reports
+                      </p>
+                      <p className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-1">
+                        {stats.pendingForumReports}
+                      </p>
+                    </div>
+                    <div className="h-12 w-12 bg-orange-100 dark:bg-orange-800 rounded-full flex items-center justify-center">
+                      <svg
+                        className="h-6 w-6 text-orange-600 dark:text-orange-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                         />
                       </svg>
                     </div>
