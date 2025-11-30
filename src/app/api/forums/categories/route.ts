@@ -112,7 +112,8 @@ export async function GET(request: NextRequest) {
     });
 
     const response = NextResponse.json({ categories: transformedCategories });
-    response.headers.set("Cache-Control", "public, max-age=300");
+    // Reduced cache duration to 60 seconds to ensure thread counts update quickly after deletions
+    response.headers.set("Cache-Control", "public, max-age=60");
     return response;
   } catch (error) {
     logger.error("Error fetching forum categories", {
