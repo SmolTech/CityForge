@@ -133,11 +133,27 @@ export const POST = withAuth(
 
         // Perform the requested action
         if (action === "delete_post" && report.postId) {
-          // Delete the specific post
+          // First delete any other reports that reference this post (to avoid FK constraint violations)
+          await tx.forumReport.deleteMany({
+            where: {
+              postId: report.postId,
+              id: { not: reportId }, // Don't delete the current report, it's already updated
+            },
+          });
+
+          // Now delete the specific post
           await tx.forumPost.delete({
             where: { id: report.postId },
           });
         } else if (action === "delete_thread") {
+          // First delete any other reports that reference this thread or its posts (to avoid FK constraint violations)
+          await tx.forumReport.deleteMany({
+            where: {
+              threadId: report.threadId,
+              id: { not: reportId }, // Don't delete the current report, it's already updated
+            },
+          });
+
           // Delete all posts in the thread first, then the thread
           await tx.forumPost.deleteMany({
             where: { threadId: report.threadId },
