@@ -271,11 +271,9 @@ class MetricsCollector {
   }
 
   private updateSystemMetrics() {
-    // Update memory usage
-    if (typeof process !== "undefined" && process.memoryUsage) {
-      const memUsage = process.memoryUsage();
-      this.setGauge("memoryUsage", memUsage.heapUsed);
-    }
+    // System metrics disabled to ensure Edge Runtime compatibility
+    // Memory usage metrics would require Node.js runtime which is not available in Edge Runtime
+    return;
   }
 }
 
