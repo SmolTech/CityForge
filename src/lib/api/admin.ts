@@ -263,6 +263,8 @@ export class AdminApi extends ApiClient {
   async adminCreateForumCategory(data: {
     name: string;
     description: string;
+    display_order?: number;
+    is_active?: boolean;
   }): Promise<any> {
     return this.request("/api/admin/forums/categories", {
       method: "POST",
