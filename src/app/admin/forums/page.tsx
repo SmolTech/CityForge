@@ -8,10 +8,55 @@ import {
   User,
   ForumCategory,
   ForumCategoryRequest,
-  ForumReport,
 } from "@/lib/api";
 import { Navigation } from "@/components/shared";
 import { logger } from "@/lib/logger";
+
+// New type for aggregated report data
+interface AggregatedReport {
+  type: "thread" | "post";
+  thread_id: number | null;
+  post_id: number | null;
+  reportCount: number;
+  content_type: string;
+  status: "pending" | "resolved";
+  thread?: {
+    id: number;
+    title: string;
+    slug: string;
+    category?: {
+      id: number;
+      name: string;
+      slug: string;
+    } | null;
+    creator?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    } | null;
+  } | null;
+  post?: {
+    id: number;
+    content: string;
+    creator?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    } | null;
+  } | null;
+  most_recent_report?: {
+    id: number;
+    reason: string;
+    details: string | null;
+    created_date: string;
+    reporter?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+      email: string;
+    } | null;
+  } | null;
+}
 
 export default function AdminForumsPage() {
   const [, setUser] = useState<User | null>(null);
@@ -40,7 +85,7 @@ export default function AdminForumsPage() {
   >([]);
 
   // Reports state
-  const [reports, setReports] = useState<ForumReport[]>([]);
+  const [reports, setReports] = useState<AggregatedReport[]>([]);
   const [reportsFilter, setReportsFilter] = useState<
     "all" | "pending" | "resolved"
   >("pending");
@@ -58,8 +103,10 @@ export default function AdminForumsPage() {
 
   // Resolve report with action state
   const [resolvingReport, setResolvingReport] = useState<{
-    id: number;
+    type: "thread" | "post";
+    contentId: number;
     action: "dismiss" | "delete_post" | "delete_thread";
+    reportCount: number;
   } | null>(null);
 
   useEffect(() => {
@@ -108,9 +155,20 @@ export default function AdminForumsPage() {
 
   const loadReports = async () => {
     try {
-      const { reports: reportsData } =
-        await apiClient.adminGetForumReports(reportsFilter);
-      setReports(reportsData);
+      // Fetch reports using the new aggregated API directly
+      const response = await fetch(
+        `/api/admin/forums/reports?status=${reportsFilter}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reports: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setReports(data.reports as AggregatedReport[]);
     } catch (error) {
       logger.error("Failed to load reports:", error);
     }
@@ -221,33 +279,59 @@ export default function AdminForumsPage() {
     if (!resolvingReport) return;
 
     try {
-      await apiClient.adminResolveForumReport(
-        resolvingReport.id,
-        resolvingReport.action
+      // Use the new aggregated resolution endpoint
+      const response = await fetch(
+        "/api/admin/forums/reports/resolve-content",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            type: resolvingReport.type,
+            contentId: resolvingReport.contentId,
+            action: resolvingReport.action,
+            notes: "", // Could add a notes field to the modal if needed
+          }),
+        }
       );
+
+      if (!response.ok) {
+        throw new Error(`Failed to resolve reports: ${response.statusText}`);
+      }
+
+      const data = await response.json();
       setResolvingReport(null);
       await loadReports();
 
-      let message = "Report resolved successfully";
-      if (resolvingReport.action === "delete_post") {
-        message = "Report resolved and post deleted";
-      } else if (resolvingReport.action === "delete_thread") {
-        message = "Report resolved and thread deleted";
-      } else if (resolvingReport.action === "dismiss") {
-        message = "Report dismissed";
-      }
-      alert(message);
+      alert(data.message || "Reports resolved successfully");
     } catch (error) {
-      logger.error("Failed to resolve report:", error);
-      alert("Failed to resolve report. Please try again.");
+      logger.error("Failed to resolve aggregated reports:", error);
+      alert("Failed to resolve reports. Please try again.");
     }
   };
 
   const handleResolveReport = async (
-    reportId: number,
+    type: "thread" | "post",
+    contentId: number,
     action: "dismiss" | "delete_post" | "delete_thread"
   ) => {
-    setResolvingReport({ id: reportId, action });
+    // Find the report count for this content
+    const report = reports.find(
+      (r) =>
+        r.type === type &&
+        (type === "thread"
+          ? r.thread_id === contentId
+          : r.post_id === contentId)
+    );
+
+    setResolvingReport({
+      type,
+      contentId,
+      action,
+      reportCount: report?.reportCount || 1,
+    });
   };
 
   if (loading) {
@@ -754,7 +838,7 @@ export default function AdminForumsPage() {
               ) : (
                 reports.map((report) => (
                   <div
-                    key={report.id}
+                    key={`${report.type}-${report.thread_id || report.post_id}`}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
                   >
                     <div className="flex justify-between items-start mb-4">
@@ -762,12 +846,12 @@ export default function AdminForumsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              report.post_id
+                              report.type === "post"
                                 ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
                                 : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             }`}
                           >
-                            {report.post_id ? "post" : "thread"}
+                            {report.type}
                           </span>
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -779,8 +863,14 @@ export default function AdminForumsPage() {
                             {report.status}
                           </span>
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                            {report.reason}
+                            {report.reportCount}{" "}
+                            {report.reportCount === 1 ? "report" : "reports"}
                           </span>
+                          {report.most_recent_report && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                              {report.most_recent_report.reason}
+                            </span>
+                          )}
                         </div>
                         {report.thread && (
                           <Link
@@ -790,38 +880,68 @@ export default function AdminForumsPage() {
                             {report.thread.title}
                           </Link>
                         )}
-                        {report.details && (
+                        {report.post && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <strong>Post content:</strong>{" "}
+                              {report.post.content}
+                            </p>
+                            {report.post.creator && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                by {report.post.creator.first_name}{" "}
+                                {report.post.creator.last_name}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {report.most_recent_report?.details && (
                           <p className="mt-2 text-gray-600 dark:text-gray-400">
-                            <strong>Details:</strong> {report.details}
+                            <strong>Latest report details:</strong>{" "}
+                            {report.most_recent_report.details}
                           </p>
                         )}
-                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                          Reported by {report.reporter?.first_name}{" "}
-                          {report.reporter?.last_name} on{" "}
-                          {new Date(report.created_date).toLocaleDateString()}
-                        </p>
+                        {report.most_recent_report && (
+                          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            Latest report by{" "}
+                            {report.most_recent_report.reporter?.first_name}{" "}
+                            {report.most_recent_report.reporter?.last_name} on{" "}
+                            {new Date(
+                              report.most_recent_report.created_date
+                            ).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       {report.status === "pending" && (
                         <div className="ml-4 flex flex-col gap-2">
                           <button
                             onClick={() =>
-                              handleResolveReport(report.id, "dismiss")
+                              handleResolveReport(
+                                report.type,
+                                report.type === "thread"
+                                  ? report.thread_id!
+                                  : report.post_id!,
+                                "dismiss"
+                              )
                             }
                             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm"
                           >
-                            Dismiss
+                            Dismiss All ({report.reportCount})
                           </button>
-                          {report.post_id && (
+                          {report.type === "post" && (
                             <button
                               onClick={() =>
-                                handleResolveReport(report.id, "delete_post")
+                                handleResolveReport(
+                                  report.type,
+                                  report.post_id!,
+                                  "delete_post"
+                                )
                               }
                               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
                             >
                               Delete Post
                             </button>
                           )}
-                          {report.thread_id && (
+                          {report.type === "thread" && (
                             <>
                               <button
                                 onClick={() =>
@@ -842,7 +962,8 @@ export default function AdminForumsPage() {
                               <button
                                 onClick={() =>
                                   handleResolveReport(
-                                    report.id,
+                                    report.type,
+                                    report.thread_id!,
                                     "delete_thread"
                                   )
                                 }
@@ -941,17 +1062,17 @@ export default function AdminForumsPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 {resolvingReport.action === "dismiss"
-                  ? "Dismiss Report"
+                  ? `Dismiss ${resolvingReport.reportCount} Report${resolvingReport.reportCount === 1 ? "" : "s"}`
                   : resolvingReport.action === "delete_post"
                     ? "Delete Post"
                     : "Delete Thread"}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {resolvingReport.action === "dismiss"
-                  ? "Are you sure you want to dismiss this report without taking any action on the content?"
+                  ? `Are you sure you want to dismiss all ${resolvingReport.reportCount} report${resolvingReport.reportCount === 1 ? "" : "s"} for this ${resolvingReport.type} without taking any action on the content?`
                   : resolvingReport.action === "delete_post"
-                    ? "Are you sure you want to delete this post? This action cannot be undone."
-                    : "Are you sure you want to delete this thread? All posts in this thread will also be deleted. This action cannot be undone."}
+                    ? `Are you sure you want to delete this post? This will also resolve all ${resolvingReport.reportCount} report${resolvingReport.reportCount === 1 ? "" : "s"} for this post. This action cannot be undone.`
+                    : `Are you sure you want to delete this thread? All posts in this thread will also be deleted, and all ${resolvingReport.reportCount} report${resolvingReport.reportCount === 1 ? "" : "s"} will be resolved. This action cannot be undone.`}
               </p>
               <div className="flex gap-2">
                 <button
@@ -963,7 +1084,7 @@ export default function AdminForumsPage() {
                   }`}
                 >
                   {resolvingReport.action === "dismiss"
-                    ? "Dismiss Report"
+                    ? `Dismiss ${resolvingReport.reportCount} Report${resolvingReport.reportCount === 1 ? "" : "s"}`
                     : resolvingReport.action === "delete_post"
                       ? "Delete Post"
                       : "Delete Thread"}

@@ -121,62 +121,69 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       }
     }
 
-    // Check if user has already reported this thread/post
-    const existingReport = await prisma.forumReport.findFirst({
-      where: {
-        threadId: threadId,
-        postId: postId,
-        reportedBy: user.id,
-      },
-    });
+    // Create the report and increment report count in a transaction
+    const report = await prisma.$transaction(async (tx) => {
+      // Create the report
+      const newReport = await tx.forumReport.create({
+        data: {
+          threadId: threadId,
+          postId: postId,
+          reason: reportData.reason,
+          details: reportData.details || null,
+          reportedBy: user.id,
+          status: "pending",
+        },
+        include: {
+          reporter: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          thread: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              categoryId: true,
+            },
+          },
+          post: postId
+            ? {
+                select: {
+                  id: true,
+                  content: true,
+                },
+              }
+            : false,
+        },
+      });
 
-    if (existingReport) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "You have already reported this content",
-            code: 409,
+      // Increment the appropriate report count
+      if (postId) {
+        // Report is for a specific post
+        await tx.forumPost.update({
+          where: { id: postId },
+          data: {
+            reportCount: {
+              increment: 1,
+            },
           },
-        },
-        { status: 409 }
-      );
-    }
+        });
+      } else {
+        // Report is for the entire thread
+        await tx.forumThread.update({
+          where: { id: threadId },
+          data: {
+            reportCount: {
+              increment: 1,
+            },
+          },
+        });
+      }
 
-    // Create the report
-    const report = await prisma.forumReport.create({
-      data: {
-        threadId: threadId,
-        postId: postId,
-        reason: reportData.reason,
-        details: reportData.details || null,
-        reportedBy: user.id,
-        status: "pending",
-      },
-      include: {
-        reporter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        thread: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            categoryId: true,
-          },
-        },
-        post: postId
-          ? {
-              select: {
-                id: true,
-                content: true,
-              },
-            }
-          : false,
-      },
+      return newReport;
     });
 
     logger.info("Successfully created forum report", {
