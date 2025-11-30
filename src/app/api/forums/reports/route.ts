@@ -122,6 +122,28 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
       }
     }
 
+    // Check for duplicate report from the same user
+    const existingReport = await prisma.forumReport.findFirst({
+      where: {
+        threadId: threadId,
+        postId: postId,
+        reportedBy: user.id,
+      },
+      select: { id: true },
+    });
+
+    if (existingReport) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "You have already reported this content",
+            code: 409,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // Create the report and increment report count in a transaction
     const report = await prisma.$transaction(async (tx) => {
       // Create the report
