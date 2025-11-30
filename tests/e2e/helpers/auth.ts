@@ -1,8 +1,56 @@
 import { Page } from "@playwright/test";
+import { createTestUser } from "./database";
 
 /**
  * E2E Test Helpers for Authentication
  */
+
+// Store shared test user for avoiding rate limiting
+let sharedTestUser: {
+  id: number;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+} | null = null;
+
+/**
+ * Get or create a shared test user to avoid rate limiting issues
+ * This user is reused across tests in a single test file
+ */
+export async function getOrCreateSharedTestUser() {
+  if (!sharedTestUser) {
+    const userData = generateTestUser();
+    const dbUser = await createTestUser(userData);
+    sharedTestUser = {
+      id: dbUser.id,
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+    };
+  }
+  return sharedTestUser;
+}
+
+/**
+ * Clear the shared test user (call this in test cleanup)
+ */
+export function clearSharedTestUser() {
+  sharedTestUser = null;
+}
+
+/**
+ * Login using the shared test user to avoid rate limiting
+ */
+export async function loginWithSharedUser(page: Page) {
+  const user = await getOrCreateSharedTestUser();
+  await loginUser(page, {
+    email: user.email,
+    password: user.password,
+  });
+  return user;
+}
 
 /**
  * Register a new user via the UI
@@ -56,7 +104,8 @@ export async function registerUser(
 }
 
 /**
- * Login a user via the UI
+ * Login a user and handle rate limiting
+ * Automatically retries with delays if rate limited
  */
 export async function loginUser(
   page: Page,
@@ -65,40 +114,73 @@ export async function loginUser(
     password: string;
   }
 ) {
-  await page.goto("/login");
+  const maxRetries = 2; // Reduced retries
+  let attempt = 0;
 
-  // Fill in login form
-  await page.fill('input[name="email"]', credentials.email);
-  await page.fill('input[name="password"]', credentials.password);
+  while (attempt < maxRetries) {
+    attempt++;
 
-  // Wait for the API response after clicking submit
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/auth/login") && response.status() !== 0,
-    { timeout: 10000 }
-  );
+    try {
+      await page.goto("/login");
 
-  // Submit form
-  await page.click('button[type="submit"]');
+      // Fill in login form
+      await page.fill('input[name="email"]', credentials.email);
+      await page.fill('input[name="password"]', credentials.password);
 
-  // Wait for the login API response
-  const response = await responsePromise;
-  const statusCode = response.status();
+      // Wait for the API response after clicking submit
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/auth/login") && response.status() !== 0,
+        { timeout: 10000 }
+      );
 
-  // Check if login failed
-  if (statusCode !== 200) {
-    // Wait a bit for error message to render
-    await page.waitForTimeout(500);
-    const errorElement = page.locator('[data-testid="login-error"]');
-    if (await errorElement.isVisible()) {
-      const errorText = await errorElement.textContent();
-      throw new Error("Login failed with error: " + errorText);
+      // Submit form
+      await page.click('button[type="submit"]');
+
+      // Wait for the login API response
+      const response = await responsePromise;
+      const statusCode = response.status();
+
+      // Check if login failed due to rate limiting
+      if (statusCode === 429) {
+        console.log("Rate limited, waiting before retry...", { attempt });
+
+        // For e2e tests, we need shorter waits to avoid timeouts
+        // Wait only 10 seconds instead of 65, and if still rate limited, fail fast
+        await page.waitForTimeout(10000);
+
+        if (attempt === maxRetries) {
+          throw new Error("Authentication rate limited - test cannot proceed");
+        }
+        continue;
+      }
+
+      // Check if login failed for other reasons
+      if (statusCode !== 200) {
+        // Wait a bit for error message to render
+        await page.waitForTimeout(500);
+        const errorElement = page.locator('[data-testid="login-error"]');
+        if (await errorElement.isVisible()) {
+          const errorText = await errorElement.textContent();
+          throw new Error("Login failed with error: " + errorText);
+        }
+        throw new Error(`Login failed with status code: ${statusCode}`);
+      }
+
+      // Successful login
+      console.log("Authentication successful after attempts:", { attempt });
+      // Wait for successful authentication and dashboard access
+      await waitForAuthentication(page);
+      return;
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      console.log("Login attempt failed:", { attempt, error });
+      // Wait a bit before retrying
+      await page.waitForTimeout(2000);
     }
-    throw new Error(`Login failed with status code: ${statusCode}`);
   }
-
-  // Wait for successful authentication and dashboard access
-  await waitForAuthentication(page);
 }
 
 /**

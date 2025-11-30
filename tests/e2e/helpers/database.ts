@@ -31,27 +31,82 @@ export async function cleanDatabase() {
   const db = getPrisma();
 
   try {
+    // Helper function to safely delete from a table if it exists
+    const safeDelete = async (
+      deleteOperation: () => Promise<any>,
+      tableName: string
+    ) => {
+      try {
+        await deleteOperation();
+      } catch (error: any) {
+        if (error.code === "P2021") {
+          // Table doesn't exist, skip it
+          console.log(`Table ${tableName} doesn't exist, skipping cleanup`);
+        } else {
+          throw error;
+        }
+      }
+    };
+
     // Clean up in reverse order of dependencies
-    // Use transaction to ensure all deletes succeed or rollback
-    await db.$transaction([
-      db.forumPost.deleteMany({}),
-      db.forumThread.deleteMany({}),
-      db.forumCategory.deleteMany({}),
-      db.forumCategoryRequest.deleteMany({}),
-      db.forumReport.deleteMany({}),
-      db.cardModification.deleteMany({}),
-      db.cardSubmission.deleteMany({}),
-      db.card_tags.deleteMany({}),
-      db.review.deleteMany({}),
-      db.tag.deleteMany({}),
-      db.card.deleteMany({}),
-      db.resourceItem.deleteMany({}),
-      db.resourceCategory.deleteMany({}),
-      db.quickAccessItem.deleteMany({}),
-      db.resourceConfig.deleteMany({}),
-      db.tokenBlacklist.deleteMany({}),
-      db.user.deleteMany({}),
-    ]);
+    // Use individual operations with error handling for missing tables
+
+    // Most dependent tables first
+    await safeDelete(
+      () => db.passwordResetToken.deleteMany({}),
+      "password_reset_tokens"
+    );
+    await safeDelete(
+      () => db.supportTicketMessage.deleteMany({}),
+      "support_ticket_messages"
+    );
+    await safeDelete(() => db.supportTicket.deleteMany({}), "support_tickets");
+    await safeDelete(
+      () => db.helpWantedReport.deleteMany({}),
+      "help_wanted_reports"
+    );
+    await safeDelete(
+      () => db.helpWantedComment.deleteMany({}),
+      "help_wanted_comments"
+    );
+    await safeDelete(
+      () => db.helpWantedPost.deleteMany({}),
+      "help_wanted_posts"
+    );
+    await safeDelete(() => db.forumReport.deleteMany({}), "forum_reports");
+    await safeDelete(() => db.forumPost.deleteMany({}), "forum_posts");
+    await safeDelete(() => db.forumThread.deleteMany({}), "forum_threads");
+    await safeDelete(
+      () => db.forumCategoryRequest.deleteMany({}),
+      "forum_category_requests"
+    );
+    await safeDelete(() => db.forumCategory.deleteMany({}), "forum_categories");
+    await safeDelete(() => db.review.deleteMany({}), "reviews");
+    await safeDelete(
+      () => db.cardModification.deleteMany({}),
+      "card_modifications"
+    );
+    await safeDelete(
+      () => db.cardSubmission.deleteMany({}),
+      "card_submissions"
+    );
+    await safeDelete(() => db.card_tags.deleteMany({}), "card_tags");
+    await safeDelete(() => db.card.deleteMany({}), "cards");
+    await safeDelete(() => db.tag.deleteMany({}), "tags");
+    await safeDelete(() => db.resourceItem.deleteMany({}), "resource_items");
+    await safeDelete(
+      () => db.resourceCategory.deleteMany({}),
+      "resource_categories"
+    );
+    await safeDelete(
+      () => db.quickAccessItem.deleteMany({}),
+      "quick_access_items"
+    );
+    await safeDelete(() => db.resourceConfig.deleteMany({}), "resource_config");
+    await safeDelete(() => db.tokenBlacklist.deleteMany({}), "token_blacklist");
+    await safeDelete(() => db.indexingJob.deleteMany({}), "indexing_jobs");
+    // Users last since many tables reference them
+    await safeDelete(() => db.user.deleteMany({}), "users");
 
     // Small delay to ensure cleanup completes
     await new Promise((resolve) => setTimeout(resolve, 100));
