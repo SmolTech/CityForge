@@ -56,8 +56,11 @@ export default function AdminForumsPage() {
   );
   const [rejectReason, setRejectReason] = useState("");
 
-  // Delete thread state
-  const [deletingThreadId, setDeletingThreadId] = useState<number | null>(null);
+  // Resolve report with action state
+  const [resolvingReport, setResolvingReport] = useState<{
+    id: number;
+    action: "dismiss" | "delete_post" | "delete_thread";
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -214,28 +217,37 @@ export default function AdminForumsPage() {
     }
   };
 
-  const confirmDeleteThread = async () => {
-    if (!deletingThreadId) return;
+  const confirmResolveReport = async () => {
+    if (!resolvingReport) return;
 
     try {
-      await apiClient.adminDeleteForumThread(deletingThreadId);
-      setDeletingThreadId(null);
-      await loadReports(); // Reload reports since the thread is deleted
-      alert("Thread deleted successfully");
-    } catch (error) {
-      logger.error("Failed to delete thread:", error);
-      alert("Failed to delete thread. Please try again.");
-    }
-  };
-
-  const handleResolveReport = async (reportId: number) => {
-    try {
-      await apiClient.adminResolveForumReport(reportId, "dismiss");
+      await apiClient.adminResolveForumReport(
+        resolvingReport.id,
+        resolvingReport.action
+      );
+      setResolvingReport(null);
       await loadReports();
+
+      let message = "Report resolved successfully";
+      if (resolvingReport.action === "delete_post") {
+        message = "Report resolved and post deleted";
+      } else if (resolvingReport.action === "delete_thread") {
+        message = "Report resolved and thread deleted";
+      } else if (resolvingReport.action === "dismiss") {
+        message = "Report dismissed";
+      }
+      alert(message);
     } catch (error) {
       logger.error("Failed to resolve report:", error);
       alert("Failed to resolve report. Please try again.");
     }
+  };
+
+  const handleResolveReport = async (
+    reportId: number,
+    action: "dismiss" | "delete_post" | "delete_thread"
+  ) => {
+    setResolvingReport({ id: reportId, action });
   };
 
   if (loading) {
@@ -792,11 +804,23 @@ export default function AdminForumsPage() {
                       {report.status === "pending" && (
                         <div className="ml-4 flex flex-col gap-2">
                           <button
-                            onClick={() => handleResolveReport(report.id)}
+                            onClick={() =>
+                              handleResolveReport(report.id, "dismiss")
+                            }
                             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm"
                           >
-                            Resolve
+                            Dismiss
                           </button>
+                          {report.post_id && (
+                            <button
+                              onClick={() =>
+                                handleResolveReport(report.id, "delete_post")
+                              }
+                              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
+                            >
+                              Delete Post
+                            </button>
+                          )}
                           {report.thread_id && (
                             <>
                               <button
@@ -811,13 +835,16 @@ export default function AdminForumsPage() {
                                 onClick={() =>
                                   handleLockThread(report.thread_id!)
                                 }
-                                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
+                                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 text-sm"
                               >
                                 Lock Thread
                               </button>
                               <button
                                 onClick={() =>
-                                  setDeletingThreadId(report.thread_id!)
+                                  handleResolveReport(
+                                    report.id,
+                                    "delete_thread"
+                                  )
                                 }
                                 className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-black text-sm"
                               >
@@ -908,26 +935,41 @@ export default function AdminForumsPage() {
           </div>
         )}
 
-        {/* Delete Thread Confirmation Modal */}
-        {deletingThreadId && (
+        {/* Resolve Report Confirmation Modal */}
+        {resolvingReport && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Delete Thread
+                {resolvingReport.action === "dismiss"
+                  ? "Dismiss Report"
+                  : resolvingReport.action === "delete_post"
+                    ? "Delete Post"
+                    : "Delete Thread"}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to delete this thread? All posts in this
-                thread will also be deleted. This action cannot be undone.
+                {resolvingReport.action === "dismiss"
+                  ? "Are you sure you want to dismiss this report without taking any action on the content?"
+                  : resolvingReport.action === "delete_post"
+                    ? "Are you sure you want to delete this post? This action cannot be undone."
+                    : "Are you sure you want to delete this thread? All posts in this thread will also be deleted. This action cannot be undone."}
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={confirmDeleteThread}
-                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                  onClick={confirmResolveReport}
+                  className={`flex-1 text-white px-4 py-2 rounded-md ${
+                    resolvingReport.action === "dismiss"
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
                 >
-                  Delete Thread
+                  {resolvingReport.action === "dismiss"
+                    ? "Dismiss Report"
+                    : resolvingReport.action === "delete_post"
+                      ? "Delete Post"
+                      : "Delete Thread"}
                 </button>
                 <button
-                  onClick={() => setDeletingThreadId(null)}
+                  onClick={() => setResolvingReport(null)}
                   className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Cancel
