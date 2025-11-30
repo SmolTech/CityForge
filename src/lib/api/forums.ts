@@ -118,10 +118,10 @@ export class ForumsApi extends ApiClient {
     threadId: number,
     reason: "spam" | "inappropriate" | "harassment" | "off_topic" | "other",
     details?: string
-  ): Promise<ForumReport> {
-    return this.request(`/api/forums/threads/${threadId}/report`, {
+  ): Promise<{ report: ForumReport }> {
+    return this.request(`/api/forums/reports`, {
       method: "POST",
-      body: JSON.stringify({ reason, details }),
+      body: JSON.stringify({ thread_id: threadId, reason, details }),
     });
   }
 
@@ -129,10 +129,10 @@ export class ForumsApi extends ApiClient {
     postId: number,
     reason: "spam" | "inappropriate" | "harassment" | "off_topic" | "other",
     details?: string
-  ): Promise<ForumReport> {
-    return this.request(`/api/forums/posts/${postId}/report`, {
+  ): Promise<{ report: ForumReport }> {
+    return this.request(`/api/forums/reports`, {
       method: "POST",
-      body: JSON.stringify({ reason, details }),
+      body: JSON.stringify({ post_id: postId, reason, details }),
     });
   }
 
