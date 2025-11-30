@@ -254,4 +254,99 @@ export class AdminApi extends ApiClient {
       method: "DELETE",
     });
   }
+
+  // Forum management
+  async adminGetForumCategories(): Promise<any> {
+    return this.request("/api/admin/forums/categories");
+  }
+
+  async adminCreateForumCategory(data: {
+    name: string;
+    description: string;
+  }): Promise<any> {
+    return this.request("/api/admin/forums/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async adminUpdateForumCategory(
+    categoryId: number,
+    data: { name?: string; description?: string; displayOrder?: number }
+  ): Promise<any> {
+    return this.request(`/api/admin/forums/categories/${categoryId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async adminDeleteForumCategory(categoryId: number): Promise<any> {
+    return this.request(`/api/admin/forums/categories/${categoryId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async adminGetForumCategoryRequests(): Promise<any> {
+    return this.request("/api/admin/forums/category-requests");
+  }
+
+  async adminApproveForumCategoryRequest(requestId: number): Promise<any> {
+    return this.request(
+      `/api/admin/forums/category-requests/${requestId}/approve`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  async adminRejectForumCategoryRequest(
+    requestId: number,
+    notes: string
+  ): Promise<any> {
+    return this.request(
+      `/api/admin/forums/category-requests/${requestId}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({ notes }),
+      }
+    );
+  }
+
+  async adminGetForumReports(filter?: string): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (filter && filter !== "all") {
+      searchParams.append("status", filter);
+    }
+    const query = searchParams.toString();
+    return this.request(`/api/admin/forums/reports${query ? `?${query}` : ""}`);
+  }
+
+  async adminResolveForumReport(
+    reportId: number,
+    action: "dismiss" | "delete_post" | "delete_thread",
+    notes?: string
+  ): Promise<any> {
+    return this.request(`/api/admin/forums/reports/${reportId}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ action, notes }),
+    });
+  }
+
+  async adminDeleteForumThread(threadId: number): Promise<any> {
+    return this.request(`/api/admin/forums/threads/${threadId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async adminPinForumThread(threadId: number): Promise<any> {
+    return this.request(`/api/admin/forums/threads/${threadId}/pin`, {
+      method: "POST",
+    });
+  }
+
+  async adminLockForumThread(threadId: number): Promise<any> {
+    return this.request(`/api/admin/forums/threads/${threadId}/lock`, {
+      method: "POST",
+    });
+  }
 }
