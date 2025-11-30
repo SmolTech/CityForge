@@ -41,9 +41,11 @@ export class ForumsApi extends ApiClient {
     threadId: number,
     categorySlug: string
   ): Promise<ForumThread> {
-    return this.request(
+    const response: { thread: ForumThread } = await this.request(
       `/api/forums/categories/${categorySlug}/threads/${threadId}`
     );
+    // Return the thread object from the response
+    return response.thread;
   }
 
   async createForumThread(
@@ -75,7 +77,24 @@ export class ForumsApi extends ApiClient {
     });
   }
 
-  async createForumPost(threadId: number, content: string): Promise<ForumPost> {
+  async createForumPost(
+    threadId: number,
+    content: string,
+    categorySlug?: string
+  ): Promise<ForumPost> {
+    // If categorySlug is provided, use the specific endpoint
+    if (categorySlug) {
+      const response: { post: ForumPost; thread: any } = await this.request(
+        `/api/forums/categories/${categorySlug}/threads/${threadId}/posts`,
+        {
+          method: "POST",
+          body: JSON.stringify({ content }),
+        }
+      );
+      return response.post;
+    }
+
+    // Fallback to the simpler endpoint (if it exists)
     return this.request(`/api/forums/threads/${threadId}/posts`, {
       method: "POST",
       body: JSON.stringify({ content }),
