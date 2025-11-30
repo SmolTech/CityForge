@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    // First, let's try a simple query to get basic categories
+    // Get categories with optional statistics
     const categories = await prisma.forumCategory.findMany({
       where: {
         isActive: true,
@@ -36,33 +36,76 @@ export async function GET(request: NextRequest) {
             lastName: true,
           },
         },
+        ...(includeStats && {
+          _count: {
+            select: {
+              threads: true,
+            },
+          },
+        }),
       },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       take: limit,
       skip: offset,
     });
 
-    // Transform categories to match Flask API format
-    const transformedCategories = categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      slug: category.slug,
-      display_order: category.displayOrder,
-      is_active: category.isActive,
-      created_date:
-        category.createdDate?.toISOString() ?? new Date().toISOString(),
-      updated_date:
-        category.updatedDate?.toISOString() ?? new Date().toISOString(),
-      creator: category.creator
-        ? {
-            id: category.creator.id,
-            first_name: category.creator.firstName,
-            last_name: category.creator.lastName,
-            username: `${category.creator.firstName} ${category.creator.lastName}`,
-          }
-        : null,
-    }));
+    // Transform categories to match API format
+    const transformedCategories = includeStats
+      ? await Promise.all(
+          categories.map(async (category) => {
+            // Calculate post count by summing posts across all threads in this category
+            const postCount = await prisma.forumPost.count({
+              where: {
+                thread: {
+                  categoryId: category.id,
+                },
+              },
+            });
+
+            return {
+              id: category.id,
+              name: category.name,
+              description: category.description,
+              slug: category.slug,
+              display_order: category.displayOrder,
+              is_active: category.isActive,
+              created_date:
+                category.createdDate?.toISOString() ?? new Date().toISOString(),
+              updated_date:
+                category.updatedDate?.toISOString() ?? new Date().toISOString(),
+              creator: category.creator
+                ? {
+                    id: category.creator.id,
+                    first_name: category.creator.firstName,
+                    last_name: category.creator.lastName,
+                    username: `${category.creator.firstName} ${category.creator.lastName}`,
+                  }
+                : null,
+              thread_count: (category as any)._count?.threads ?? 0,
+              post_count: postCount,
+            };
+          })
+        )
+      : categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          slug: category.slug,
+          display_order: category.displayOrder,
+          is_active: category.isActive,
+          created_date:
+            category.createdDate?.toISOString() ?? new Date().toISOString(),
+          updated_date:
+            category.updatedDate?.toISOString() ?? new Date().toISOString(),
+          creator: category.creator
+            ? {
+                id: category.creator.id,
+                first_name: category.creator.firstName,
+                last_name: category.creator.lastName,
+                username: `${category.creator.firstName} ${category.creator.lastName}`,
+              }
+            : null,
+        }));
 
     logger.info("Successfully fetched forum categories", {
       count: transformedCategories.length,
