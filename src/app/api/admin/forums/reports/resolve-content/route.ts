@@ -96,40 +96,38 @@ export const POST = withAuth(
           throw new Error(`No pending reports found for ${type} ${contentId}`);
         }
 
-        // Update all pending reports to resolved
-        await tx.forumReport.updateMany({
-          where: whereClause,
-          data: {
-            status: "resolved",
-            reviewedBy: user.id,
-            reviewedDate: new Date(),
-            resolutionNotes: notes || null,
-          },
-        });
-
         // Perform the requested action
         if (action === "delete_post" && type === "post") {
-          // Reset report count to 0 for the post before deletion
-          await tx.forumPost.update({
-            where: { id: parseInt(contentId) },
-            data: { reportCount: 0 },
+          // When deleting content, delete all related reports first to avoid foreign key constraints
+          await tx.forumReport.deleteMany({
+            where: whereClause,
           });
 
-          // Delete the post
+          // Then delete the post
           await tx.forumPost.delete({
             where: { id: parseInt(contentId) },
           });
         } else if (action === "delete_thread" && type === "thread") {
-          // Reset report counts to 0 for thread and all its posts before deletion
-          await tx.forumPost.updateMany({
+          // When deleting a thread, delete all reports for the thread first
+          await tx.forumReport.deleteMany({
             where: { threadId: parseInt(contentId) },
-            data: { reportCount: 0 },
           });
 
-          await tx.forumThread.update({
-            where: { id: parseInt(contentId) },
-            data: { reportCount: 0 },
+          // Get all post IDs in this thread to delete their reports too
+          const threadPosts = await tx.forumPost.findMany({
+            where: { threadId: parseInt(contentId) },
+            select: { id: true },
           });
+
+          if (threadPosts.length > 0) {
+            await tx.forumReport.deleteMany({
+              where: {
+                postId: {
+                  in: threadPosts.map((p) => p.id),
+                },
+              },
+            });
+          }
 
           // Delete all posts in the thread first, then the thread
           await tx.forumPost.deleteMany({
@@ -139,7 +137,18 @@ export const POST = withAuth(
             where: { id: parseInt(contentId) },
           });
         } else if (action === "dismiss") {
-          // For dismiss, reset the report count to 0
+          // For dismiss action, update reports to resolved status
+          await tx.forumReport.updateMany({
+            where: whereClause,
+            data: {
+              status: "resolved",
+              reviewedBy: user.id,
+              reviewedDate: new Date(),
+              resolutionNotes: notes || null,
+            },
+          });
+
+          // Reset the report count to 0
           if (type === "thread") {
             await tx.forumThread.update({
               where: { id: parseInt(contentId) },
