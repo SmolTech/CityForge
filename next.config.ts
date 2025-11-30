@@ -24,28 +24,18 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Selective API proxy - only forward non-migrated endpoints to Flask backend
+  // No API proxying needed - all endpoints are now handled by Next.js API routes
   async rewrites() {
-    const backendUrl =
-      process.env["BACKEND_API_URL"] || "http://localhost:5000";
-
     return [
-      // Proxy non-migrated endpoints to Flask backend
-      // Cards API, Tags API, Site Config API, Resources API, Submissions API, Search API, Upload API, Forums API, Support tickets API, and Help-wanted API have been migrated to Next.js
-      // Admin endpoints that haven't been migrated yet
-      {
-        source: "/api/admin/cards/:path*",
-        destination: `${backendUrl}/api/admin/cards/:path*`,
-      },
-      {
-        source: "/api/admin/resources/:path*",
-        destination: `${backendUrl}/api/admin/resources/:path*`,
-      },
-      // NOTE: /api/admin/forums/* has been migrated to Next.js - no longer proxied
+      // All endpoints have been migrated to Next.js
+      // No backend proxy needed - all APIs are now handled by Next.js API routes
+      // Previously proxied: Cards API, Tags API, Site Config API, Resources API,
+      // Submissions API, Search API, Upload API, Forums API, Support tickets API,
+      // Help-wanted API, Admin cards, Admin resources, Admin forums
     ];
   },
 
-  // Configure headers for proxied requests to include timeout information
+  // Configure headers for API routes
   async headers() {
     return [
       {
