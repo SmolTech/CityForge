@@ -132,11 +132,11 @@ export async function cleanDatabase() {
   console.log("🧹 Cleaning test database...");
 
   // Clean up in reverse order of dependencies
+  await prisma.forumReport.deleteMany({});
   await prisma.forumPost.deleteMany({});
   await prisma.forumThread.deleteMany({});
   await prisma.forumCategory.deleteMany({});
   await prisma.forumCategoryRequest.deleteMany({});
-  await prisma.forumReport.deleteMany({});
   await prisma.cardModification.deleteMany({});
   await prisma.cardSubmission.deleteMany({});
   await prisma.card_tags.deleteMany({});
@@ -148,6 +148,7 @@ export async function cleanDatabase() {
   await prisma.quickAccessItem.deleteMany({});
   await prisma.resourceConfig.deleteMany({});
   await prisma.tokenBlacklist.deleteMany({});
+  await prisma.helpWantedPost.deleteMany({});
   await prisma.user.deleteMany({});
 
   // Verify cleanup
