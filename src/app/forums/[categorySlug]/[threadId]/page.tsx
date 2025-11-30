@@ -74,7 +74,7 @@ export default function ThreadPage() {
 
     setSubmitting(true);
     try {
-      await apiClient.createForumPost(thread.id, replyContent);
+      await apiClient.createForumPost(thread.id, replyContent, categorySlug);
       setReplyContent("");
       await loadData();
     } catch (error) {
