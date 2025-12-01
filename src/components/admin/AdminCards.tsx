@@ -1,5 +1,20 @@
 import { Card } from "@/lib/api";
 
+// Helper function to safely format dates
+function formatDate(dateString?: string): string {
+  if (!dateString) return "Not set";
+
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+    return date.toLocaleDateString();
+  } catch {
+    return "Invalid date";
+  }
+}
+
 interface AdminCardsProps {
   cards: Card[];
   onToggleFeatured: (cardId: number, featured: boolean) => void;
@@ -119,8 +134,8 @@ export default function AdminCards({
               )}
 
               <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Created: {new Date(card.created_date).toLocaleDateString()} •
-                Last updated: {new Date(card.updated_date).toLocaleDateString()}
+                Created: {formatDate(card.created_date)} • Last updated:{" "}
+                {formatDate(card.updated_date)}
                 {card.creator && (
                   <>
                     {" "}
