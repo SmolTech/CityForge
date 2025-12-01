@@ -41,9 +41,23 @@ interface ForumReportData {
   created_date?: Date | string;
 }
 
+// Forum category request data interface
+interface ForumCategoryRequestData {
+  id: number;
+  name: string;
+  description: string;
+  justification: string;
+  status: string;
+  created_date?: Date | string;
+}
+
 export interface AdminNotificationData {
-  type: "submission" | "modification" | "forum_report";
-  data: SubmissionData | ModificationData | ForumReportData;
+  type: "submission" | "modification" | "forum_report" | "category_request";
+  data:
+    | SubmissionData
+    | ModificationData
+    | ForumReportData
+    | ForumCategoryRequestData;
   user: {
     id: number;
     firstName: string;
@@ -856,6 +870,204 @@ Please review this report and take appropriate action.
         reportId: report.id,
         threadId: report.thread.id,
         postId: report.post?.id,
+        error,
+      });
+    }
+  }
+}
+
+/**
+ * Send email notification to all admins for forum category requests
+ */
+export async function sendCategoryRequestNotification(
+  request: ForumCategoryRequestData,
+  requester: { id: number; firstName: string; lastName: string; email: string }
+): Promise<void> {
+  const emailService = getEmailService();
+
+  if (!emailService) {
+    logger.info(
+      "Email service not configured, logging category request notification",
+      {
+        requestId: request.id,
+        requesterEmail: requester.email,
+      }
+    );
+    console.log(`\n🏷️ Forum Category Request Notification:`);
+    console.log(`   Request ID: ${request.id}`);
+    console.log(`   Category Name: ${request.name}`);
+    console.log(
+      `   Requested by: ${requester.firstName} ${requester.lastName} (${requester.email})`
+    );
+    console.log(`   Admin Review Required\n`);
+    return;
+  }
+
+  const adminEmails = await getAdminEmails();
+
+  if (adminEmails.length === 0) {
+    logger.warn("No admin emails found for category request notification", {
+      requestId: request.id,
+    });
+    return;
+  }
+
+  const subject = `New Forum Category Request: ${request.name}`;
+  const baseUrl =
+    process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000";
+  const adminUrl = `${baseUrl}/admin/forums`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .container {
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          padding: 30px;
+          margin: 20px 0;
+        }
+        .header {
+          background-color: #8b5cf6;
+          color: white;
+          padding: 20px;
+          border-radius: 8px 8px 0 0;
+          margin: -30px -30px 20px -30px;
+        }
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 8px;
+          margin: 20px 0;
+        }
+        .detail-label {
+          font-weight: bold;
+          color: #666;
+        }
+        .detail-value {
+          color: #333;
+          word-break: break-word;
+        }
+        .justification {
+          background-color: #f3f4f6;
+          border-left: 4px solid #8b5cf6;
+          padding: 16px;
+          margin: 20px 0;
+          border-radius: 0 6px 6px 0;
+        }
+        .button {
+          display: inline-block;
+          padding: 12px 24px;
+          background-color: #8b5cf6;
+          color: white;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 20px 0;
+        }
+        .footer {
+          font-size: 14px;
+          color: #666;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>🏷️ New Forum Category Request</h2>
+          <p>A community member has requested a new forum category for approval.</p>
+        </div>
+        
+        <h3>Category Request:</h3>
+        <div class="detail-grid">
+          <div class="detail-label">Name:</div>
+          <div class="detail-value">${request.name}</div>
+          
+          <div class="detail-label">Description:</div>
+          <div class="detail-value">${request.description}</div>
+          
+          <div class="detail-label">Status:</div>
+          <div class="detail-value">${request.status}</div>
+        </div>
+
+        <h3>Justification:</h3>
+        <div class="justification">
+          "${request.justification}"
+        </div>
+
+        <h3>Requested By:</h3>
+        <div class="detail-grid">
+          <div class="detail-label">Name:</div>
+          <div class="detail-value">${requester.firstName} ${requester.lastName}</div>
+          
+          <div class="detail-label">Email:</div>
+          <div class="detail-value">${requester.email}</div>
+          
+          <div class="detail-label">Date:</div>
+          <div class="detail-value">${request.created_date ? new Date(request.created_date).toLocaleString() : "Just now"}</div>
+        </div>
+
+        <a href="${adminUrl}" class="button">Review Request</a>
+
+        <div class="footer">
+          <p>Please review this category request and approve or reject it from the forum admin section.</p>
+          <p>Approved categories will be automatically created and made available to the community.</p>
+          <p>This is an automated notification email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+New Forum Category Request: ${request.name}
+
+Category Request:
+- Name: ${request.name}
+- Description: ${request.description}
+- Status: ${request.status}
+
+Justification: "${request.justification}"
+
+Requested By: ${requester.firstName} ${requester.lastName} (${requester.email})
+Date: ${request.created_date ? new Date(request.created_date).toLocaleString() : "Just now"}
+
+Review request: ${adminUrl}
+
+Please review this category request and approve or reject it from the forum admin section.
+  `;
+
+  // Send email to all admins
+  for (const adminEmail of adminEmails) {
+    try {
+      await emailService.sendEmail({
+        to: adminEmail,
+        subject,
+        html,
+        text,
+      });
+
+      logger.info("Category request notification sent to admin", {
+        adminEmail,
+        requestId: request.id,
+      });
+    } catch (error) {
+      logger.error("Failed to send category request notification to admin", {
+        adminEmail,
+        requestId: request.id,
         error,
       });
     }
