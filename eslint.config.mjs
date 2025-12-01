@@ -20,6 +20,8 @@ const eslintConfig = [
       ".venv/**",
       "backend/**",
       "indexer/**",
+      "debug-*.mjs",
+      "test-local-*.mjs",
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

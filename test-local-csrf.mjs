@@ -8,7 +8,7 @@ console.log("🔧 Testing CSRF Fix Locally");
 console.log("📍 Server:", API_BASE);
 console.log("👤 User:", TEST_EMAIL);
 
-let cookieJar = new Map();
+const cookieJar = new Map();
 let csrfToken = null;
 
 // Helper to handle cookies like a browser
