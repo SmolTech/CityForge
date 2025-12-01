@@ -10,7 +10,7 @@ let prisma: PrismaClient | null = null;
 /**
  * Get Prisma client instance
  */
-function getPrisma(): PrismaClient {
+export function getPrisma(): PrismaClient {
   if (!prisma) {
     prisma = new PrismaClient({
       datasourceUrl:
@@ -47,6 +47,7 @@ export async function createHelpWantedPost(data: {
       budget: data.budget || null,
       contactPreference: data.contactPreference || null,
       reportCount: 0,
+      createdDate: new Date(), // Ensure createdDate is set for test posts
     },
   });
 
@@ -180,9 +181,12 @@ export async function updateClassifiedViaUI(
 
   // Only status updates are currently supported via UI
   if (updates.status) {
-    // Get current status from the page
+    // Get current status from the page - use more specific selector to avoid mobile menu conflicts
     const currentStatus = await page
-      .locator('span:has-text("Open"), span:has-text("Closed")')
+      .locator(
+        ".inline-flex.items-center.px-2\\.5.py-0\\.5.rounded-full.text-xs.font-medium"
+      )
+      .filter({ hasText: /^(Open|Closed)$/ })
       .textContent();
     const isCurrentlyOpen = currentStatus?.toLowerCase() === "open";
     const wantsClosed = updates.status === "closed";
@@ -453,9 +457,13 @@ export async function commentExists(
 }
 
 /**
- * Get the count of posts displayed on the page
+ * Get the count of classified posts on the page (excluding navigation links)
  */
 export async function getPostCount(page: Page): Promise<number> {
-  const posts = await page.locator('[href^="/classifieds/"]').count();
+  // Count only links to specific classified posts (not /classifieds/new)
+  // The pattern is /classifieds/{id} where id is a number
+  const posts = await page
+    .locator('a[href^="/classifieds/"]:not([href="/classifieds/new"])')
+    .count();
   return posts;
 }

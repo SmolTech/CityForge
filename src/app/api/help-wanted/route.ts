@@ -112,12 +112,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || undefined;
-    const status = searchParams.get("status") || "open";
+    const status = searchParams.get("status") || undefined; // Don't default to "open"
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const where: Record<string, unknown> = {
-      ...(status && { status }),
+      ...(status && status !== "all" && { status }),
       ...(category && { category }),
     };
 
