@@ -140,7 +140,9 @@ export function checkAuthRateLimit(
   // Disable rate limiting in test/CI environments to allow E2E tests to run
   // Unless explicitly enabled for testing rate limiting functionality
   if (
-    (process.env["NODE_ENV"] === "test" || process.env["CI"] === "true") &&
+    (process.env["NODE_ENV"] === "test" ||
+      process.env["CI"] === "true" ||
+      process.env["PLAYWRIGHT_E2E_TESTING"] === "true") &&
     process.env["TEST_RATE_LIMITING"] !== "true"
   ) {
     return {
