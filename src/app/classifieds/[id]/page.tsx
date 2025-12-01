@@ -49,21 +49,23 @@ export default function HelpWantedDetailPage() {
 
   const loadPost = async () => {
     try {
-      const [postData, userData] = await Promise.all([
-        apiClient.getHelpWantedPost(postId),
-        apiClient.getCurrentUser(),
-      ]);
-
+      // Load post data (public endpoint)
+      const postData = await apiClient.getHelpWantedPost(postId);
       setPost(postData);
-      setCurrentUser(userData.user);
+
+      // Try to load user data (optional)
+      try {
+        const userData = await apiClient.getCurrentUser();
+        setCurrentUser(userData.user);
+      } catch {
+        // User is not logged in, but that's okay - they can still view the post
+        logger.info("User not authenticated (viewing as anonymous)");
+        setCurrentUser(null);
+      }
     } catch (error) {
       logger.error("Failed to load post:", error);
-      // Check if it's an auth error (401)
-      if ((error as Error & { status?: number }).status === 401) {
-        router.push("/login?redirect=/classifieds/" + postId);
-      } else {
-        router.push("/classifieds");
-      }
+      // Only redirect if the post itself failed to load (not auth)
+      router.push("/classifieds");
     } finally {
       setLoading(false);
     }
@@ -90,6 +92,13 @@ export default function HelpWantedDetailPage() {
   const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setReportError("");
+
+    // Check if user is authenticated
+    if (!currentUser) {
+      router.push(`/login?redirect=/classifieds/${postId}`);
+      return;
+    }
+
     try {
       await apiClient.reportHelpWantedPost(postId, reportReason, reportDetails);
       setShowReportModal(false);
@@ -167,7 +176,7 @@ export default function HelpWantedDetailPage() {
         <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
           {comment.content}
         </p>
-        {!isReply && (
+        {!isReply && currentUser && (
           <button
             onClick={() => setReplyTo(comment.id)}
             className="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
@@ -331,36 +340,52 @@ export default function HelpWantedDetailPage() {
           </h2>
 
           {/* Comment Form */}
-          <form onSubmit={handleComment} className="mb-6">
-            {replyTo && (
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Replying to comment
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setReplyTo(null)}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            <textarea
-              value={commentContent}
-              onChange={(e) => setCommentContent(e.target.value)}
-              placeholder="Add a comment..."
-              rows={3}
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-2"
-            />
-            <button
-              type="submit"
-              disabled={!commentContent.trim()}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              Post Comment
-            </button>
-          </form>
+          {currentUser ? (
+            <form onSubmit={handleComment} className="mb-6">
+              {replyTo && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Replying to comment
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReplyTo(null)}
+                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <textarea
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder="Add a comment..."
+                rows={3}
+                className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-2"
+              />
+              <button
+                type="submit"
+                disabled={!commentContent.trim()}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                Post Comment
+              </button>
+            </form>
+          ) : (
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                Sign in to post comments and interact with this listing.
+              </p>
+              <button
+                onClick={() =>
+                  router.push(`/login?redirect=/classifieds/${postId}`)
+                }
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
 
           {/* Comments List */}
           <div>
