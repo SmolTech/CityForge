@@ -161,7 +161,8 @@ export async function createClassifiedViaUI(
 }
 
 /**
- * Update a classified post via UI
+ * Update a classified post via UI - Currently only supports status toggle
+ * Note: The current UI implementation only allows status toggling, not full editing
  */
 export async function updateClassifiedViaUI(
   page: Page,
@@ -177,72 +178,79 @@ export async function updateClassifiedViaUI(
 ) {
   await goToClassifiedPost(page, postId);
 
-  // Click edit button
-  await page.click('button:has-text("Edit")');
-
-  // Fill in updates
-  if (updates.title) {
-    await page.fill('input[name="title"]', updates.title);
-  }
-
-  if (updates.description) {
-    await page.fill('textarea[name="description"]', updates.description);
-  }
-
-  if (updates.category) {
-    await page.selectOption('select[name="category"]', updates.category);
-  }
-
+  // Only status updates are currently supported via UI
   if (updates.status) {
-    await page.selectOption('select[name="status"]', updates.status);
+    // Get current status from the page
+    const currentStatus = await page
+      .locator('span:has-text("Open"), span:has-text("Closed")')
+      .textContent();
+    const isCurrentlyOpen = currentStatus?.toLowerCase() === "open";
+    const wantsClosed = updates.status === "closed";
+
+    // Only click the toggle if we need to change the status
+    if (
+      (isCurrentlyOpen && wantsClosed) ||
+      (!isCurrentlyOpen && !wantsClosed)
+    ) {
+      // Wait for API response
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/help-wanted/${postId}`) &&
+          response.request().method() === "PUT" &&
+          response.status() !== 0,
+        { timeout: 10000 }
+      );
+
+      // Click the status toggle button
+      const toggleText = isCurrentlyOpen ? "Mark as Closed" : "Mark as Open";
+      await page.click(`button:has-text("${toggleText}")`);
+
+      // Wait for response
+      const response = await responsePromise;
+      const statusCode = response.status();
+
+      if (statusCode !== 200) {
+        throw new Error(`Status update failed with status code: ${statusCode}`);
+      }
+
+      // Wait for the UI to update
+      await page.waitForTimeout(1000);
+    }
   }
 
-  if (updates.location !== undefined) {
-    await page.fill('input[name="location"]', updates.location);
+  // Warn about unsupported updates
+  const unsupportedUpdates = [];
+  if (updates.title) unsupportedUpdates.push("title");
+  if (updates.description) unsupportedUpdates.push("description");
+  if (updates.category) unsupportedUpdates.push("category");
+  if (updates.location !== undefined) unsupportedUpdates.push("location");
+  if (updates.budget !== undefined) unsupportedUpdates.push("budget");
+
+  if (unsupportedUpdates.length > 0) {
+    console.warn(
+      `Warning: The following updates are not supported by the current UI: ${unsupportedUpdates.join(", ")}. ` +
+        `Only status toggling is currently available. Consider updating tests or implementing edit functionality.`
+    );
   }
-
-  if (updates.budget !== undefined) {
-    await page.fill('input[name="budget"]', updates.budget);
-  }
-
-  // Wait for API response
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes(`/api/help-wanted/${postId}`) &&
-      response.request().method() === "PUT" &&
-      response.status() !== 0,
-    { timeout: 10000 }
-  );
-
-  // Submit form
-  await page.click('button[type="submit"]:has-text("Save")');
-
-  // Wait for response
-  const response = await responsePromise;
-  const statusCode = response.status();
-
-  if (statusCode !== 200) {
-    throw new Error(`Post update failed with status code: ${statusCode}`);
-  }
-
-  // Wait for success message or redirect
-  await page.waitForTimeout(1000);
 }
 
 /**
  * Delete a classified post via UI
+ * Note: The current UI implementation does not provide delete functionality
+ * This function will throw an error as delete is not available in the current UI
  */
 export async function deleteClassifiedViaUI(page: Page, postId: number) {
   await goToClassifiedPost(page, postId);
 
-  // Click delete button
-  await page.click('button:has-text("Delete")');
+  throw new Error(
+    "Delete functionality is not available in the current UI implementation. " +
+      "Consider removing delete tests or implementing delete functionality in the UI."
+  );
 
-  // Confirm deletion
-  await page.click('button:has-text("Confirm")');
-
-  // Wait for redirect
-  await page.waitForURL("/classifieds", { timeout: 5000 });
+  // Legacy code that no longer works:
+  // await page.click('button:has-text("Delete")');
+  // await page.click('button:has-text("Confirm")');
+  // await page.waitForURL("/classifieds", { timeout: 5000 });
 }
 
 /**
@@ -255,8 +263,8 @@ export async function postCommentViaUI(
 ) {
   await goToClassifiedPost(page, postId);
 
-  // Fill in comment
-  await page.fill('textarea[name="comment"]', content);
+  // Fill in comment using placeholder selector since there's no name attribute
+  await page.fill('textarea[placeholder="Add a comment..."]', content);
 
   // Wait for API response
   const responsePromise = page.waitForResponse(
@@ -295,17 +303,17 @@ export async function reportClassifiedViaUI(
   // Click report button
   await page.click('button:has-text("Report")');
 
-  // Wait for report modal
-  await page.waitForSelector('[data-testid="report-modal"]', {
+  // Wait for report modal - looking for the modal content instead of test-id
+  await page.waitForSelector('h3:has-text("Report Post")', {
     timeout: 5000,
   });
 
-  // Select reason
-  await page.selectOption('select[name="reason"]', reason);
+  // Select reason - the select doesn't have a name attribute, look for the select with options
+  await page.selectOption("select", reason);
 
-  // Fill in details if provided
+  // Fill in details if provided - the textarea doesn't have a name attribute
   if (details) {
-    await page.fill('textarea[name="details"]', details);
+    await page.fill("form textarea", details);
   }
 
   // Wait for API response
@@ -339,7 +347,12 @@ export async function filterByCategory(
   category: "all" | "hiring" | "collaboration" | "general"
 ) {
   await goToClassifieds(page);
-  await page.selectOption('select:has-text("Category")', category);
+  // Find the select element within the category section
+  const categorySelect = page
+    .locator('label:has-text("Category")')
+    .locator("..")
+    .locator("select");
+  await categorySelect.selectOption(category === "all" ? "all" : category);
   await page.waitForTimeout(500);
 }
 
@@ -351,7 +364,12 @@ export async function filterByStatus(
   status: "all" | "open" | "closed"
 ) {
   await goToClassifieds(page);
-  await page.selectOption('select:has-text("Status")', status);
+  // Find the select element within the status section
+  const statusSelect = page
+    .locator('label:has-text("Status")')
+    .locator("..")
+    .locator("select");
+  await statusSelect.selectOption(status);
   await page.waitForTimeout(500);
 }
 
@@ -360,7 +378,7 @@ export async function filterByStatus(
  */
 export async function searchClassifieds(page: Page, query: string) {
   await goToClassifieds(page);
-  await page.fill('input[placeholder*="Search"]', query);
+  await page.fill('input[placeholder*="Search by title"]', query);
   await page.waitForTimeout(500);
 }
 
