@@ -16,7 +16,7 @@ import crypto from "crypto";
  */
 
 export const CSRF_COOKIE_NAME = "csrf_token";
-export const CSRF_HEADER_NAME = "x-csrf-token";
+export const CSRF_HEADER_NAME = "X-CSRF-Token";
 export const CSRF_TOKEN_LENGTH = 32; // 32 bytes = 256 bits
 
 /**

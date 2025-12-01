@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import {
@@ -11,165 +12,168 @@ import {
  * POST /api/forums/category-requests
  * Request a new forum category
  */
-export const POST = withAuth(async (request: NextRequest, { user }) => {
-  try {
-    logger.info("Starting category request POST handler", {
-      userId: user.id,
-      userEmail: user.email,
-    });
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }) => {
+    try {
+      logger.info("Starting category request POST handler", {
+        userId: user.id,
+        userEmail: user.email,
+      });
 
-    if (!user.isActive) {
-      return NextResponse.json(
-        { error: { message: "User not found or inactive", code: 404 } },
-        { status: 404 }
-      );
-    }
+      if (!user.isActive) {
+        return NextResponse.json(
+          { error: { message: "User not found or inactive", code: 404 } },
+          { status: 404 }
+        );
+      }
 
-    const data = await request.json();
+      const data = await request.json();
 
-    logger.info("Processing request data", {
-      userId: user.id,
-      hasData: !!data,
-      dataKeys: data ? Object.keys(data) : [],
-    });
+      logger.info("Processing request data", {
+        userId: user.id,
+        hasData: !!data,
+        dataKeys: data ? Object.keys(data) : [],
+      });
 
-    if (!data) {
-      return NextResponse.json(
-        { error: { message: "No data provided", code: 422 } },
-        { status: 422 }
-      );
-    }
+      if (!data) {
+        return NextResponse.json(
+          { error: { message: "No data provided", code: 422 } },
+          { status: 422 }
+        );
+      }
 
-    // Validate input data
-    const validation = validateForumCategoryRequest(data);
-    logger.info("Validation result", {
-      userId: user.id,
-      isValid: validation.isValid,
-      errors: validation.errors || [],
-      dataName: data?.name,
-    });
+      // Validate input data
+      const validation = validateForumCategoryRequest(data);
+      logger.info("Validation result", {
+        userId: user.id,
+        isValid: validation.isValid,
+        errors: validation.errors || [],
+        dataName: data?.name,
+      });
 
-    if (!validation.isValid) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            code: 422,
-            details: validation.errors,
+      if (!validation.isValid) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "Validation failed",
+              code: 422,
+              details: validation.errors,
+            },
+          },
+          { status: 422 }
+        );
+      }
+
+      const validatedData = validation.data as ForumCategoryRequestData;
+
+      // Check if a similar category already exists
+      const existingCategory = await prisma.forumCategory.findFirst({
+        where: { name: validatedData.name },
+      });
+
+      if (existingCategory) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "A category with this name already exists",
+              code: 422,
+            },
+          },
+          { status: 422 }
+        );
+      }
+
+      // Check if user already has a pending request for this category
+      const existingRequest = await prisma.forumCategoryRequest.findFirst({
+        where: {
+          name: validatedData.name,
+          requestedBy: user.id,
+          status: "pending",
+        },
+      });
+
+      logger.info("Duplicate check for category request", {
+        userId: user.id,
+        categoryName: validatedData.name,
+        existingRequestId: existingRequest?.id || null,
+      });
+
+      if (existingRequest) {
+        logger.info("Found duplicate, returning 409");
+        return NextResponse.json(
+          {
+            error: {
+              message: "You already have a pending request for this category",
+              code: 409,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      // Create the category request
+      const categoryRequest = await prisma.forumCategoryRequest.create({
+        data: {
+          name: validatedData.name,
+          description: validatedData.description,
+          justification: validatedData.justification,
+          requestedBy: user.id,
+          status: "pending",
+        },
+        include: {
+          requester: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-        { status: 422 }
-      );
-    }
+      });
 
-    const validatedData = validation.data as ForumCategoryRequestData;
-
-    // Check if a similar category already exists
-    const existingCategory = await prisma.forumCategory.findFirst({
-      where: { name: validatedData.name },
-    });
-
-    if (existingCategory) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "A category with this name already exists",
-            code: 422,
-          },
-        },
-        { status: 422 }
-      );
-    }
-
-    // Check if user already has a pending request for this category
-    const existingRequest = await prisma.forumCategoryRequest.findFirst({
-      where: {
-        name: validatedData.name,
-        requestedBy: user.id,
-        status: "pending",
-      },
-    });
-
-    logger.info("Duplicate check for category request", {
-      userId: user.id,
-      categoryName: validatedData.name,
-      existingRequestId: existingRequest?.id || null,
-    });
-
-    if (existingRequest) {
-      logger.info("Found duplicate, returning 409");
-      return NextResponse.json(
-        {
-          error: {
-            message: "You already have a pending request for this category",
-            code: 409,
-          },
-        },
-        { status: 409 }
-      );
-    }
-
-    // Create the category request
-    const categoryRequest = await prisma.forumCategoryRequest.create({
-      data: {
-        name: validatedData.name,
-        description: validatedData.description,
-        justification: validatedData.justification,
-        requestedBy: user.id,
-        status: "pending",
-      },
-      include: {
+      // Format response to match Flask API (snake_case)
+      const responseData = {
+        id: categoryRequest.id,
+        name: categoryRequest.name,
+        description: categoryRequest.description,
+        justification: categoryRequest.justification,
+        status: categoryRequest.status,
+        requested_by: categoryRequest.requestedBy,
+        reviewed_by: categoryRequest.reviewedBy,
+        created_date:
+          categoryRequest.createdDate?.toISOString() ??
+          new Date().toISOString(),
+        reviewed_date: categoryRequest.reviewedDate?.toISOString() || null,
+        review_notes: categoryRequest.reviewNotes,
+        category_id: categoryRequest.categoryId,
         requester: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          id: categoryRequest.requester.id,
+          first_name: categoryRequest.requester.firstName,
+          last_name: categoryRequest.requester.lastName,
+          email: categoryRequest.requester.email,
         },
-      },
-    });
+      };
 
-    // Format response to match Flask API (snake_case)
-    const responseData = {
-      id: categoryRequest.id,
-      name: categoryRequest.name,
-      description: categoryRequest.description,
-      justification: categoryRequest.justification,
-      status: categoryRequest.status,
-      requested_by: categoryRequest.requestedBy,
-      reviewed_by: categoryRequest.reviewedBy,
-      created_date:
-        categoryRequest.createdDate?.toISOString() ?? new Date().toISOString(),
-      reviewed_date: categoryRequest.reviewedDate?.toISOString() || null,
-      review_notes: categoryRequest.reviewNotes,
-      category_id: categoryRequest.categoryId,
-      requester: {
-        id: categoryRequest.requester.id,
-        first_name: categoryRequest.requester.firstName,
-        last_name: categoryRequest.requester.lastName,
-        email: categoryRequest.requester.email,
-      },
-    };
+      logger.info("Category request created successfully", {
+        requestId: categoryRequest.id,
+        userId: user.id,
+        categoryName: validatedData.name,
+      });
 
-    logger.info("Category request created successfully", {
-      requestId: categoryRequest.id,
-      userId: user.id,
-      categoryName: validatedData.name,
-    });
-
-    return NextResponse.json({ request: responseData }, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating category request", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      userId: user.id,
-    });
-    return NextResponse.json(
-      { error: { message: "Internal server error", code: 500 } },
-      { status: 500 }
-    );
-  }
-});
+      return NextResponse.json({ request: responseData }, { status: 201 });
+    } catch (error) {
+      logger.error("Error creating category request", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: user.id,
+      });
+      return NextResponse.json(
+        { error: { message: "Internal server error", code: 500 } },
+        { status: 500 }
+      );
+    }
+  })
+);
 
 /**
  * GET /api/forums/category-requests
