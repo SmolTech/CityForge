@@ -7,6 +7,7 @@ import {
   validateForumCategoryRequest,
   ForumCategoryRequestData,
 } from "@/lib/validation/forums";
+import { sendCategoryRequestNotification } from "@/lib/email/admin-notifications";
 
 /**
  * POST /api/forums/category-requests
@@ -160,6 +161,39 @@ export const POST = withCsrfProtection(
         userId: user.id,
         categoryName: validatedData.name,
       });
+
+      // Send email notification to admins
+      try {
+        await sendCategoryRequestNotification(
+          {
+            id: categoryRequest.id,
+            name: categoryRequest.name,
+            description: categoryRequest.description || "",
+            justification: categoryRequest.justification || "",
+            status: categoryRequest.status || "pending",
+            created_date: categoryRequest.createdDate || new Date(),
+          },
+          {
+            id: categoryRequest.requester.id,
+            firstName: categoryRequest.requester.firstName,
+            lastName: categoryRequest.requester.lastName,
+            email: categoryRequest.requester.email,
+          }
+        );
+
+        logger.info("Email notification sent for category request", {
+          requestId: categoryRequest.id,
+          userId: user.id,
+        });
+      } catch (emailError) {
+        // Don't fail the request if email fails
+        logger.error("Failed to send email notification for category request", {
+          requestId: categoryRequest.id,
+          userId: user.id,
+          error:
+            emailError instanceof Error ? emailError.message : "Unknown error",
+        });
+      }
 
       return NextResponse.json({ request: responseData }, { status: 201 });
     } catch (error) {
