@@ -151,6 +151,7 @@ describe("Auth Middleware", () => {
       isActive: true,
       emailVerified: true,
       isSupporterFlag: false,
+      support: false,
     };
 
     it("should authenticate user with valid token from Authorization header", async () => {
@@ -325,6 +326,7 @@ describe("Auth Middleware", () => {
       isActive: true,
       emailVerified: true,
       isSupporterFlag: false,
+      support: false,
     };
 
     it("should call handler with authenticated user", async () => {
@@ -418,6 +420,7 @@ describe("Auth Middleware", () => {
       isActive: true,
       emailVerified: true,
       isSupporterFlag: false,
+      support: false,
     };
 
     it("should call handler with authenticated user when token is valid", async () => {

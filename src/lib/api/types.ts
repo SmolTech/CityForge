@@ -9,6 +9,7 @@ export interface User {
   is_supporter: boolean;
   is_supporter_flag: boolean;
   is_active: boolean;
+  support: boolean;
   email_verified: boolean;
   created_date: string;
   last_login?: string;

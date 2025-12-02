@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/auth/middleware";
+import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -53,7 +53,7 @@ export const POST = withAuth(
       const existingTicket = await prisma.supportTicket.findFirst({
         where: {
           id: ticketId,
-          ...(user.isSupporterFlag ? {} : { createdBy: user.id }),
+          ...(hasSupportPermissions(user) ? {} : { createdBy: user.id }),
         },
       });
 
@@ -68,7 +68,7 @@ export const POST = withAuth(
       const isInternalNote = Boolean(data.is_internal_note);
 
       // Only supporters can create internal notes
-      if (isInternalNote && !user.isSupporterFlag) {
+      if (isInternalNote && !hasSupportPermissions(user)) {
         return NextResponse.json(
           {
             error: {

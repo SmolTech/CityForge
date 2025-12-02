@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/auth/middleware";
+import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -47,7 +47,7 @@ export const GET = withAuth(
       const whereClause: WhereClause = { id: ticketId };
 
       // Non-supporters can only see their own tickets
-      if (!user.isSupporterFlag) {
+      if (!hasSupportPermissions(user)) {
         whereClause.createdBy = user.id;
       }
 
@@ -256,14 +256,14 @@ export const PUT = withAuth(
       }
 
       // Only supporters can assign tickets
-      if ("assignedTo" in updateData && !user.isSupporterFlag) {
+      if ("assignedTo" in updateData && !hasSupportPermissions(user)) {
         delete updateData.assignedTo;
       }
 
       // Only supporters and ticket creators can change status
       if (
         "status" in updateData &&
-        !user.isSupporterFlag &&
+        !hasSupportPermissions(user) &&
         existingTicket.createdBy !== user.id
       ) {
         delete updateData.status;
@@ -479,14 +479,14 @@ export const DELETE = withAuth(
       logger.info("Deleting support ticket", {
         ticketId,
         userId: user.id,
-        isSupporter: user.isSupporterFlag,
+        isSupporter: hasSupportPermissions(user),
       });
 
       // Check if ticket exists and user has permission to delete
       const existingTicket = await prisma.supportTicket.findFirst({
         where: {
           id: ticketId,
-          ...(user.isSupporterFlag ? {} : { createdBy: user.id }),
+          ...(hasSupportPermissions(user) ? {} : { createdBy: user.id }),
         },
       });
 
