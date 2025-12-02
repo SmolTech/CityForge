@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/auth/middleware";
+import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { paginationUtils } from "@/lib/constants/pagination";
@@ -43,7 +43,7 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     const whereClause: WhereClause = {};
 
     // Non-supporters can only see their own tickets
-    if (!user.isSupporterFlag) {
+    if (!hasSupportPermissions(user)) {
       whereClause.createdBy = user.id;
     } else {
       // Supporters can see all tickets or filter by assignment

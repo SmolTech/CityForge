@@ -62,6 +62,7 @@ export function createTestToken(user: {
   isActive?: boolean;
   emailVerified?: boolean;
   isSupporterFlag?: boolean;
+  support?: boolean;
 }): string {
   return generateAccessToken({
     id: user.id,
@@ -72,6 +73,7 @@ export function createTestToken(user: {
     isActive: user.isActive ?? true,
     emailVerified: user.emailVerified ?? true,
     isSupporterFlag: user.isSupporterFlag ?? false,
+    support: user.support ?? false,
   });
 }
 

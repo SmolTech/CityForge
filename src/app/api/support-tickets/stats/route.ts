@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/auth/middleware";
+import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -22,7 +22,7 @@ export const GET = withAuth(async (_, { user }) => {
     const whereClause: WhereClause = {};
 
     // Non-supporters can only see their own tickets
-    if (!user.isSupporterFlag) {
+    if (!hasSupportPermissions(user)) {
       whereClause.createdBy = user.id;
     }
 
@@ -68,7 +68,7 @@ export const GET = withAuth(async (_, { user }) => {
     }
 
     // For supporters, add assignment statistics
-    if (user.isSupporterFlag) {
+    if (hasSupportPermissions(user)) {
       // Count tickets assigned to current user
       const assignedToMe = await prisma.supportTicket.count({
         where: {

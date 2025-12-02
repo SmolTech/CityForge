@@ -38,6 +38,7 @@ export const POST = withAuthRateLimit(
           isActive: true,
           emailVerified: true,
           isSupporterFlag: true,
+          support: true,
           createdDate: true,
           lastLogin: true,
         },
@@ -73,6 +74,7 @@ export const POST = withAuthRateLimit(
         isActive: user.isActive ?? true,
         emailVerified: user.emailVerified ?? false,
         isSupporterFlag: user.isSupporterFlag ?? false,
+        support: user.support ?? false,
       });
 
       // Convert user to the format expected by frontend

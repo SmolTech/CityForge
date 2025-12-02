@@ -78,6 +78,7 @@ const mockUser: User = {
   is_admin: false,
   is_supporter: false,
   is_supporter_flag: false,
+  support: false,
   is_active: true,
   email_verified: true,
   created_date: "2023-01-01T00:00:00Z",

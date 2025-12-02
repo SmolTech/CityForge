@@ -15,6 +15,7 @@ model User {
   lastName                  String                 @map("last_name") @db.VarChar(50)
   role                      String                 @db.VarChar(20)
   isActive                  Boolean?               @map("is_active")
+  support                   Boolean                @default(false)
   createdDate               DateTime?              @map("created_date") @db.Timestamp(6)
   lastLogin                 DateTime?              @map("last_login") @db.Timestamp(6)
   isSupporterFlag           Boolean                @default(false) @map("is_supporter_flag")

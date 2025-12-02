@@ -40,6 +40,7 @@ export const PUT = withAuth(
         role,
         is_active,
         is_supporter_flag,
+        support,
       } = body;
 
       // Check if user exists
@@ -86,6 +87,7 @@ export const PUT = withAuth(
         role?: string;
         isActive?: boolean;
         isSupporterFlag?: boolean;
+        support?: boolean;
       } = {};
       if (email !== undefined) updateData.email = email;
       if (first_name !== undefined) updateData.firstName = first_name;
@@ -94,6 +96,7 @@ export const PUT = withAuth(
       if (is_active !== undefined) updateData.isActive = is_active;
       if (is_supporter_flag !== undefined)
         updateData.isSupporterFlag = is_supporter_flag;
+      if (support !== undefined) updateData.support = support;
 
       // Update user
       const updatedUser = await prisma.user.update({
@@ -107,6 +110,7 @@ export const PUT = withAuth(
           role: true,
           isActive: true,
           isSupporterFlag: true,
+          support: true,
           createdDate: true,
           lastLogin: true,
         },
@@ -122,6 +126,7 @@ export const PUT = withAuth(
         role: updatedUser.role,
         is_active: updatedUser.isActive,
         is_supporter_flag: updatedUser.isSupporterFlag,
+        support: updatedUser.support,
         created_date: updatedUser.createdDate,
         last_login: updatedUser.lastLogin,
       });

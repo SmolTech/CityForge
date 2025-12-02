@@ -12,6 +12,7 @@ export interface AuthenticatedUser {
   isActive: boolean;
   emailVerified: boolean;
   isSupporterFlag: boolean;
+  support: boolean;
 }
 
 export interface AuthMiddlewareOptions {
@@ -119,6 +120,7 @@ async function loadUser(userId: number): Promise<AuthenticatedUser | null> {
       isActive: true,
       emailVerified: true,
       isSupporterFlag: true,
+      support: true,
     },
   });
 
@@ -303,4 +305,16 @@ export function withOptionalAuth<T extends unknown[]>(
       return handler(request, { user: null }, ...args);
     }
   };
+}
+
+/**
+ * Check if a user has support permissions (can view/manage all support tickets)
+ * Returns true if user is admin, has support flag, or legacy isSupporterFlag
+ */
+export function hasSupportPermissions(user: AuthenticatedUser): boolean {
+  return (
+    user.role === "admin" ||
+    user.support === true ||
+    user.isSupporterFlag === true
+  );
 }
