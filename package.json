@@ -48,6 +48,7 @@
     "cloudinary": "^2.8.0",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
+    "effect": "^3.19.8",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.5.4",
     "prisma": "^6.19.0",
