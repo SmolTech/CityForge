@@ -50,13 +50,11 @@ COPY --from=builder /app/public ./public
 # Copy database initialization script
 COPY --from=builder /app/scripts ./scripts
 
-# Copy Prisma schema and CLI for database operations
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-# Copy .bin directory for npx to work
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+# Copy entire node_modules for database operations (Prisma requires many dependencies)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy Prisma schema for database operations
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
