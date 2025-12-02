@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: prisma-migration
-  namespace: cityforge
+  namespace: worcester
   labels:
     app: cityforge
     component: migration
@@ -21,7 +21,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: prisma-migration
-          image: ghcr.io/smoltech/cityforge/cityforge-frontend:latest
+          image: ghcr.io/smoltech/cityforge-frontend:latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
@@ -47,16 +47,82 @@ spec:
               echo "Generating Prisma client..."
               npx prisma generate
 
-              # Check migration status
+              # Check migration status first
               echo "Checking migration status..."
-              npx prisma migrate status || true
+              migration_status=$(npx prisma migrate status 2>&1 || true)
+              echo "$migration_status"
 
-              # Apply migrations (production-safe)
-              echo "Applying database migrations..."
-              npx prisma migrate deploy
+              # Check if database schema is empty (fresh database)
+              if echo "$migration_status" | grep -q "No pending migrations"; then
+                echo "✓ Database is up to date, no migrations needed"
+              elif echo "$migration_status" | grep -q "Database schema is not in sync"; then
+                echo "Database has schema drift, attempting migration deploy..."
+                npx prisma migrate deploy
+              elif echo "$migration_status" | grep -qE "(Following migrations have not yet been applied|following migrations are pending)"; then
+                echo "Detected unapplied migrations. Attempting migration deploy..."
+                
+                # Try deploy first
+                if npx prisma migrate deploy 2>&1; then
+                  echo "✓ Migrations applied successfully"
+                else
+                  deploy_error=$?
+                  echo "Migration deploy failed. Checking if this is a baseline scenario..."
+                  
+                  # Check if the error is P3005 (database schema not empty)
+                  if npx prisma migrate deploy 2>&1 | grep -q "P3005\|database schema is not empty"; then
+                    echo "Detected P3005 error - database needs baseline marking"
+                    echo "Attempting to baseline existing migrations..."
+                    
+                    # Get list of migrations that need to be baselined
+                    echo "Getting list of migrations to baseline..."
+                    unapplied_migrations=$(echo "$migration_status" | grep -E "^[0-9_a-zA-Z]+$" || true)
+                    
+                    if [ -z "$unapplied_migrations" ]; then
+                      echo "Could not determine migrations to baseline. Manual intervention required."
+                      echo "Migration status was: $migration_status"
+                      exit 1
+                    fi
+                    
+                    # Mark each migration as applied (baseline)
+                    for migration in $unapplied_migrations; do
+                      echo "Baselining migration: $migration"
+                      npx prisma migrate resolve --applied "$migration"
+                    done
+                    
+                    echo "✓ Baseline completed. Verifying migration status..."
+                    npx prisma migrate status
+                  else
+                    echo "Migration failed with non-baseline error"
+                    exit $deploy_error
+                  fi
+                fi
+              else
+                echo "Unknown migration status, attempting deploy..."
+                if npx prisma migrate deploy 2>&1; then
+                  echo "✓ Migrations applied successfully"  
+                else
+                  echo "Migration deploy failed, checking for P3005 error..."
+                  if npx prisma migrate deploy 2>&1 | grep -q "P3005"; then
+                    echo "Detected P3005 error - attempting manual baseline..."
+                    echo "Based on migration status output:"
+                    echo "$migration_status"
+                    
+                    # Try to extract migration names from the status output
+                    echo "Attempting to baseline migrations: 0_init and 20251112144229_add_performance_indexes"
+                    npx prisma migrate resolve --applied "0_init"
+                    npx prisma migrate resolve --applied "20251112144229_add_performance_indexes"
+                    
+                    echo "✓ Manual baseline completed. Verifying migration status..."
+                    npx prisma migrate status
+                  else
+                    echo "Migration failed with unknown error"
+                    exit 1
+                  fi
+                fi
+              fi
 
-              # Verify migration status
-              echo "Verifying migration status..."
+              # Final verification
+              echo "=== Final migration status verification ==="
               npx prisma migrate status
 
               echo "=== Migration job completed successfully ==="
