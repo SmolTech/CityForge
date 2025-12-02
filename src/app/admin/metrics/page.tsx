@@ -81,7 +81,8 @@ export default function AdminMetrics() {
       }
 
       const data = await response.json();
-      setMetricsData(data);
+      // Extract metrics from the nested response structure
+      setMetricsData(data.metrics || data);
     } catch (error) {
       logger.error("Failed to load metrics:", error);
       setError(
