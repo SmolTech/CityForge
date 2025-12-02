@@ -7,6 +7,7 @@ metadata:
     app: resource-indexer
 spec:
   schedule: "0 2 * * *" # Run daily at 2 AM
+  timeZone: "America/New_York"
   jobTemplate:
     spec:
       template:
