@@ -78,6 +78,10 @@ const config = defineConfig({
     env: {
       // Disable rate limiting for E2E tests to prevent authentication failures
       PLAYWRIGHT_E2E_TESTING: "true",
+      // Use test database for E2E tests
+      DATABASE_URL:
+        "postgresql://postgres:postgres@localhost:5432/cityforge_test",
+      JWT_SECRET_KEY: "test_jwt_secret_key_for_e2e_tests",
     },
   },
 });

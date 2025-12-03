@@ -5,12 +5,9 @@ import {
   logoutUser,
   generateTestUser,
   isLoggedIn,
+  createTestUserViaAPI,
 } from "./helpers/auth";
-import {
-  cleanDatabase,
-  createTestUser,
-  disconnectDatabase,
-} from "./helpers/database";
+import { cleanDatabase, disconnectDatabase } from "./helpers/database";
 
 /**
  * E2E Tests for Authentication Flow
@@ -54,9 +51,9 @@ test.describe("Authentication E2E", () => {
   });
 
   test("should login with existing user", async ({ page }) => {
-    // Create a test user in the database
+    // Create a test user via API
     const userData = generateTestUser();
-    await createTestUser(userData);
+    await createTestUserViaAPI(userData);
 
     // Login via UI
     await loginUser(page, {
@@ -93,7 +90,7 @@ test.describe("Authentication E2E", () => {
   test("should logout successfully", async ({ page }) => {
     // Create and login a user
     const userData = generateTestUser();
-    await createTestUser(userData);
+    await createTestUserViaAPI(userData);
     await loginUser(page, {
       email: userData.email,
       password: userData.password,
@@ -154,7 +151,7 @@ test.describe("Authentication E2E", () => {
     const userData = generateTestUser();
 
     // Create user in database
-    await createTestUser(userData);
+    await createTestUserViaAPI(userData);
 
     // Try to register with same email
     await page.goto("/register");

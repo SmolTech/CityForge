@@ -259,13 +259,27 @@ export function withAuthRateLimit<T extends unknown[]>(
   handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
+    // Debug logging for E2E tests
+    if (process.env["PLAYWRIGHT_E2E_TESTING"] === "true") {
+      console.log(
+        `[RATE LIMIT] withAuthRateLimit called for endpoint: ${endpoint}`
+      );
+    }
+
     const rateLimit = checkAuthRateLimit(request, endpoint);
 
     if (!rateLimit.allowed) {
+      console.log(`[RATE LIMIT] Rate limit exceeded for ${endpoint}`);
       return createRateLimitResponse(
         endpoint,
         rateLimit.resetTime!,
         rateLimit.config
+      );
+    }
+
+    if (process.env["PLAYWRIGHT_E2E_TESTING"] === "true") {
+      console.log(
+        `[RATE LIMIT] Rate limit passed, calling handler for ${endpoint}`
       );
     }
 

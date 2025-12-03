@@ -42,10 +42,28 @@ function getServerTimeout(pathname: string): number {
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
 export async function middleware(request: NextRequest) {
+  console.log("[MIDDLEWARE DEBUG] Called for:", {
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+  });
+
   // Initialize metrics tracking for all requests
   const timing = createTimingMiddleware();
   const requestStart = timing.start();
   const path = request.nextUrl.pathname;
+
+  // Debug logging for E2E tests - ALL requests, not just auth
+  const isE2ETest = process.env["PLAYWRIGHT_E2E_TESTING"] === "true";
+  if (isE2ETest) {
+    console.log("[MIDDLEWARE] Request:", {
+      method: request.method,
+      path: path,
+      userAgent: request.headers.get("user-agent")?.substring(0, 50),
+      contentType: request.headers.get("content-type"),
+      contentLength: request.headers.get("content-length"),
+      isAuthRequest: path.includes("/api/auth/"),
+    });
+  }
 
   // Handle CORS preflight requests for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
@@ -110,6 +128,17 @@ export async function middleware(request: NextRequest) {
     const nextPromise = Promise.resolve(NextResponse.next());
 
     let response = await Promise.race([nextPromise, timeoutPromise]);
+
+    // Debug logging for E2E tests - track response
+    if (isE2ETest) {
+      console.log("[MIDDLEWARE] Response:", {
+        method: request.method,
+        path: path,
+        status: response.status,
+        isAuthRequest: path.includes("/api/auth/"),
+        hasHeaders: response.headers.has("content-type"),
+      });
+    }
 
     // Track successful request in metrics
     timing.end(requestStart, response.status, path);

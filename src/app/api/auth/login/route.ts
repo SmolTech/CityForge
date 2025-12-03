@@ -45,11 +45,11 @@ export const POST = withAuthRateLimit(
       });
 
       // Check if user exists, password is correct, and user is active
-      if (
-        !user ||
-        !user.isActive ||
-        !(await verifyPassword(password, user.passwordHash))
-      ) {
+      const passwordValid = user
+        ? await verifyPassword(password, user.passwordHash)
+        : false;
+
+      if (!user || !user.isActive || !passwordValid) {
         throw new UnauthorizedError("Invalid credentials");
       }
 
