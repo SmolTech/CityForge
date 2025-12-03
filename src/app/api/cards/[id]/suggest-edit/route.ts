@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { submissionQueries, cardQueries } from "@/lib/db/queries";
 import { validateCardModification } from "@/lib/validation/submissions";
 import {
@@ -37,132 +38,135 @@ function checkRateLimit(userId: number, limitPerHour: number): boolean {
 }
 
 // POST /api/cards/[id]/suggest-edit - Suggest edits to an existing card
-export const POST = withAuth(
-  async (
-    request: NextRequest,
-    { user },
-    context: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      // Rate limiting: 10 requests per hour per user
-      if (!checkRateLimit(user.id, 10)) {
-        throw new RateLimitError();
-      }
-
-      // Get card ID from URL parameters
-      const { id } = await context.params;
-      const cardId = parseInt(id);
-      if (isNaN(cardId)) {
-        throw new BadRequestError("Invalid card ID");
-      }
-
-      // Verify the card exists
-      const existingCard = await cardQueries.getCardById(cardId);
-      if (!existingCard) {
-        throw new NotFoundError("Card");
-      }
-
-      // Parse request body
-      let data;
+export const POST = withCsrfProtection(
+  withAuth(
+    async (
+      request: NextRequest,
+      { user },
+      context: { params: Promise<{ id: string }> }
+    ) => {
       try {
-        data = await request.json();
-      } catch {
-        throw new BadRequestError("No data provided");
+        // Rate limiting: 10 requests per hour per user
+        if (!checkRateLimit(user.id, 10)) {
+          throw new RateLimitError();
+        }
+
+        // Get card ID from URL parameters
+        const { id } = await context.params;
+        const cardId = parseInt(id);
+        if (isNaN(cardId)) {
+          throw new BadRequestError("Invalid card ID");
+        }
+
+        // Verify the card exists
+        const existingCard = await cardQueries.getCardById(cardId);
+        if (!existingCard) {
+          throw new NotFoundError("Card");
+        }
+
+        // Parse request body
+        let data;
+        try {
+          data = await request.json();
+        } catch {
+          throw new BadRequestError("No data provided");
+        }
+
+        if (!data) {
+          throw new BadRequestError("No data provided");
+        }
+
+        // Validate input data using card modification validation
+        const validation = validateCardModification(data);
+        if (!validation.isValid) {
+          const errorMessages: Record<string, string[]> = {};
+          validation.errors.forEach((error) => {
+            if (!errorMessages[error.field]) {
+              errorMessages[error.field] = [];
+            }
+            errorMessages[error.field]!.push(error.message);
+          });
+
+          throw new ValidationError("Validation failed", errorMessages);
+        }
+
+        // At this point, validation.data is guaranteed to exist
+        if (!validation.data) {
+          throw new BadRequestError("Validation failed - no data");
+        }
+
+        // Create modification suggestion in database
+        const modificationData: {
+          card_id: number;
+          name: string;
+          description?: string;
+          website_url?: string;
+          phone_number?: string;
+          email?: string;
+          address?: string;
+          address_override_url?: string;
+          contact_name?: string;
+          image_url?: string;
+          tags_text?: string;
+          submitted_by: number;
+        } = {
+          card_id: cardId,
+          name: validation.data.name, // Now guaranteed to exist and be non-empty
+          submitted_by: user.id,
+        };
+
+        // Only add optional fields if they are defined
+        if (validation.data.description)
+          modificationData.description = validation.data.description;
+        if (validation.data.websiteUrl)
+          modificationData.website_url = validation.data.websiteUrl;
+        if (validation.data.phoneNumber)
+          modificationData.phone_number = validation.data.phoneNumber;
+        if (validation.data.email)
+          modificationData.email = validation.data.email;
+        if (validation.data.address)
+          modificationData.address = validation.data.address;
+        if (validation.data.addressOverrideUrl)
+          modificationData.address_override_url =
+            validation.data.addressOverrideUrl;
+        if (validation.data.contactName)
+          modificationData.contact_name = validation.data.contactName;
+        if (validation.data.imageUrl)
+          modificationData.image_url = validation.data.imageUrl;
+        if (validation.data.tagsText)
+          modificationData.tags_text = validation.data.tagsText;
+
+        const modification =
+          await submissionQueries.createModification(modificationData);
+
+        // Send email notification to admins
+        try {
+          await sendModificationNotification(
+            modification,
+            {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+            },
+            {
+              id: existingCard.id,
+              name: existingCard.name,
+            }
+          );
+        } catch (emailError) {
+          // Log email error but don't fail the modification
+          console.error(
+            "Failed to send modification notification email:",
+            emailError
+          );
+        }
+
+        // Return the modification data directly (already in Flask API format from queries.ts)
+        return NextResponse.json(modification, { status: 201 });
+      } catch (error) {
+        return handleApiError(error, "POST /api/cards/[id]/suggest-edit");
       }
-
-      if (!data) {
-        throw new BadRequestError("No data provided");
-      }
-
-      // Validate input data using card modification validation
-      const validation = validateCardModification(data);
-      if (!validation.isValid) {
-        const errorMessages: Record<string, string[]> = {};
-        validation.errors.forEach((error) => {
-          if (!errorMessages[error.field]) {
-            errorMessages[error.field] = [];
-          }
-          errorMessages[error.field]!.push(error.message);
-        });
-
-        throw new ValidationError("Validation failed", errorMessages);
-      }
-
-      // At this point, validation.data is guaranteed to exist
-      if (!validation.data) {
-        throw new BadRequestError("Validation failed - no data");
-      }
-
-      // Create modification suggestion in database
-      const modificationData: {
-        card_id: number;
-        name: string;
-        description?: string;
-        website_url?: string;
-        phone_number?: string;
-        email?: string;
-        address?: string;
-        address_override_url?: string;
-        contact_name?: string;
-        image_url?: string;
-        tags_text?: string;
-        submitted_by: number;
-      } = {
-        card_id: cardId,
-        name: validation.data.name, // Now guaranteed to exist and be non-empty
-        submitted_by: user.id,
-      };
-
-      // Only add optional fields if they are defined
-      if (validation.data.description)
-        modificationData.description = validation.data.description;
-      if (validation.data.websiteUrl)
-        modificationData.website_url = validation.data.websiteUrl;
-      if (validation.data.phoneNumber)
-        modificationData.phone_number = validation.data.phoneNumber;
-      if (validation.data.email) modificationData.email = validation.data.email;
-      if (validation.data.address)
-        modificationData.address = validation.data.address;
-      if (validation.data.addressOverrideUrl)
-        modificationData.address_override_url =
-          validation.data.addressOverrideUrl;
-      if (validation.data.contactName)
-        modificationData.contact_name = validation.data.contactName;
-      if (validation.data.imageUrl)
-        modificationData.image_url = validation.data.imageUrl;
-      if (validation.data.tagsText)
-        modificationData.tags_text = validation.data.tagsText;
-
-      const modification =
-        await submissionQueries.createModification(modificationData);
-
-      // Send email notification to admins
-      try {
-        await sendModificationNotification(
-          modification,
-          {
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-          },
-          {
-            id: existingCard.id,
-            name: existingCard.name,
-          }
-        );
-      } catch (emailError) {
-        // Log email error but don't fail the modification
-        console.error(
-          "Failed to send modification notification email:",
-          emailError
-        );
-      }
-
-      // Return the modification data directly (already in Flask API format from queries.ts)
-      return NextResponse.json(modification, { status: 201 });
-    } catch (error) {
-      return handleApiError(error, "POST /api/cards/[id]/suggest-edit");
     }
-  }
+  )
 );

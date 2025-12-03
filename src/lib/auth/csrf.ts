@@ -124,15 +124,22 @@ export function isCsrfExempt(request: NextRequest): boolean {
  * export const POST = withCsrfProtection(async (request) => {
  *   // Your handler code
  * });
+ *
+ * // Or with withAuth:
+ * export const POST = withCsrfProtection(
+ *   withAuth(async (request, { user }) => {
+ *     // Your handler code
+ *   })
+ * );
  * ```
  */
-export function withCsrfProtection(
-  handler: (request: NextRequest) => Promise<NextResponse>
+export function withCsrfProtection<T extends unknown[]>(
+  handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
     // Skip CSRF check for exempt requests
     if (isCsrfExempt(request)) {
-      return handler(request);
+      return handler(request, ...args);
     }
 
     // Validate CSRF token
@@ -149,6 +156,6 @@ export function withCsrfProtection(
     }
 
     // CSRF token valid, proceed with request
-    return handler(request);
+    return handler(request, ...args);
   };
 }
