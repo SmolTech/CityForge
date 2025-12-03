@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { reviewQueries } from "@/lib/db/queries";
 import { validateReviewUpdate } from "@/lib/validation/reviews";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { logger } from "@/lib/logger";
 
 interface RouteContext {
@@ -108,8 +109,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
  * Update a review (user can only update their own reviews)
  * Requires authentication
  */
-export const PUT = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const PUT = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const reviewId = parseInt(params.id);
@@ -225,7 +226,7 @@ export const PUT = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );
 
 /**
@@ -233,8 +234,8 @@ export const PUT = withAuth(
  * Delete a review (user can only delete their own reviews)
  * Requires authentication
  */
-export const DELETE = withAuth(
-  async (_request: NextRequest, { user }, context: RouteContext) => {
+export const DELETE = withCsrfProtection(
+  withAuth(async (_request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const reviewId = parseInt(params.id);
@@ -302,5 +303,5 @@ export const DELETE = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );

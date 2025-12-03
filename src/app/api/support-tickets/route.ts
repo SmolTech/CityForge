@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { paginationUtils } from "@/lib/constants/pagination";
@@ -152,136 +153,138 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
  * POST /api/support-tickets
  * Create a new support ticket
  */
-export const POST = withAuth(async (request: NextRequest, { user }) => {
-  try {
-    const data = await request.json();
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }) => {
+    try {
+      const data = await request.json();
 
-    if (!data) {
-      return NextResponse.json(
-        { error: { message: "No data provided", code: 400 } },
-        { status: 400 }
-      );
-    }
+      if (!data) {
+        return NextResponse.json(
+          { error: { message: "No data provided", code: 400 } },
+          { status: 400 }
+        );
+      }
 
-    // Validate required fields
-    const { title, description, category } = data;
-    if (!title || !description || !category) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Missing required fields: title, description, category",
-            code: 400,
+      // Validate required fields
+      const { title, description, category } = data;
+      if (!title || !description || !category) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "Missing required fields: title, description, category",
+              code: 400,
+            },
           },
-        },
-        { status: 400 }
-      );
-    }
+          { status: 400 }
+        );
+      }
 
-    // Validate category
-    const validCategories = [
-      "housing",
-      "food",
-      "transportation",
-      "healthcare",
-      "financial",
-      "other",
-    ];
-    if (!validCategories.includes(category)) {
-      return NextResponse.json(
-        {
-          error: {
-            message: `Invalid category. Must be one of: ${validCategories.join(", ")}`,
-            code: 400,
+      // Validate category
+      const validCategories = [
+        "housing",
+        "food",
+        "transportation",
+        "healthcare",
+        "financial",
+        "other",
+      ];
+      if (!validCategories.includes(category)) {
+        return NextResponse.json(
+          {
+            error: {
+              message: `Invalid category. Must be one of: ${validCategories.join(", ")}`,
+              code: 400,
+            },
           },
-        },
-        { status: 400 }
-      );
-    }
+          { status: 400 }
+        );
+      }
 
-    // Validate priority (optional)
-    const validPriorities = ["low", "normal", "high", "urgent"];
-    const priority = data.priority || "normal";
-    if (!validPriorities.includes(priority)) {
-      return NextResponse.json(
-        {
-          error: {
-            message: `Invalid priority. Must be one of: ${validPriorities.join(", ")}`,
-            code: 400,
+      // Validate priority (optional)
+      const validPriorities = ["low", "normal", "high", "urgent"];
+      const priority = data.priority || "normal";
+      if (!validPriorities.includes(priority)) {
+        return NextResponse.json(
+          {
+            error: {
+              message: `Invalid priority. Must be one of: ${validPriorities.join(", ")}`,
+              code: 400,
+            },
           },
-        },
-        { status: 400 }
-      );
-    }
+          { status: 400 }
+        );
+      }
 
-    logger.info("Creating support ticket", {
-      userId: user.id,
-      title: title.substring(0, 50),
-      category,
-      priority,
-    });
-
-    // Create the ticket
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        title,
-        description,
+      logger.info("Creating support ticket", {
+        userId: user.id,
+        title: title.substring(0, 50),
         category,
         priority,
-        status: "open",
-        isAnonymous: data.is_anonymous || false,
-        createdBy: user.id,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+      });
+
+      // Create the ticket
+      const ticket = await prisma.supportTicket.create({
+        data: {
+          title,
+          description,
+          category,
+          priority,
+          status: "open",
+          isAnonymous: data.is_anonymous || false,
+          createdBy: user.id,
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // Transform response
-    const transformedTicket = {
-      id: ticket.id,
-      title: ticket.title,
-      description: ticket.description,
-      category: ticket.category,
-      status: ticket.status,
-      priority: ticket.priority,
-      is_anonymous: ticket.isAnonymous,
-      created_date:
-        ticket.createdDate?.toISOString() ?? new Date().toISOString(),
-      updated_date:
-        ticket.updatedDate?.toISOString() ?? new Date().toISOString(),
-      resolved_date: ticket.resolvedDate?.toISOString(),
-      closed_date: ticket.closedDate?.toISOString(),
-      creator: {
-        id: ticket.creator.id,
-        username: `${ticket.creator.firstName} ${ticket.creator.lastName}`,
-        email: ticket.creator.email,
-      },
-      assigned_supporter: null,
-      message_count: 0,
-    };
+      // Transform response
+      const transformedTicket = {
+        id: ticket.id,
+        title: ticket.title,
+        description: ticket.description,
+        category: ticket.category,
+        status: ticket.status,
+        priority: ticket.priority,
+        is_anonymous: ticket.isAnonymous,
+        created_date:
+          ticket.createdDate?.toISOString() ?? new Date().toISOString(),
+        updated_date:
+          ticket.updatedDate?.toISOString() ?? new Date().toISOString(),
+        resolved_date: ticket.resolvedDate?.toISOString(),
+        closed_date: ticket.closedDate?.toISOString(),
+        creator: {
+          id: ticket.creator.id,
+          username: `${ticket.creator.firstName} ${ticket.creator.lastName}`,
+          email: ticket.creator.email,
+        },
+        assigned_supporter: null,
+        message_count: 0,
+      };
 
-    logger.info("Support ticket created successfully", {
-      ticketId: ticket.id,
-      userId: user.id,
-      category,
-    });
+      logger.info("Support ticket created successfully", {
+        ticketId: ticket.id,
+        userId: user.id,
+        category,
+      });
 
-    return NextResponse.json(transformedTicket, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating support ticket", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      userId: user.id,
-    });
-    return NextResponse.json(
-      { error: { message: "Internal server error", code: 500 } },
-      { status: 500 }
-    );
-  }
-});
+      return NextResponse.json(transformedTicket, { status: 201 });
+    } catch (error) {
+      logger.error("Error creating support ticket", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: user.id,
+      });
+      return NextResponse.json(
+        { error: { message: "Internal server error", code: 500 } },
+        { status: 500 }
+      );
+    }
+  })
+);

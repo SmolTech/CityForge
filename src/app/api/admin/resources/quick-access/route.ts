@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { handleApiError } from "@/lib/errors/api-error";
 import { logger } from "@/lib/logger";
@@ -41,79 +42,81 @@ export const GET = withAuth(
   { requireAdmin: true }
 );
 
-export const POST = withAuth(
-  async (request: NextRequest) => {
-    try {
-      const body = await request.json();
+export const POST = withCsrfProtection(
+  withAuth(
+    async (request: NextRequest) => {
+      try {
+        const body = await request.json();
 
-      // Validate required fields
-      const {
-        identifier,
-        title,
-        subtitle,
-        phone,
-        color,
-        icon,
-        display_order,
-        is_active,
-      } = body;
-
-      if (!identifier || !title || !subtitle || !phone || !color || !icon) {
-        return NextResponse.json(
-          { error: "Missing required fields" },
-          { status: 400 }
-        );
-      }
-
-      // Check for duplicate identifier
-      const existingItem = await prisma.quickAccessItem.findUnique({
-        where: { identifier },
-      });
-
-      if (existingItem) {
-        return NextResponse.json(
-          { error: "Identifier already exists" },
-          { status: 400 }
-        );
-      }
-
-      // Create new quick access item
-      const newItem = await prisma.quickAccessItem.create({
-        data: {
+        // Validate required fields
+        const {
           identifier,
           title,
           subtitle,
           phone,
           color,
           icon,
-          displayOrder: display_order || 0,
-          isActive: is_active !== false, // Default to true
-          createdDate: new Date(),
-        },
-      });
+          display_order,
+          is_active,
+        } = body;
 
-      const transformedItem = {
-        id: newItem.id,
-        identifier: newItem.identifier,
-        title: newItem.title,
-        subtitle: newItem.subtitle,
-        phone: newItem.phone,
-        color: newItem.color,
-        icon: newItem.icon,
-        display_order: newItem.displayOrder,
-        is_active: newItem.isActive,
-        created_date:
-          newItem.createdDate?.toISOString() ?? new Date().toISOString(),
-      };
+        if (!identifier || !title || !subtitle || !phone || !color || !icon) {
+          return NextResponse.json(
+            { error: "Missing required fields" },
+            { status: 400 }
+          );
+        }
 
-      return NextResponse.json({
-        message: "Quick access item created successfully",
-        item: transformedItem,
-      });
-    } catch (error) {
-      logger.error("Error creating quick access item:", error);
-      return handleApiError(error);
-    }
-  },
-  { requireAdmin: true }
+        // Check for duplicate identifier
+        const existingItem = await prisma.quickAccessItem.findUnique({
+          where: { identifier },
+        });
+
+        if (existingItem) {
+          return NextResponse.json(
+            { error: "Identifier already exists" },
+            { status: 400 }
+          );
+        }
+
+        // Create new quick access item
+        const newItem = await prisma.quickAccessItem.create({
+          data: {
+            identifier,
+            title,
+            subtitle,
+            phone,
+            color,
+            icon,
+            displayOrder: display_order || 0,
+            isActive: is_active !== false, // Default to true
+            createdDate: new Date(),
+          },
+        });
+
+        const transformedItem = {
+          id: newItem.id,
+          identifier: newItem.identifier,
+          title: newItem.title,
+          subtitle: newItem.subtitle,
+          phone: newItem.phone,
+          color: newItem.color,
+          icon: newItem.icon,
+          display_order: newItem.displayOrder,
+          is_active: newItem.isActive,
+          created_date:
+            newItem.createdDate?.toISOString() ?? new Date().toISOString(),
+        };
+
+        return NextResponse.json({
+          message: "Quick access item created successfully",
+          item: transformedItem,
+        });
+      } catch (error) {
+        logger.error("Error creating quick access item:", error);
+        return handleApiError(error);
+      }
+    },
+    { requireAdmin: true }
+  )
 );

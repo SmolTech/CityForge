@@ -96,6 +96,7 @@ export function createAuthenticatedRequest(
     method?: string;
     body?: unknown;
     headers?: Record<string, string>;
+    cookies?: Record<string, string>;
   } = {}
 ): NextRequest {
   const token = createTestToken(user);
@@ -105,10 +106,28 @@ export function createAuthenticatedRequest(
     Authorization: `Bearer ${token}`,
   };
 
-  return createTestRequest(url, {
-    ...options,
+  const requestOptions: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+    cookies?: Record<string, string>;
+  } = {
     headers,
-  });
+  };
+
+  if (options.method) {
+    requestOptions.method = options.method;
+  }
+
+  if (options.body !== undefined) {
+    requestOptions.body = options.body;
+  }
+
+  if (options.cookies) {
+    requestOptions.cookies = options.cookies;
+  }
+
+  return createTestRequest(url, requestOptions);
 }
 
 /**

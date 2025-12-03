@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { PAGINATION_LIMITS, paginationUtils } from "@/lib/constants/pagination";
@@ -72,94 +73,96 @@ export const GET = withAuth(
 /**
  * POST /api/admin/tags - Create new tag (admin only)
  */
-export const POST = withAuth(
-  async (request: NextRequest) => {
-    try {
-      const body = await request.json();
-      const { name } = body;
+export const POST = withCsrfProtection(
+  withAuth(
+    async (request: NextRequest) => {
+      try {
+        const body = await request.json();
+        const { name } = body;
 
-      // Validate input
-      if (!name || typeof name !== "string") {
+        // Validate input
+        if (!name || typeof name !== "string") {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Tag name is required",
+                code: 400,
+              },
+            },
+            { status: 400 }
+          );
+        }
+
+        const tagName = name.trim();
+        if (tagName.length === 0 || tagName.length > 50) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Tag name must be between 1 and 50 characters",
+                code: 400,
+              },
+            },
+            { status: 400 }
+          );
+        }
+
+        // Create tag
+        const tag = await prisma.tag.create({
+          data: { name: tagName },
+          select: {
+            id: true,
+            name: true,
+            createdDate: true,
+          },
+        });
+
+        return NextResponse.json({
+          tag: {
+            id: tag.id,
+            name: tag.name,
+            created_date: tag.createdDate,
+            card_count: 0,
+          },
+          message: "Tag created successfully",
+        });
+      } catch (error: unknown) {
+        logger.error("Error creating tag:", error);
+
+        // Handle unique constraint violation (duplicate tag name)
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "P2002" &&
+          "meta" in error &&
+          error.meta &&
+          typeof error.meta === "object" &&
+          "target" in error.meta &&
+          Array.isArray(error.meta.target) &&
+          error.meta.target.includes("name")
+        ) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Tag already exists",
+                code: 409,
+              },
+            },
+            { status: 409 }
+          );
+        }
+
         return NextResponse.json(
           {
             error: {
-              message: "Tag name is required",
-              code: 400,
+              message: "Failed to create tag",
+              code: 500,
             },
           },
-          { status: 400 }
+          { status: 500 }
         );
       }
-
-      const tagName = name.trim();
-      if (tagName.length === 0 || tagName.length > 50) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Tag name must be between 1 and 50 characters",
-              code: 400,
-            },
-          },
-          { status: 400 }
-        );
-      }
-
-      // Create tag
-      const tag = await prisma.tag.create({
-        data: { name: tagName },
-        select: {
-          id: true,
-          name: true,
-          createdDate: true,
-        },
-      });
-
-      return NextResponse.json({
-        tag: {
-          id: tag.id,
-          name: tag.name,
-          created_date: tag.createdDate,
-          card_count: 0,
-        },
-        message: "Tag created successfully",
-      });
-    } catch (error: unknown) {
-      logger.error("Error creating tag:", error);
-
-      // Handle unique constraint violation (duplicate tag name)
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "P2002" &&
-        "meta" in error &&
-        error.meta &&
-        typeof error.meta === "object" &&
-        "target" in error.meta &&
-        Array.isArray(error.meta.target) &&
-        error.meta.target.includes("name")
-      ) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Tag already exists",
-              code: 409,
-            },
-          },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          error: {
-            message: "Failed to create tag",
-            code: 500,
-          },
-        },
-        { status: 500 }
-      );
-    }
-  },
-  { requireAdmin: true }
+    },
+    { requireAdmin: true }
+  )
 );

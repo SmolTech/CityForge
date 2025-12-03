@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { v4 as uuidv4 } from "uuid";
 import { v2 as cloudinary } from "cloudinary";
 import { writeFile, mkdir } from "fs/promises";
@@ -164,65 +165,72 @@ async function uploadToLocal(
   }
 }
 
-export const POST = withAuth(async (request: NextRequest) => {
-  try {
-    // Get form data
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest) => {
+    try {
+      // Get form data
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
 
-    if (!file) {
-      throw new BadRequestError("No file provided");
-    }
+      if (!file) {
+        throw new BadRequestError("No file provided");
+      }
 
-    if (!file.name) {
-      throw new BadRequestError("No file selected");
-    }
+      if (!file.name) {
+        throw new BadRequestError("No file selected");
+      }
 
-    if (!isAllowedFile(file.name)) {
-      throw new BadRequestError("Invalid file type");
-    }
+      if (!isAllowedFile(file.name)) {
+        throw new BadRequestError("Invalid file type");
+      }
 
-    // Convert file to ArrayBuffer
-    const fileBuffer = await file.arrayBuffer();
+      // Convert file to ArrayBuffer
+      const fileBuffer = await file.arrayBuffer();
 
-    // Try Cloudinary first if configured
-    if (isCloudinaryConfigured()) {
-      logger.info("Using Cloudinary for file upload");
-      const cloudinaryResult = await uploadToCloudinary(fileBuffer, file.name);
+      // Try Cloudinary first if configured
+      if (isCloudinaryConfigured()) {
+        logger.info("Using Cloudinary for file upload");
+        const cloudinaryResult = await uploadToCloudinary(
+          fileBuffer,
+          file.name
+        );
 
-      if (
-        cloudinaryResult.success &&
-        cloudinaryResult.url &&
-        cloudinaryResult.publicId
-      ) {
+        if (
+          cloudinaryResult.success &&
+          cloudinaryResult.url &&
+          cloudinaryResult.publicId
+        ) {
+          return NextResponse.json({
+            success: true,
+            url: cloudinaryResult.url,
+            public_id: cloudinaryResult.publicId,
+            storage: "cloudinary",
+            message: "File uploaded successfully to Cloudinary",
+          });
+        } else {
+          logger.warn(
+            "Cloudinary upload failed, falling back to local storage"
+          );
+        }
+      }
+
+      // Fallback to local storage
+      logger.info("Using local storage for file upload");
+      const localResult = await uploadToLocal(fileBuffer, file.name);
+
+      if (localResult.success && localResult.url && localResult.filename) {
         return NextResponse.json({
           success: true,
-          url: cloudinaryResult.url,
-          public_id: cloudinaryResult.publicId,
-          storage: "cloudinary",
-          message: "File uploaded successfully to Cloudinary",
+          filename: localResult.filename,
+          url: localResult.url,
+          storage: "local",
+          message: "File uploaded successfully to local storage",
         });
       } else {
-        logger.warn("Cloudinary upload failed, falling back to local storage");
+        throw new Error(localResult.error || "Local upload failed");
       }
+    } catch (error) {
+      return handleApiError(error, "POST /api/upload");
     }
-
-    // Fallback to local storage
-    logger.info("Using local storage for file upload");
-    const localResult = await uploadToLocal(fileBuffer, file.name);
-
-    if (localResult.success && localResult.url && localResult.filename) {
-      return NextResponse.json({
-        success: true,
-        filename: localResult.filename,
-        url: localResult.url,
-        storage: "local",
-        message: "File uploaded successfully to local storage",
-      });
-    } else {
-      throw new Error(localResult.error || "Local upload failed");
-    }
-  } catch (error) {
-    return handleApiError(error, "POST /api/upload");
-  }
-});
+  })
+);

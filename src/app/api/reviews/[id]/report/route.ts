@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { reviewQueries } from "@/lib/db/queries";
 import { validateReviewReport } from "@/lib/validation/reviews";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { logger } from "@/lib/logger";
 
 interface RouteContext {
@@ -15,8 +16,8 @@ interface RouteContext {
  * Report a review for inappropriate content
  * Requires authentication
  */
-export const POST = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const reviewId = parseInt(params.id);
@@ -123,5 +124,5 @@ export const POST = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );

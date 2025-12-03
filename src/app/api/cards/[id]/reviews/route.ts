@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { reviewQueries, cardQueries } from "@/lib/db/queries";
 import { validateReview } from "@/lib/validation/reviews";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { logger } from "@/lib/logger";
 import {
   handleApiError,
@@ -104,8 +105,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
  * Create a new review for a card
  * Requires authentication
  */
-export const POST = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const cardId = parseInt(params.id);
@@ -193,5 +194,5 @@ export const POST = withAuth(
     } catch (error) {
       return handleApiError(error, "POST /api/cards/[id]/reviews");
     }
-  }
+  })
 );

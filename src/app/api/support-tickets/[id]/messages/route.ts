@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -13,8 +14,8 @@ interface RouteContext {
  * POST /api/support-tickets/[id]/messages
  * Add a new message to a support ticket
  */
-export const POST = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const ticketIdStr = params?.id;
@@ -142,5 +143,5 @@ export const POST = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );
