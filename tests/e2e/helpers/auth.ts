@@ -1,5 +1,4 @@
 import { Page } from "@playwright/test";
-import { createTestUser } from "./database";
 
 /**
  * E2E Test Helpers for Authentication
@@ -17,11 +16,12 @@ let sharedTestUser: {
 /**
  * Get or create a shared test user to avoid rate limiting issues
  * This user is reused across tests in a single test file
+ * Uses API registration to ensure server Prisma connection is aware
  */
 export async function getOrCreateSharedTestUser() {
   if (!sharedTestUser) {
     const userData = generateTestUser();
-    const dbUser = await createTestUser(userData);
+    const dbUser = await createTestUserViaAPI(userData);
     sharedTestUser = {
       id: dbUser.id,
       email: userData.email,
@@ -31,6 +31,55 @@ export async function getOrCreateSharedTestUser() {
     };
   }
   return sharedTestUser;
+}
+
+/**
+ * Create a test user via API registration instead of direct database insertion
+ * This ensures the Next.js server's Prisma connection is aware of the user
+ */
+export async function createTestUserViaAPI(userData: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+}): Promise<{
+  id: number;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}> {
+  // Make API call to register endpoint
+  const response = await fetch("http://localhost:3000/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: userData.email,
+      password: userData.password,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      confirm_password: userData.password,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create test user via API: ${response.status} ${errorText}`
+    );
+  }
+
+  const result = await response.json();
+
+  return {
+    id: result.user.id,
+    email: userData.email,
+    password: userData.password,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+  };
 }
 
 /**
@@ -143,8 +192,6 @@ export async function loginUser(
 
       // Check if login failed due to rate limiting
       if (statusCode === 429) {
-        console.log("Rate limited, waiting before retry...", { attempt });
-
         // For e2e tests, we need shorter waits to avoid timeouts
         // Wait only 10 seconds instead of 65, and if still rate limited, fail fast
         await page.waitForTimeout(10000);

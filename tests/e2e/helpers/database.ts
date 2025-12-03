@@ -33,13 +33,18 @@ export async function cleanDatabase() {
   try {
     // Helper function to safely delete from a table if it exists
     const safeDelete = async (
-      deleteOperation: () => Promise<any>,
+      deleteOperation: () => Promise<unknown>,
       tableName: string
     ) => {
       try {
         await deleteOperation();
-      } catch (error: any) {
-        if (error.code === "P2021") {
+      } catch (error: unknown) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          error.code === "P2021"
+        ) {
           // Table doesn't exist, skip it
           console.log(`Table ${tableName} doesn't exist, skipping cleanup`);
         } else {
@@ -109,7 +114,7 @@ export async function cleanDatabase() {
     await safeDelete(() => db.user.deleteMany({}), "users");
 
     // Small delay to ensure cleanup completes
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   } catch (error) {
     console.error("Database cleanup failed:", error);
     throw error;
@@ -133,7 +138,7 @@ export async function createTestUser(userData: {
   const bcrypt = await import("bcrypt");
 
   // Hash the password first and ensure it completes
-  const passwordHash = await bcrypt.hash(userData.password, 10);
+  const passwordHash = await bcrypt.hash(userData.password, 12); // Match production API salt rounds
 
   // Create the user
   const user = await db.user.create({
@@ -147,9 +152,6 @@ export async function createTestUser(userData: {
       emailVerified: userData.emailVerified ?? true, // Auto-verify for E2E tests
     },
   });
-
-  // Small delay to ensure user is fully committed to database
-  await new Promise((resolve) => setTimeout(resolve, 100));
 
   return user;
 }
@@ -214,7 +216,7 @@ export async function getOrCreateSystemUser() {
   }
 
   const bcrypt = await import("bcrypt");
-  const passwordHash = await bcrypt.hash("SystemUser123!", 10);
+  const passwordHash = await bcrypt.hash("SystemUser123!", 12); // Match production API salt rounds
 
   const systemUser = await db.user.create({
     data: {
