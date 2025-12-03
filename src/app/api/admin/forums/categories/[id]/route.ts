@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -114,283 +115,287 @@ export const GET = withAuth(
 /**
  * PUT /api/admin/forums/categories/[id] - Update forum category
  */
-export const PUT = withAuth(
-  async (
-    request: NextRequest,
-    { user },
-    { params }: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      const resolvedParams = await params;
-      const categoryId = parseInt(resolvedParams.id);
-      if (isNaN(categoryId)) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Invalid category ID",
-              code: 400,
-            },
-          },
-          { status: 400 }
-        );
-      }
-
-      const body = await request.json();
-      const { name, description, display_order, is_active } = body;
-
-      logger.info("Admin updating forum category", {
-        categoryId,
-        updates: { name, description, display_order, is_active },
-        updatedBy: user.id,
-      });
-
-      // Check if category exists
-      const existingCategory = await prisma.forumCategory.findUnique({
-        where: { id: categoryId },
-      });
-
-      if (!existingCategory) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Category not found",
-              code: 404,
-            },
-          },
-          { status: 404 }
-        );
-      }
-
-      // Build update data
-      const updateData: {
-        updatedDate: Date;
-        name?: string;
-        slug?: string;
-        description?: string;
-        displayOrder?: number;
-        isActive?: boolean;
-      } = {
-        updatedDate: new Date(),
-      };
-
-      if (name !== undefined) {
-        updateData.name = name.trim();
-        // Update slug if name changes
-        updateData.slug = name
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .trim();
-
-        // Check if new slug conflicts with another category
-        if (updateData.slug) {
-          const conflictingCategory = await prisma.forumCategory.findFirst({
-            where: {
-              slug: updateData.slug,
-              id: { not: categoryId },
-            },
-          });
-
-          if (conflictingCategory) {
-            return NextResponse.json(
-              {
-                error: {
-                  message: "A category with this name already exists",
-                  code: 400,
-                },
+export const PUT = withCsrfProtection(
+  withAuth(
+    async (
+      request: NextRequest,
+      { user },
+      { params }: { params: Promise<{ id: string }> }
+    ) => {
+      try {
+        const resolvedParams = await params;
+        const categoryId = parseInt(resolvedParams.id);
+        if (isNaN(categoryId)) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Invalid category ID",
+                code: 400,
               },
-              { status: 400 }
-            );
+            },
+            { status: 400 }
+          );
+        }
+
+        const body = await request.json();
+        const { name, description, display_order, is_active } = body;
+
+        logger.info("Admin updating forum category", {
+          categoryId,
+          updates: { name, description, display_order, is_active },
+          updatedBy: user.id,
+        });
+
+        // Check if category exists
+        const existingCategory = await prisma.forumCategory.findUnique({
+          where: { id: categoryId },
+        });
+
+        if (!existingCategory) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Category not found",
+                code: 404,
+              },
+            },
+            { status: 404 }
+          );
+        }
+
+        // Build update data
+        const updateData: {
+          updatedDate: Date;
+          name?: string;
+          slug?: string;
+          description?: string;
+          displayOrder?: number;
+          isActive?: boolean;
+        } = {
+          updatedDate: new Date(),
+        };
+
+        if (name !== undefined) {
+          updateData.name = name.trim();
+          // Update slug if name changes
+          updateData.slug = name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .trim();
+
+          // Check if new slug conflicts with another category
+          if (updateData.slug) {
+            const conflictingCategory = await prisma.forumCategory.findFirst({
+              where: {
+                slug: updateData.slug,
+                id: { not: categoryId },
+              },
+            });
+
+            if (conflictingCategory) {
+              return NextResponse.json(
+                {
+                  error: {
+                    message: "A category with this name already exists",
+                    code: 400,
+                  },
+                },
+                { status: 400 }
+              );
+            }
           }
         }
-      }
 
-      if (description !== undefined) {
-        updateData.description = description.trim();
-      }
+        if (description !== undefined) {
+          updateData.description = description.trim();
+        }
 
-      if (display_order !== undefined) {
-        updateData.displayOrder = display_order;
-      }
+        if (display_order !== undefined) {
+          updateData.displayOrder = display_order;
+        }
 
-      if (is_active !== undefined) {
-        updateData.isActive = is_active;
-      }
+        if (is_active !== undefined) {
+          updateData.isActive = is_active;
+        }
 
-      // Update the category
-      const updatedCategory = await prisma.forumCategory.update({
-        where: { id: categoryId },
-        data: updateData,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
+        // Update the category
+        const updatedCategory = await prisma.forumCategory.update({
+          where: { id: categoryId },
+          data: updateData,
+          include: {
+            creator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            _count: {
+              select: {
+                threads: true,
+              },
             },
           },
-          _count: {
-            select: {
-              threads: true,
+        });
+
+        // Calculate post count
+        const postCount = await prisma.forumPost.count({
+          where: {
+            thread: {
+              categoryId: updatedCategory.id,
             },
           },
-        },
-      });
+        });
 
-      // Calculate post count
-      const postCount = await prisma.forumPost.count({
-        where: {
-          thread: {
-            categoryId: updatedCategory.id,
+        const transformedCategory = {
+          id: updatedCategory.id,
+          name: updatedCategory.name,
+          description: updatedCategory.description,
+          slug: updatedCategory.slug,
+          display_order: updatedCategory.displayOrder,
+          is_active: updatedCategory.isActive,
+          created_date:
+            updatedCategory.createdDate?.toISOString() ??
+            new Date().toISOString(),
+          updated_date:
+            updatedCategory.updatedDate?.toISOString() ??
+            new Date().toISOString(),
+          creator: updatedCategory.creator
+            ? {
+                id: updatedCategory.creator.id,
+                first_name: updatedCategory.creator.firstName,
+                last_name: updatedCategory.creator.lastName,
+              }
+            : null,
+          thread_count: updatedCategory._count.threads,
+          post_count: postCount,
+        };
+
+        logger.info("Successfully updated forum category", {
+          categoryId,
+          name: updatedCategory.name,
+        });
+
+        return NextResponse.json(transformedCategory);
+      } catch (error) {
+        const resolvedParams = await params;
+        logger.error("Error updating forum category", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          categoryId: resolvedParams.id,
+        });
+        return NextResponse.json(
+          {
+            error: {
+              message: "Failed to update forum category",
+              code: 500,
+            },
           },
-        },
-      });
-
-      const transformedCategory = {
-        id: updatedCategory.id,
-        name: updatedCategory.name,
-        description: updatedCategory.description,
-        slug: updatedCategory.slug,
-        display_order: updatedCategory.displayOrder,
-        is_active: updatedCategory.isActive,
-        created_date:
-          updatedCategory.createdDate?.toISOString() ??
-          new Date().toISOString(),
-        updated_date:
-          updatedCategory.updatedDate?.toISOString() ??
-          new Date().toISOString(),
-        creator: updatedCategory.creator
-          ? {
-              id: updatedCategory.creator.id,
-              first_name: updatedCategory.creator.firstName,
-              last_name: updatedCategory.creator.lastName,
-            }
-          : null,
-        thread_count: updatedCategory._count.threads,
-        post_count: postCount,
-      };
-
-      logger.info("Successfully updated forum category", {
-        categoryId,
-        name: updatedCategory.name,
-      });
-
-      return NextResponse.json(transformedCategory);
-    } catch (error) {
-      const resolvedParams = await params;
-      logger.error("Error updating forum category", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        categoryId: resolvedParams.id,
-      });
-      return NextResponse.json(
-        {
-          error: {
-            message: "Failed to update forum category",
-            code: 500,
-          },
-        },
-        { status: 500 }
-      );
-    }
-  },
-  { requireAdmin: true }
+          { status: 500 }
+        );
+      }
+    },
+    { requireAdmin: true }
+  )
 );
 
 /**
  * DELETE /api/admin/forums/categories/[id] - Delete forum category
  */
-export const DELETE = withAuth(
-  async (
-    _request: NextRequest,
-    { user },
-    { params }: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      const resolvedParams = await params;
-      const categoryId = parseInt(resolvedParams.id);
-      if (isNaN(categoryId)) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Invalid category ID",
-              code: 400,
+export const DELETE = withCsrfProtection(
+  withAuth(
+    async (
+      _request: NextRequest,
+      { user },
+      { params }: { params: Promise<{ id: string }> }
+    ) => {
+      try {
+        const resolvedParams = await params;
+        const categoryId = parseInt(resolvedParams.id);
+        if (isNaN(categoryId)) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Invalid category ID",
+                code: 400,
+              },
             },
-          },
-          { status: 400 }
-        );
-      }
+            { status: 400 }
+          );
+        }
 
-      logger.info("Admin deleting forum category", {
-        categoryId,
-        deletedBy: user.id,
-      });
-
-      // Check if category exists
-      const existingCategory = await prisma.forumCategory.findUnique({
-        where: { id: categoryId },
-      });
-
-      if (!existingCategory) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Category not found",
-              code: 404,
-            },
-          },
-          { status: 404 }
-        );
-      }
-
-      // Use transaction to delete category and all related data
-      await prisma.$transaction(async (tx) => {
-        // First, delete all posts in threads of this category
-        await tx.forumPost.deleteMany({
-          where: {
-            thread: {
-              categoryId: categoryId,
-            },
-          },
+        logger.info("Admin deleting forum category", {
+          categoryId,
+          deletedBy: user.id,
         });
 
-        // Then delete all threads in this category
-        await tx.forumThread.deleteMany({
-          where: {
-            categoryId: categoryId,
-          },
-        });
-
-        // Finally delete the category itself
-        await tx.forumCategory.delete({
+        // Check if category exists
+        const existingCategory = await prisma.forumCategory.findUnique({
           where: { id: categoryId },
         });
-      });
 
-      logger.info("Successfully deleted forum category", {
-        categoryId,
-        name: existingCategory.name,
-      });
+        if (!existingCategory) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Category not found",
+                code: 404,
+              },
+            },
+            { status: 404 }
+          );
+        }
 
-      return NextResponse.json({
-        message: "Category deleted successfully",
-      });
-    } catch (error) {
-      const resolvedParams = await params;
-      logger.error("Error deleting forum category", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        categoryId: resolvedParams.id,
-      });
-      return NextResponse.json(
-        {
-          error: {
-            message: "Failed to delete forum category",
-            code: 500,
+        // Use transaction to delete category and all related data
+        await prisma.$transaction(async (tx) => {
+          // First, delete all posts in threads of this category
+          await tx.forumPost.deleteMany({
+            where: {
+              thread: {
+                categoryId: categoryId,
+              },
+            },
+          });
+
+          // Then delete all threads in this category
+          await tx.forumThread.deleteMany({
+            where: {
+              categoryId: categoryId,
+            },
+          });
+
+          // Finally delete the category itself
+          await tx.forumCategory.delete({
+            where: { id: categoryId },
+          });
+        });
+
+        logger.info("Successfully deleted forum category", {
+          categoryId,
+          name: existingCategory.name,
+        });
+
+        return NextResponse.json({
+          message: "Category deleted successfully",
+        });
+      } catch (error) {
+        const resolvedParams = await params;
+        logger.error("Error deleting forum category", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          categoryId: resolvedParams.id,
+        });
+        return NextResponse.json(
+          {
+            error: {
+              message: "Failed to delete forum category",
+              code: 500,
+            },
           },
-        },
-        { status: 500 }
-      );
-    }
-  },
-  { requireAdmin: true }
+          { status: 500 }
+        );
+      }
+    },
+    { requireAdmin: true }
+  )
 );

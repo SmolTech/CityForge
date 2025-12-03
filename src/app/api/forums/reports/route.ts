@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { validateForumReport } from "@/lib/validation/forums";
 import { logger } from "@/lib/logger";
@@ -9,220 +10,84 @@ import { sendForumReportNotification } from "@/lib/email";
  * POST /api/forums/reports
  * Report a thread or post for moderation review
  */
-export const POST = withAuth(async (request: NextRequest, { user }) => {
-  try {
-    const body = await request.json();
+export const POST = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }) => {
+    try {
+      const body = await request.json();
 
-    // Validate the report data
-    const validation = validateForumReport(body);
+      // Validate the report data
+      const validation = validateForumReport(body);
 
-    if (!validation.isValid) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            code: 400,
-            details: validation.errors,
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    const reportData = validation.data!;
-
-    // Validate required fields for report - either thread_id or post_id must be provided
-    if (
-      (!body.thread_id || typeof body.thread_id !== "number") &&
-      (!body.post_id || typeof body.post_id !== "number")
-    ) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Either thread_id or post_id is required",
-            code: 422,
-          },
-        },
-        { status: 422 }
-      );
-    }
-
-    let threadId = body.thread_id;
-    const postId =
-      body.post_id && typeof body.post_id === "number" ? body.post_id : null;
-
-    // If only post_id is provided, look up the thread_id
-    if (!threadId && postId) {
-      const post = await prisma.forumPost.findFirst({
-        where: { id: postId },
-        select: { threadId: true },
-      });
-
-      if (!post) {
+      if (!validation.isValid) {
         return NextResponse.json(
-          { error: { message: "Post not found", code: 404 } },
-          { status: 404 }
+          {
+            error: {
+              message: "Validation failed",
+              code: 400,
+              details: validation.errors,
+            },
+          },
+          { status: 400 }
         );
       }
 
-      threadId = post.threadId;
-    }
+      const reportData = validation.data!;
 
-    logger.info(`Creating forum report`, {
-      userId: user.id,
-      threadId,
-      postId,
-      reason: reportData.reason,
-    });
-
-    // Verify thread exists and is accessible
-    const thread = await prisma.forumThread.findFirst({
-      where: {
-        id: threadId,
-        category: {
-          isActive: true,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        category: {
-          select: {
-            name: true,
-            slug: true,
+      // Validate required fields for report - either thread_id or post_id must be provided
+      if (
+        (!body.thread_id || typeof body.thread_id !== "number") &&
+        (!body.post_id || typeof body.post_id !== "number")
+      ) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "Either thread_id or post_id is required",
+              code: 422,
+            },
           },
-        },
-      },
-    });
+          { status: 422 }
+        );
+      }
 
-    if (!thread) {
-      return NextResponse.json(
-        { error: { message: "Thread not found", code: 404 } },
-        { status: 404 }
-      );
-    }
+      let threadId = body.thread_id;
+      const postId =
+        body.post_id && typeof body.post_id === "number" ? body.post_id : null;
 
-    // If reporting a post, verify it exists and belongs to the thread
-    if (postId) {
-      const post = await prisma.forumPost.findFirst({
+      // If only post_id is provided, look up the thread_id
+      if (!threadId && postId) {
+        const post = await prisma.forumPost.findFirst({
+          where: { id: postId },
+          select: { threadId: true },
+        });
+
+        if (!post) {
+          return NextResponse.json(
+            { error: { message: "Post not found", code: 404 } },
+            { status: 404 }
+          );
+        }
+
+        threadId = post.threadId;
+      }
+
+      logger.info(`Creating forum report`, {
+        userId: user.id,
+        threadId,
+        postId,
+        reason: reportData.reason,
+      });
+
+      // Verify thread exists and is accessible
+      const thread = await prisma.forumThread.findFirst({
         where: {
-          id: postId,
-          threadId: threadId,
+          id: threadId,
+          category: {
+            isActive: true,
+          },
         },
         select: {
           id: true,
-        },
-      });
-
-      if (!post) {
-        return NextResponse.json(
-          { error: { message: "Post not found in this thread", code: 404 } },
-          { status: 404 }
-        );
-      }
-    }
-
-    // Check for duplicate report from the same user
-    const existingReport = await prisma.forumReport.findFirst({
-      where: {
-        threadId: threadId,
-        postId: postId,
-        reportedBy: user.id,
-      },
-      select: { id: true },
-    });
-
-    if (existingReport) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "You have already reported this content",
-            code: 409,
-          },
-        },
-        { status: 409 }
-      );
-    }
-
-    // Create the report and increment report count in a transaction
-    const report = await prisma.$transaction(async (tx) => {
-      // Create the report
-      const newReport = await tx.forumReport.create({
-        data: {
-          threadId: threadId,
-          postId: postId,
-          reason: reportData.reason,
-          details: reportData.details || null,
-          reportedBy: user.id,
-          status: "pending",
-        },
-        include: {
-          reporter: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          thread: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              categoryId: true,
-            },
-          },
-          post: postId
-            ? {
-                select: {
-                  id: true,
-                  content: true,
-                },
-              }
-            : false,
-        },
-      });
-
-      // Increment the appropriate report count
-      if (postId) {
-        // Report is for a specific post
-        await tx.forumPost.update({
-          where: { id: postId },
-          data: {
-            reportCount: {
-              increment: 1,
-            },
-          },
-        });
-      } else {
-        // Report is for the entire thread
-        await tx.forumThread.update({
-          where: { id: threadId },
-          data: {
-            reportCount: {
-              increment: 1,
-            },
-          },
-        });
-      }
-
-      return newReport;
-    });
-
-    logger.info("Successfully created forum report", {
-      reportId: report.id,
-      threadId: report.threadId,
-      postId: report.postId,
-      userId: user.id,
-      reason: report.reason,
-    });
-
-    // Send email notification to admins
-    try {
-      // Get the category information that we need for the email
-      const thread = await prisma.forumThread.findUnique({
-        where: { id: report.threadId },
-        include: {
+          title: true,
           category: {
             select: {
               name: true,
@@ -232,101 +97,239 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
         },
       });
 
-      if (thread) {
-        const reportData = {
-          id: report.id,
-          thread: {
-            id: report.thread.id,
-            title: report.thread.title,
-            slug: report.thread.slug,
-            categoryId: report.thread.categoryId,
-            category: {
-              name: thread.category.name,
-              slug: thread.category.slug,
+      if (!thread) {
+        return NextResponse.json(
+          { error: { message: "Thread not found", code: 404 } },
+          { status: 404 }
+        );
+      }
+
+      // If reporting a post, verify it exists and belongs to the thread
+      if (postId) {
+        const post = await prisma.forumPost.findFirst({
+          where: {
+            id: postId,
+            threadId: threadId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (!post) {
+          return NextResponse.json(
+            { error: { message: "Post not found in this thread", code: 404 } },
+            { status: 404 }
+          );
+        }
+      }
+
+      // Check for duplicate report from the same user
+      const existingReport = await prisma.forumReport.findFirst({
+        where: {
+          threadId: threadId,
+          postId: postId,
+          reportedBy: user.id,
+        },
+        select: { id: true },
+      });
+
+      if (existingReport) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "You have already reported this content",
+              code: 409,
             },
           },
-          post: report.post
-            ? {
-                id: report.post.id,
-                content: report.post.content,
-              }
-            : null,
-          reason: report.reason,
-          details: report.details,
-          created_date:
-            report.createdDate?.toISOString() ?? new Date().toISOString(),
-        };
-
-        const reporter = {
-          id: report.reporter.id,
-          firstName: report.reporter.firstName,
-          lastName: report.reporter.lastName,
-          email: user.email, // Use the authenticated user's email
-        };
-
-        await sendForumReportNotification(reportData, reporter);
-        logger.info("Forum report notification email sent", {
-          reportId: report.id,
-          threadId: report.threadId,
-          postId: report.postId,
-        });
+          { status: 409 }
+        );
       }
-    } catch (emailError) {
-      // Log email error but don't fail the report creation
-      logger.error("Failed to send forum report notification email", {
+
+      // Create the report and increment report count in a transaction
+      const report = await prisma.$transaction(async (tx) => {
+        // Create the report
+        const newReport = await tx.forumReport.create({
+          data: {
+            threadId: threadId,
+            postId: postId,
+            reason: reportData.reason,
+            details: reportData.details || null,
+            reportedBy: user.id,
+            status: "pending",
+          },
+          include: {
+            reporter: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            thread: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                categoryId: true,
+              },
+            },
+            post: postId
+              ? {
+                  select: {
+                    id: true,
+                    content: true,
+                  },
+                }
+              : false,
+          },
+        });
+
+        // Increment the appropriate report count
+        if (postId) {
+          // Report is for a specific post
+          await tx.forumPost.update({
+            where: { id: postId },
+            data: {
+              reportCount: {
+                increment: 1,
+              },
+            },
+          });
+        } else {
+          // Report is for the entire thread
+          await tx.forumThread.update({
+            where: { id: threadId },
+            data: {
+              reportCount: {
+                increment: 1,
+              },
+            },
+          });
+        }
+
+        return newReport;
+      });
+
+      logger.info("Successfully created forum report", {
         reportId: report.id,
         threadId: report.threadId,
         postId: report.postId,
-        error:
-          emailError instanceof Error ? emailError.message : "Unknown error",
+        userId: user.id,
+        reason: report.reason,
       });
+
+      // Send email notification to admins
+      try {
+        // Get the category information that we need for the email
+        const thread = await prisma.forumThread.findUnique({
+          where: { id: report.threadId },
+          include: {
+            category: {
+              select: {
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        });
+
+        if (thread) {
+          const reportData = {
+            id: report.id,
+            thread: {
+              id: report.thread.id,
+              title: report.thread.title,
+              slug: report.thread.slug,
+              categoryId: report.thread.categoryId,
+              category: {
+                name: thread.category.name,
+                slug: thread.category.slug,
+              },
+            },
+            post: report.post
+              ? {
+                  id: report.post.id,
+                  content: report.post.content,
+                }
+              : null,
+            reason: report.reason,
+            details: report.details,
+            created_date:
+              report.createdDate?.toISOString() ?? new Date().toISOString(),
+          };
+
+          const reporter = {
+            id: report.reporter.id,
+            firstName: report.reporter.firstName,
+            lastName: report.reporter.lastName,
+            email: user.email, // Use the authenticated user's email
+          };
+
+          await sendForumReportNotification(reportData, reporter);
+          logger.info("Forum report notification email sent", {
+            reportId: report.id,
+            threadId: report.threadId,
+            postId: report.postId,
+          });
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the report creation
+        logger.error("Failed to send forum report notification email", {
+          reportId: report.id,
+          threadId: report.threadId,
+          postId: report.postId,
+          error:
+            emailError instanceof Error ? emailError.message : "Unknown error",
+        });
+      }
+
+      // Transform response to match Flask API format
+      const responseData = {
+        id: report.id,
+        thread_id: report.threadId,
+        post_id: report.postId,
+        reason: report.reason,
+        details: report.details,
+        status: report.status,
+        reported_by: report.reportedBy,
+        reviewed_by: report.reviewedBy,
+        created_date:
+          report.createdDate?.toISOString() ?? new Date().toISOString(),
+        reviewed_date: report.reviewedDate?.toISOString() || null,
+        resolution_notes: report.resolutionNotes,
+        reporter: {
+          id: report.reporter.id,
+          first_name: report.reporter.firstName,
+          last_name: report.reporter.lastName,
+        },
+        thread: {
+          id: report.thread.id,
+          title: report.thread.title,
+          slug: report.thread.slug,
+          category_id: report.thread.categoryId,
+        },
+        post: report.post
+          ? {
+              id: report.post.id,
+              content: report.post.content,
+            }
+          : null,
+      };
+
+      return NextResponse.json({ report: responseData }, { status: 201 });
+    } catch (error) {
+      logger.error("Error creating forum report", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: user.id,
+      });
+      return NextResponse.json(
+        { error: { message: "Internal server error", code: 500 } },
+        { status: 500 }
+      );
     }
-
-    // Transform response to match Flask API format
-    const responseData = {
-      id: report.id,
-      thread_id: report.threadId,
-      post_id: report.postId,
-      reason: report.reason,
-      details: report.details,
-      status: report.status,
-      reported_by: report.reportedBy,
-      reviewed_by: report.reviewedBy,
-      created_date:
-        report.createdDate?.toISOString() ?? new Date().toISOString(),
-      reviewed_date: report.reviewedDate?.toISOString() || null,
-      resolution_notes: report.resolutionNotes,
-      reporter: {
-        id: report.reporter.id,
-        first_name: report.reporter.firstName,
-        last_name: report.reporter.lastName,
-      },
-      thread: {
-        id: report.thread.id,
-        title: report.thread.title,
-        slug: report.thread.slug,
-        category_id: report.thread.categoryId,
-      },
-      post: report.post
-        ? {
-            id: report.post.id,
-            content: report.post.content,
-          }
-        : null,
-    };
-
-    return NextResponse.json({ report: responseData }, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating forum report", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      userId: user.id,
-    });
-    return NextResponse.json(
-      { error: { message: "Internal server error", code: 500 } },
-      { status: 500 }
-    );
-  }
-});
+  })
+);
 
 /**
  * GET /api/forums/reports

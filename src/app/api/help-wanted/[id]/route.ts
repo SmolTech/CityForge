@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, AuthenticatedUser } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import {
   handleApiError,
   BadRequestError,
@@ -212,191 +213,197 @@ export async function GET(
 }
 
 // PUT /api/help-wanted/[id] - Update a help wanted post
-export const PUT = withAuth(
-  async (
-    request: NextRequest,
-    { user }: { user: AuthenticatedUser },
-    { params }: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      const { id } = await params;
-      const postId = parseInt(id);
-
-      if (isNaN(postId)) {
-        throw new BadRequestError("Invalid post ID");
-      }
-
-      // Parse request body
-      let data;
+export const PUT = withCsrfProtection(
+  withAuth(
+    async (
+      request: NextRequest,
+      { user }: { user: AuthenticatedUser },
+      { params }: { params: Promise<{ id: string }> }
+    ) => {
       try {
-        data = await request.json();
-      } catch {
-        throw new BadRequestError("No data provided");
-      }
+        const { id } = await params;
+        const postId = parseInt(id);
 
-      if (!data) {
-        throw new BadRequestError("No data provided");
-      }
+        if (isNaN(postId)) {
+          throw new BadRequestError("Invalid post ID");
+        }
 
-      // Validate input data
-      const validation = validateHelpWantedPostUpdate(data);
-      if (!validation.isValid) {
-        throw new ValidationError(validation.errors.join(". "), {
-          errors: validation.errors,
+        // Parse request body
+        let data;
+        try {
+          data = await request.json();
+        } catch {
+          throw new BadRequestError("No data provided");
+        }
+
+        if (!data) {
+          throw new BadRequestError("No data provided");
+        }
+
+        // Validate input data
+        const validation = validateHelpWantedPostUpdate(data);
+        if (!validation.isValid) {
+          throw new ValidationError(validation.errors.join(". "), {
+            errors: validation.errors,
+          });
+        }
+
+        // Check if post exists and user owns it
+        const existingPost = await prisma.helpWantedPost.findUnique({
+          where: { id: postId },
+          select: { createdBy: true },
         });
-      }
 
-      // Check if post exists and user owns it
-      const existingPost = await prisma.helpWantedPost.findUnique({
-        where: { id: postId },
-        select: { createdBy: true },
-      });
+        if (!existingPost) {
+          throw new NotFoundError("Help wanted post");
+        }
 
-      if (!existingPost) {
-        throw new NotFoundError("Help wanted post");
-      }
+        if (existingPost.createdBy !== user.id && user.role !== "admin") {
+          throw new ForbiddenError("You can only edit your own posts");
+        }
 
-      if (existingPost.createdBy !== user.id && user.role !== "admin") {
-        throw new ForbiddenError("You can only edit your own posts");
-      }
+        // Prepare update data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updateData: any = {}; // Using any for dynamic property assignment
 
-      // Prepare update data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updateData: any = {}; // Using any for dynamic property assignment
+        if (data["title"] !== undefined && typeof data["title"] === "string")
+          updateData.title = data["title"].trim();
+        if (
+          data["description"] !== undefined &&
+          typeof data["description"] === "string"
+        )
+          updateData.description = data["description"].trim();
+        if (data["category"] !== undefined)
+          updateData.category = data["category"];
+        if (data["status"] !== undefined) updateData.status = data["status"];
+        if (data["location"] !== undefined)
+          updateData.location =
+            typeof data["location"] === "string"
+              ? data["location"].trim()
+              : null;
+        if (data["budget"] !== undefined)
+          updateData.budget =
+            typeof data["budget"] === "string" ? data["budget"].trim() : null;
+        if (data["contact_preference"] !== undefined)
+          updateData.contactPreference =
+            typeof data["contact_preference"] === "string"
+              ? data["contact_preference"].trim()
+              : null;
 
-      if (data["title"] !== undefined && typeof data["title"] === "string")
-        updateData.title = data["title"].trim();
-      if (
-        data["description"] !== undefined &&
-        typeof data["description"] === "string"
-      )
-        updateData.description = data["description"].trim();
-      if (data["category"] !== undefined)
-        updateData.category = data["category"];
-      if (data["status"] !== undefined) updateData.status = data["status"];
-      if (data["location"] !== undefined)
-        updateData.location =
-          typeof data["location"] === "string" ? data["location"].trim() : null;
-      if (data["budget"] !== undefined)
-        updateData.budget =
-          typeof data["budget"] === "string" ? data["budget"].trim() : null;
-      if (data["contact_preference"] !== undefined)
-        updateData.contactPreference =
-          typeof data["contact_preference"] === "string"
-            ? data["contact_preference"].trim()
-            : null;
-
-      // Update help wanted post in database
-      const updatedPost = await prisma.helpWantedPost.update({
-        where: { id: postId },
-        data: updateData,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
+        // Update help wanted post in database
+        const updatedPost = await prisma.helpWantedPost.update({
+          where: { id: postId },
+          data: updateData,
+          include: {
+            creator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            _count: {
+              select: {
+                comments: true,
+                reports: true,
+              },
             },
           },
-          _count: {
-            select: {
-              comments: true,
-              reports: true,
-            },
-          },
-        },
-      });
+        });
 
-      // Transform data to match the expected API format
-      const transformedPost = {
-        id: updatedPost.id,
-        title: updatedPost.title,
-        description: updatedPost.description,
-        category: updatedPost.category,
-        status: updatedPost.status,
-        location: updatedPost.location,
-        budget: updatedPost.budget,
-        contact_preference: updatedPost.contactPreference,
-        report_count: updatedPost._count.reports,
-        created_date: updatedPost.createdDate?.toISOString(),
-        updated_date: updatedPost.updatedDate?.toISOString(),
-        creator: updatedPost.creator
-          ? {
-              id: updatedPost.creator.id,
-              first_name: updatedPost.creator.firstName,
-              last_name: updatedPost.creator.lastName,
-              email: updatedPost.creator.email,
-            }
-          : undefined,
-        comment_count: updatedPost._count.comments,
-      };
+        // Transform data to match the expected API format
+        const transformedPost = {
+          id: updatedPost.id,
+          title: updatedPost.title,
+          description: updatedPost.description,
+          category: updatedPost.category,
+          status: updatedPost.status,
+          location: updatedPost.location,
+          budget: updatedPost.budget,
+          contact_preference: updatedPost.contactPreference,
+          report_count: updatedPost._count.reports,
+          created_date: updatedPost.createdDate?.toISOString(),
+          updated_date: updatedPost.updatedDate?.toISOString(),
+          creator: updatedPost.creator
+            ? {
+                id: updatedPost.creator.id,
+                first_name: updatedPost.creator.firstName,
+                last_name: updatedPost.creator.lastName,
+                email: updatedPost.creator.email,
+              }
+            : undefined,
+          comment_count: updatedPost._count.comments,
+        };
 
-      return NextResponse.json(transformedPost);
-    } catch (error: unknown) {
-      return handleApiError(error, "PUT /api/help-wanted/[id]");
+        return NextResponse.json(transformedPost);
+      } catch (error: unknown) {
+        return handleApiError(error, "PUT /api/help-wanted/[id]");
+      }
     }
-  }
+  )
 );
 
 // DELETE /api/help-wanted/[id] - Delete a help wanted post
-export const DELETE = withAuth(
-  async (
-    _request: NextRequest,
-    { user }: { user: AuthenticatedUser },
-    { params }: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      const { id } = await params;
-      const postId = parseInt(id);
+export const DELETE = withCsrfProtection(
+  withAuth(
+    async (
+      _request: NextRequest,
+      { user }: { user: AuthenticatedUser },
+      { params }: { params: Promise<{ id: string }> }
+    ) => {
+      try {
+        const { id } = await params;
+        const postId = parseInt(id);
 
-      if (isNaN(postId)) {
-        throw new BadRequestError("Invalid post ID");
-      }
+        if (isNaN(postId)) {
+          throw new BadRequestError("Invalid post ID");
+        }
 
-      // Check if post exists and user owns it
-      const existingPost = await prisma.helpWantedPost.findUnique({
-        where: { id: postId },
-        select: { createdBy: true },
-      });
-
-      if (!existingPost) {
-        throw new NotFoundError("Help wanted post");
-      }
-
-      if (existingPost.createdBy !== user.id && user.role !== "admin") {
-        throw new ForbiddenError("You can only delete your own posts");
-      }
-
-      // Delete the post using transaction for cascade delete with counts
-      const result = await prisma.$transaction(async (tx) => {
-        // Delete related comments first and count them
-        const deletedComments = await tx.helpWantedComment.deleteMany({
-          where: { postId: postId },
-        });
-
-        // Delete related reports and count them
-        const deletedReports = await tx.helpWantedReport.deleteMany({
-          where: { postId: postId },
-        });
-
-        // Finally delete the post itself
-        await tx.helpWantedPost.delete({
+        // Check if post exists and user owns it
+        const existingPost = await prisma.helpWantedPost.findUnique({
           where: { id: postId },
+          select: { createdBy: true },
         });
 
-        return {
-          comments: deletedComments.count,
-          reports: deletedReports.count,
-        };
-      });
+        if (!existingPost) {
+          throw new NotFoundError("Help wanted post");
+        }
 
-      return NextResponse.json({
-        message: "Help wanted post deleted successfully",
-        deletedCounts: result,
-      });
-    } catch (error: unknown) {
-      return handleApiError(error, "DELETE /api/help-wanted/[id]");
+        if (existingPost.createdBy !== user.id && user.role !== "admin") {
+          throw new ForbiddenError("You can only delete your own posts");
+        }
+
+        // Delete the post using transaction for cascade delete with counts
+        const result = await prisma.$transaction(async (tx) => {
+          // Delete related comments first and count them
+          const deletedComments = await tx.helpWantedComment.deleteMany({
+            where: { postId: postId },
+          });
+
+          // Delete related reports and count them
+          const deletedReports = await tx.helpWantedReport.deleteMany({
+            where: { postId: postId },
+          });
+
+          // Finally delete the post itself
+          await tx.helpWantedPost.delete({
+            where: { id: postId },
+          });
+
+          return {
+            comments: deletedComments.count,
+            reports: deletedReports.count,
+          };
+        });
+
+        return NextResponse.json({
+          message: "Help wanted post deleted successfully",
+          deletedCounts: result,
+        });
+      } catch (error: unknown) {
+        return handleApiError(error, "DELETE /api/help-wanted/[id]");
+      }
     }
-  }
+  )
 );

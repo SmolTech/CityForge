@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, AuthenticatedUser } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import {
   handleApiError,
   BadRequestError,
@@ -185,97 +186,99 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/help-wanted - Create a new help wanted post
-export const POST = withAuth(
-  async (request: NextRequest, { user }: { user: AuthenticatedUser }) => {
-    try {
-      // Rate limiting: 10 requests per hour per user
-      if (!checkRateLimit(user.id, 10)) {
-        throw new RateLimitError();
-      }
-
-      // Parse request body
-      let data;
+export const POST = withCsrfProtection(
+  withAuth(
+    async (request: NextRequest, { user }: { user: AuthenticatedUser }) => {
       try {
-        data = await request.json();
-      } catch {
-        throw new BadRequestError("No data provided");
-      }
+        // Rate limiting: 10 requests per hour per user
+        if (!checkRateLimit(user.id, 10)) {
+          throw new RateLimitError();
+        }
 
-      if (!data) {
-        throw new BadRequestError("No data provided");
-      }
+        // Parse request body
+        let data;
+        try {
+          data = await request.json();
+        } catch {
+          throw new BadRequestError("No data provided");
+        }
 
-      // Validate input data
-      const validation = validateHelpWantedPost(data);
-      if (!validation.isValid) {
-        throw new ValidationError("Validation failed", {
-          errors: validation.errors,
+        if (!data) {
+          throw new BadRequestError("No data provided");
+        }
+
+        // Validate input data
+        const validation = validateHelpWantedPost(data);
+        if (!validation.isValid) {
+          throw new ValidationError("Validation failed", {
+            errors: validation.errors,
+          });
+        }
+
+        // At this point, validation.data is guaranteed to exist
+        if (!validation.data) {
+          throw new BadRequestError("Validation failed - no data");
+        }
+
+        // Create help wanted post in database
+        const helpWantedPost = await prisma.helpWantedPost.create({
+          data: {
+            title: validation.data.title,
+            description: validation.data.description,
+            category: validation.data.category,
+            location: validation.data.location,
+            budget: validation.data.budget,
+            contactPreference: validation.data.contact_preference,
+            status: "open",
+            reportCount: 0,
+            createdBy: user.id,
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            _count: {
+              select: {
+                comments: true,
+                reports: true,
+              },
+            },
+          },
         });
+
+        // Transform data to match the expected API format
+        const transformedPost = {
+          id: helpWantedPost.id,
+          title: helpWantedPost.title,
+          description: helpWantedPost.description,
+          category: helpWantedPost.category,
+          status: helpWantedPost.status,
+          location: helpWantedPost.location,
+          budget: helpWantedPost.budget,
+          contact_preference: helpWantedPost.contactPreference,
+          report_count: helpWantedPost._count.reports,
+          created_date: helpWantedPost.createdDate?.toISOString(),
+          updated_date: helpWantedPost.updatedDate?.toISOString(),
+          creator: helpWantedPost.creator
+            ? {
+                id: helpWantedPost.creator.id,
+                first_name: helpWantedPost.creator.firstName,
+                last_name: helpWantedPost.creator.lastName,
+                email: helpWantedPost.creator.email,
+              }
+            : undefined,
+          comment_count: helpWantedPost._count.comments,
+        };
+
+        return NextResponse.json(transformedPost, { status: 201 });
+      } catch (error: unknown) {
+        return handleApiError(error, "POST /api/help-wanted");
       }
-
-      // At this point, validation.data is guaranteed to exist
-      if (!validation.data) {
-        throw new BadRequestError("Validation failed - no data");
-      }
-
-      // Create help wanted post in database
-      const helpWantedPost = await prisma.helpWantedPost.create({
-        data: {
-          title: validation.data.title,
-          description: validation.data.description,
-          category: validation.data.category,
-          location: validation.data.location,
-          budget: validation.data.budget,
-          contactPreference: validation.data.contact_preference,
-          status: "open",
-          reportCount: 0,
-          createdBy: user.id,
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-              reports: true,
-            },
-          },
-        },
-      });
-
-      // Transform data to match the expected API format
-      const transformedPost = {
-        id: helpWantedPost.id,
-        title: helpWantedPost.title,
-        description: helpWantedPost.description,
-        category: helpWantedPost.category,
-        status: helpWantedPost.status,
-        location: helpWantedPost.location,
-        budget: helpWantedPost.budget,
-        contact_preference: helpWantedPost.contactPreference,
-        report_count: helpWantedPost._count.reports,
-        created_date: helpWantedPost.createdDate?.toISOString(),
-        updated_date: helpWantedPost.updatedDate?.toISOString(),
-        creator: helpWantedPost.creator
-          ? {
-              id: helpWantedPost.creator.id,
-              first_name: helpWantedPost.creator.firstName,
-              last_name: helpWantedPost.creator.lastName,
-              email: helpWantedPost.creator.email,
-            }
-          : undefined,
-        comment_count: helpWantedPost._count.comments,
-      };
-
-      return NextResponse.json(transformedPost, { status: 201 });
-    } catch (error: unknown) {
-      return handleApiError(error, "POST /api/help-wanted");
     }
-  }
+  )
 );

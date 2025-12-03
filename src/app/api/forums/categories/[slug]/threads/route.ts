@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { validateForumThread, ForumThreadData } from "@/lib/validation/forums";
@@ -175,195 +176,199 @@ export async function GET(
  * POST /api/forums/categories/[slug]/threads
  * Create a new thread in a category
  */
-export const POST = withAuth(
-  async (
-    request: NextRequest,
-    { user },
-    { params }: { params: Promise<{ slug: string }> }
-  ) => {
-    const { slug } = await params;
+export const POST = withCsrfProtection(
+  withAuth(
+    async (
+      request: NextRequest,
+      { user },
+      { params }: { params: Promise<{ slug: string }> }
+    ) => {
+      const { slug } = await params;
 
-    try {
-      if (!user.isActive) {
-        return NextResponse.json(
-          { error: { message: "User not found or inactive", code: 404 } },
-          { status: 404 }
-        );
-      }
+      try {
+        if (!user.isActive) {
+          return NextResponse.json(
+            { error: { message: "User not found or inactive", code: 404 } },
+            { status: 404 }
+          );
+        }
 
-      // Find the category by slug (must be active)
-      const category = await prisma.forumCategory.findFirst({
-        where: {
-          slug: slug,
-          isActive: true,
-        },
-      });
-
-      if (!category) {
-        return NextResponse.json(
-          { error: { message: "Category not found", code: 404 } },
-          { status: 404 }
-        );
-      }
-
-      const data = await request.json();
-
-      if (!data) {
-        return NextResponse.json(
-          { error: { message: "No data provided", code: 400 } },
-          { status: 400 }
-        );
-      }
-
-      // Validate input data
-      const validation = validateForumThread(data);
-      if (!validation.isValid) {
-        return NextResponse.json(
-          {
-            error: {
-              message: "Validation failed",
-              code: 422,
-              details: validation.errors,
-            },
-          },
-          { status: 422 }
-        );
-      }
-
-      const validatedData = validation.data as ForumThreadData;
-
-      // Generate unique slug for thread
-      const baseSlug = generateSlug(validatedData.title);
-      let threadSlug = baseSlug;
-      let counter = 1;
-
-      // Ensure slug is unique
-      while (
-        await prisma.forumThread.findFirst({ where: { slug: threadSlug } })
-      ) {
-        threadSlug = `${baseSlug}-${counter}`;
-        counter += 1;
-      }
-
-      logger.info("Creating new thread", {
-        userId: user.id,
-        categoryId: category.id,
-        title: validatedData.title,
-        slug: threadSlug,
-      });
-
-      // Use transaction to create thread and first post
-      const result = await prisma.$transaction(async (tx) => {
-        // Create thread
-        const thread = await tx.forumThread.create({
-          data: {
-            categoryId: category.id,
-            title: validatedData.title,
-            slug: threadSlug,
-            createdBy: user.id,
-            reportCount: 0,
-          },
-          include: {
-            creator: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-            category: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
+        // Find the category by slug (must be active)
+        const category = await prisma.forumCategory.findFirst({
+          where: {
+            slug: slug,
+            isActive: true,
           },
         });
 
-        // Create first post
-        const firstPost = await tx.forumPost.create({
-          data: {
-            threadId: thread.id,
-            content: validatedData.content,
-            isFirstPost: true,
-            createdBy: user.id,
-            reportCount: 0,
-          },
-          include: {
-            creator: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
+        if (!category) {
+          return NextResponse.json(
+            { error: { message: "Category not found", code: 404 } },
+            { status: 404 }
+          );
+        }
+
+        const data = await request.json();
+
+        if (!data) {
+          return NextResponse.json(
+            { error: { message: "No data provided", code: 400 } },
+            { status: 400 }
+          );
+        }
+
+        // Validate input data
+        const validation = validateForumThread(data);
+        if (!validation.isValid) {
+          return NextResponse.json(
+            {
+              error: {
+                message: "Validation failed",
+                code: 422,
+                details: validation.errors,
               },
             },
-          },
+            { status: 422 }
+          );
+        }
+
+        const validatedData = validation.data as ForumThreadData;
+
+        // Generate unique slug for thread
+        const baseSlug = generateSlug(validatedData.title);
+        let threadSlug = baseSlug;
+        let counter = 1;
+
+        // Ensure slug is unique
+        while (
+          await prisma.forumThread.findFirst({ where: { slug: threadSlug } })
+        ) {
+          threadSlug = `${baseSlug}-${counter}`;
+          counter += 1;
+        }
+
+        logger.info("Creating new thread", {
+          userId: user.id,
+          categoryId: category.id,
+          title: validatedData.title,
+          slug: threadSlug,
         });
 
-        return { thread, firstPost };
-      });
+        // Use transaction to create thread and first post
+        const result = await prisma.$transaction(async (tx) => {
+          // Create thread
+          const thread = await tx.forumThread.create({
+            data: {
+              categoryId: category.id,
+              title: validatedData.title,
+              slug: threadSlug,
+              createdBy: user.id,
+              reportCount: 0,
+            },
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          });
 
-      // Format response to match test expectations
-      const threadData = {
-        id: result.thread.id,
-        category_id: result.thread.categoryId,
-        title: result.thread.title,
-        slug: result.thread.slug,
-        is_pinned: result.thread.isPinned ?? false,
-        is_locked: result.thread.isLocked ?? false,
-        report_count: result.thread.reportCount,
-        created_by: result.thread.createdBy,
-        created_date:
-          result.thread.createdDate?.toISOString() ?? new Date().toISOString(),
-        updated_date:
-          result.thread.updatedDate?.toISOString() ?? new Date().toISOString(),
-        creator: {
-          id: result.thread.creator.id,
-          first_name: result.thread.creator.firstName,
-          last_name: result.thread.creator.lastName,
-        },
-        category: {
-          id: result.thread.category.id,
-          name: result.thread.category.name,
-          slug: result.thread.category.slug,
-        },
-      };
+          // Create first post
+          const firstPost = await tx.forumPost.create({
+            data: {
+              threadId: thread.id,
+              content: validatedData.content,
+              isFirstPost: true,
+              createdBy: user.id,
+              reportCount: 0,
+            },
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          });
 
-      const firstPostData = {
-        id: result.firstPost.id,
-        content: result.firstPost.content,
-        created_date:
-          result.firstPost.createdDate?.toISOString() ??
-          new Date().toISOString(),
-        creator: {
-          id: result.firstPost.creator.id,
-          first_name: result.firstPost.creator.firstName,
-          last_name: result.firstPost.creator.lastName,
-        },
-      };
+          return { thread, firstPost };
+        });
 
-      logger.info("Thread created successfully", {
-        threadId: result.thread.id,
-        userId: user.id,
-        categoryId: category.id,
-        firstPostId: result.firstPost.id,
-      });
+        // Format response to match test expectations
+        const threadData = {
+          id: result.thread.id,
+          category_id: result.thread.categoryId,
+          title: result.thread.title,
+          slug: result.thread.slug,
+          is_pinned: result.thread.isPinned ?? false,
+          is_locked: result.thread.isLocked ?? false,
+          report_count: result.thread.reportCount,
+          created_by: result.thread.createdBy,
+          created_date:
+            result.thread.createdDate?.toISOString() ??
+            new Date().toISOString(),
+          updated_date:
+            result.thread.updatedDate?.toISOString() ??
+            new Date().toISOString(),
+          creator: {
+            id: result.thread.creator.id,
+            first_name: result.thread.creator.firstName,
+            last_name: result.thread.creator.lastName,
+          },
+          category: {
+            id: result.thread.category.id,
+            name: result.thread.category.name,
+            slug: result.thread.category.slug,
+          },
+        };
 
-      return NextResponse.json(
-        { thread: threadData, first_post: firstPostData },
-        { status: 201 }
-      );
-    } catch (error) {
-      logger.error("Error creating thread", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        userId: user.id,
-        slug,
-      });
-      return NextResponse.json(
-        { error: { message: "Internal server error", code: 500 } },
-        { status: 500 }
-      );
+        const firstPostData = {
+          id: result.firstPost.id,
+          content: result.firstPost.content,
+          created_date:
+            result.firstPost.createdDate?.toISOString() ??
+            new Date().toISOString(),
+          creator: {
+            id: result.firstPost.creator.id,
+            first_name: result.firstPost.creator.firstName,
+            last_name: result.firstPost.creator.lastName,
+          },
+        };
+
+        logger.info("Thread created successfully", {
+          threadId: result.thread.id,
+          userId: user.id,
+          categoryId: category.id,
+          firstPostId: result.firstPost.id,
+        });
+
+        return NextResponse.json(
+          { thread: threadData, first_post: firstPostData },
+          { status: 201 }
+        );
+      } catch (error) {
+        logger.error("Error creating thread", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId: user.id,
+          slug,
+        });
+        return NextResponse.json(
+          { error: { message: "Internal server error", code: 500 } },
+          { status: 500 }
+        );
+      }
     }
-  }
+  )
 );

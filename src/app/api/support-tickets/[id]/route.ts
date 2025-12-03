@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, hasSupportPermissions } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 
@@ -187,8 +188,8 @@ export const GET = withAuth(
  * PUT /api/support-tickets/[id]
  * Update a support ticket
  */
-export const PUT = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const PUT = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const ticketIdStr = params?.id;
@@ -449,15 +450,15 @@ export const PUT = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );
 
 /**
  * DELETE /api/support-tickets/[id]
  * Delete a support ticket
  */
-export const DELETE = withAuth(
-  async (request: NextRequest, { user }, context: RouteContext) => {
+export const DELETE = withCsrfProtection(
+  withAuth(async (request: NextRequest, { user }, context: RouteContext) => {
     try {
       const params = await context.params;
       const ticketIdStr = params?.id;
@@ -524,5 +525,5 @@ export const DELETE = withAuth(
         { status: 500 }
       );
     }
-  }
+  })
 );

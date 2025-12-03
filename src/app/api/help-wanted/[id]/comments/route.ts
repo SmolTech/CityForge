@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, AuthenticatedUser } from "@/lib/auth/middleware";
+import { withCsrfProtection } from "@/lib/auth/csrf";
 import {
   handleApiError,
   BadRequestError,
@@ -138,105 +139,107 @@ export async function GET(
 }
 
 // POST /api/help-wanted/[id]/comments - Create a new comment
-export const POST = withAuth(
-  async (
-    request: NextRequest,
-    { user }: { user: AuthenticatedUser },
-    { params }: { params: Promise<{ id: string }> }
-  ) => {
-    try {
-      const { id } = await params;
-      const postId = parseInt(id);
-
-      if (isNaN(postId)) {
-        throw new BadRequestError("Invalid post ID");
-      }
-
-      // Parse request body
-      let data;
+export const POST = withCsrfProtection(
+  withAuth(
+    async (
+      request: NextRequest,
+      { user }: { user: AuthenticatedUser },
+      { params }: { params: Promise<{ id: string }> }
+    ) => {
       try {
-        data = await request.json();
-      } catch {
-        throw new BadRequestError("No data provided");
-      }
+        const { id } = await params;
+        const postId = parseInt(id);
 
-      if (!data) {
-        throw new BadRequestError("No data provided");
-      }
-
-      // Validate input data
-      const validation = validateComment(data);
-      if (!validation.isValid) {
-        throw new ValidationError("Validation failed", {
-          errors: validation.errors,
-        });
-      }
-
-      if (!validation.data) {
-        throw new BadRequestError("Validation failed - no data");
-      }
-
-      // Check if post exists
-      const post = await prisma.helpWantedPost.findUnique({
-        where: { id: postId },
-        select: { id: true },
-      });
-
-      if (!post) {
-        throw new NotFoundError("Help wanted post not found");
-      }
-
-      // If parent_id is provided, check if parent comment exists and belongs to the same post
-      if (validation.data.parent_id) {
-        const parentComment = await prisma.helpWantedComment.findUnique({
-          where: { id: validation.data.parent_id },
-          select: { postId: true },
-        });
-
-        if (!parentComment || parentComment.postId !== postId) {
-          throw new BadRequestError("Invalid parent comment");
+        if (isNaN(postId)) {
+          throw new BadRequestError("Invalid post ID");
         }
-      }
 
-      // Create comment
-      const comment = await prisma.helpWantedComment.create({
-        data: {
-          postId: postId,
-          content: validation.data.content,
-          parentId: validation.data.parent_id,
-          createdBy: user.id,
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
+        // Parse request body
+        let data;
+        try {
+          data = await request.json();
+        } catch {
+          throw new BadRequestError("No data provided");
+        }
+
+        if (!data) {
+          throw new BadRequestError("No data provided");
+        }
+
+        // Validate input data
+        const validation = validateComment(data);
+        if (!validation.isValid) {
+          throw new ValidationError("Validation failed", {
+            errors: validation.errors,
+          });
+        }
+
+        if (!validation.data) {
+          throw new BadRequestError("Validation failed - no data");
+        }
+
+        // Check if post exists
+        const post = await prisma.helpWantedPost.findUnique({
+          where: { id: postId },
+          select: { id: true },
+        });
+
+        if (!post) {
+          throw new NotFoundError("Help wanted post not found");
+        }
+
+        // If parent_id is provided, check if parent comment exists and belongs to the same post
+        if (validation.data.parent_id) {
+          const parentComment = await prisma.helpWantedComment.findUnique({
+            where: { id: validation.data.parent_id },
+            select: { postId: true },
+          });
+
+          if (!parentComment || parentComment.postId !== postId) {
+            throw new BadRequestError("Invalid parent comment");
+          }
+        }
+
+        // Create comment
+        const comment = await prisma.helpWantedComment.create({
+          data: {
+            postId: postId,
+            content: validation.data.content,
+            parentId: validation.data.parent_id,
+            createdBy: user.id,
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      // Transform data to match the expected API format
-      const transformedComment = {
-        id: comment.id,
-        post_id: comment.postId,
-        content: comment.content,
-        parent_id: comment.parentId,
-        created_date: comment.createdDate?.toISOString(),
-        updated_date: comment.updatedDate?.toISOString(),
-        creator: comment.creator
-          ? {
-              id: comment.creator.id,
-              first_name: comment.creator.firstName,
-              last_name: comment.creator.lastName,
-            }
-          : undefined,
-      };
+        // Transform data to match the expected API format
+        const transformedComment = {
+          id: comment.id,
+          post_id: comment.postId,
+          content: comment.content,
+          parent_id: comment.parentId,
+          created_date: comment.createdDate?.toISOString(),
+          updated_date: comment.updatedDate?.toISOString(),
+          creator: comment.creator
+            ? {
+                id: comment.creator.id,
+                first_name: comment.creator.firstName,
+                last_name: comment.creator.lastName,
+              }
+            : undefined,
+        };
 
-      return NextResponse.json(transformedComment, { status: 201 });
-    } catch (error: unknown) {
-      return handleApiError(error, "POST /api/help-wanted/[id]/comments");
+        return NextResponse.json(transformedComment, { status: 201 });
+      } catch (error: unknown) {
+        return handleApiError(error, "POST /api/help-wanted/[id]/comments");
+      }
     }
-  }
+  )
 );
