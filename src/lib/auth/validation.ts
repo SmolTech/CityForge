@@ -3,6 +3,8 @@
  * Replicates the validation logic from Flask Marshmallow schemas
  */
 
+import DOMPurify from "isomorphic-dompurify";
+
 export interface ValidationResult<T> {
   valid: boolean;
   data?: T;
@@ -80,12 +82,23 @@ function validatePassword(password: string): string[] {
 }
 
 /**
- * Sanitize string by removing HTML tags (basic implementation)
+ * Sanitize string by removing all HTML tags and entities
+ * Uses DOMPurify for robust XSS protection against:
+ * - Nested tag bypasses: <<script>alert(1)</script>
+ * - Self-closing tag bypasses: <img/src=x/onerror=alert(1)>
+ * - SVG-based XSS: <svg/onload=alert(1)>
+ * - All other XSS vectors
  */
 function sanitizeString(value: string): string {
   if (!value) return "";
-  // Remove basic HTML tags - in production, use a proper sanitization library
-  return value.replace(/<[^>]*>/g, "").trim();
+
+  // Use DOMPurify to strip all HTML while preserving text content
+  const clean = DOMPurify.sanitize(value, {
+    ALLOWED_TAGS: [], // Remove all HTML tags
+    KEEP_CONTENT: true, // Keep text content
+  });
+
+  return clean.trim();
 }
 
 /**

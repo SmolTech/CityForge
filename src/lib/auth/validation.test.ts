@@ -49,6 +49,150 @@ describe("Auth Validation", () => {
       expect(result.data?.last_name).toBe("Doe");
     });
 
+    describe("XSS protection (SECURITY)", () => {
+      it("should block nested tag XSS bypass attempt", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: "John<<script>alert(1)</script>Smith",
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        // DOMPurify blocks nested tags and prevents script execution
+        expect(result.data?.first_name).not.toContain("<script>");
+        expect(result.data?.first_name).not.toContain("</script>");
+        expect(result.data?.first_name).not.toContain("alert");
+        // Should contain at least some of the safe text
+        expect(result.data?.first_name).toContain("John");
+      });
+
+      it("should block self-closing tag XSS bypass with img", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: "John<img/src=x/onerror=alert(1)>",
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        expect(result.data?.first_name).toBe("John");
+        expect(result.data?.first_name).not.toContain("onerror");
+        expect(result.data?.first_name).not.toContain("<img");
+        expect(result.data?.first_name).not.toContain("alert");
+      });
+
+      it("should block SVG-based XSS attack", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: "John<svg/onload=alert(1)>",
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        // DOMPurify strips SVG tags and event handlers
+        expect(result.data?.first_name).toBe("John");
+        expect(result.data?.first_name).not.toContain("onload");
+        expect(result.data?.first_name).not.toContain("<svg");
+        expect(result.data?.first_name).not.toContain("alert");
+      });
+
+      it("should block iframe injection", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: 'John<iframe src="javascript:alert(1)"></iframe>Smith',
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        // DOMPurify strips iframe entirely (including content if any)
+        expect(result.data?.first_name).toBe("JohnSmith");
+        expect(result.data?.first_name).not.toContain("<iframe");
+        expect(result.data?.first_name).not.toContain("javascript:");
+      });
+
+      it("should block event handler XSS", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: '<div onclick="alert(1)">Test</div>',
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        expect(result.data?.first_name).toBe("Test");
+        expect(result.data?.first_name).not.toContain("onclick");
+        expect(result.data?.first_name).not.toContain("alert");
+      });
+
+      it("should block javascript: protocol XSS", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: 'John<a href="javascript:alert(1)">Click</a>',
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        // DOMPurify strips the anchor tag but keeps text content
+        expect(result.data?.first_name).toContain("John");
+        expect(result.data?.first_name).toContain("Click");
+        expect(result.data?.first_name).not.toContain("javascript:");
+        expect(result.data?.first_name).not.toContain("<a");
+      });
+
+      it("should block data: URI XSS", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name:
+            'John<a href="data:text/html,<script>alert(1)</script>">Link</a>',
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        // DOMPurify strips the anchor tag but keeps text content
+        expect(result.data?.first_name).toContain("John");
+        expect(result.data?.first_name).toContain("Link");
+        expect(result.data?.first_name).not.toContain("data:");
+        expect(result.data?.first_name).not.toContain("<script>");
+        expect(result.data?.first_name).not.toContain("<a");
+      });
+
+      it("should handle multiple XSS attempts in same field", () => {
+        const data = {
+          email: "test@example.com",
+          password: "ValidPass123",
+          first_name: "<<script>alert(1)</script><img src=x onerror=alert(2)>",
+          last_name: "Doe",
+        };
+
+        const result = validateUserRegistration(data);
+
+        expect(result.valid).toBe(true);
+        expect(result.data?.first_name).not.toContain("<script>");
+        expect(result.data?.first_name).not.toContain("<img");
+        expect(result.data?.first_name).not.toContain("onerror");
+        expect(result.data?.first_name).not.toContain("alert");
+      });
+    });
+
     it("should trim whitespace from name fields", () => {
       const data = {
         email: "test@example.com",
