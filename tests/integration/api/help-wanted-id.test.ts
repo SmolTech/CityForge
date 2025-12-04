@@ -87,6 +87,42 @@ vi.mock("@/lib/auth/middleware", () => ({
   },
 }));
 
+// Mock CSRF protection middleware
+vi.mock("@/lib/auth/csrf", () => ({
+  withCsrfProtection: <T extends unknown[]>(
+    handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
+  ) => {
+    return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
+      const bypassCsrf = request.headers.get("x-test-bypass-csrf");
+
+      if (bypassCsrf === "true") {
+        return handler(request, ...args);
+      }
+
+      // For test mode, check if CSRF token is provided
+      const cookieToken = request.cookies.get("csrf_token")?.value;
+      const headerToken = request.headers.get("X-CSRF-Token");
+
+      if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+        return NextResponse.json(
+          {
+            error: {
+              message: "CSRF token validation failed",
+              code: "CSRF_TOKEN_INVALID",
+            },
+          },
+          { status: 403 }
+        );
+      }
+
+      return handler(request, ...args);
+    };
+  },
+  generateCsrfToken: () => "test-csrf-token",
+  CSRF_COOKIE_NAME: "csrf_token",
+  CSRF_HEADER_NAME: "X-CSRF-Token",
+}));
+
 // Import mocked prisma client
 import { prisma } from "@/lib/db/client";
 const mockPrismaClient = prisma as unknown as {
@@ -107,9 +143,12 @@ function createMockRequest(
     method?: string;
     authMode?: "admin" | "user" | "unauthenticated";
     body?: Record<string, unknown>;
+    bypassCsrf?: boolean;
   } = {}
 ) {
   const headers = new Headers();
+  const method = options.method || "GET";
+
   if (options.authMode) {
     headers.set("x-test-auth-mode", options.authMode);
   }
@@ -117,8 +156,19 @@ function createMockRequest(
     headers.set("content-type", "application/json");
   }
 
+  // Add CSRF protection bypass for tests unless explicitly testing CSRF
+  if (options.bypassCsrf !== false) {
+    headers.set("x-test-bypass-csrf", "true");
+  } else {
+    // For CSRF tests, include valid CSRF token
+    const csrfToken = "test-csrf-token";
+    headers.set("X-CSRF-Token", csrfToken);
+    // Simulate cookie by creating a request with cookie header
+    headers.set("cookie", "csrf_token=test-csrf-token");
+  }
+
   return new NextRequest(url, {
-    method: options.method || "GET",
+    method,
     headers,
     body: options.body ? JSON.stringify(options.body) : null,
   });
@@ -654,6 +704,7 @@ describe("Help-Wanted Individual Post API", () => {
           headers: {
             "content-type": "application/json",
             "x-test-auth-mode": "user",
+            "x-test-bypass-csrf": "true",
           },
           body: "{ invalid json }",
         });
