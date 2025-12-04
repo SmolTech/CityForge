@@ -115,6 +115,10 @@ model CardSubmission {
   reviewer           User?     @relation("SubmissionReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   submitter          User      @relation("SubmissionCreator", fields: [submittedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([submittedBy], map: "ix_card_submissions_submitted_by")
+  @@index([reviewedBy], map: "ix_card_submissions_reviewed_by")
+  @@index([cardId], map: "ix_card_submissions_card_id")
+  @@index([status], map: "ix_card_submissions_status")
   @@map("card_submissions")
 }
 
@@ -141,6 +145,10 @@ model CardModification {
   reviewer           User?     @relation("ModificationReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   submitter          User      @relation("ModificationCreator", fields: [submittedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([cardId], map: "ix_card_modifications_card_id")
+  @@index([submittedBy], map: "ix_card_modifications_submitted_by")
+  @@index([reviewedBy], map: "ix_card_modifications_reviewed_by")
+  @@index([status], map: "ix_card_modifications_status")
   @@map("card_modifications")
 }
 
@@ -285,6 +293,7 @@ model ForumThread {
   @@index([title], map: "ix_forum_threads_title")
   @@index([updatedDate], map: "ix_forum_threads_updated_date")
   @@index([categoryId, isPinned, updatedDate], map: "ix_forum_threads_category_pinned_updated")
+  @@index([createdBy], map: "ix_forum_threads_created_by")
   @@map("forum_threads")
 }
 
@@ -326,6 +335,11 @@ model ForumReport {
   reviewer        User?       @relation("ForumReviewedBy", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   thread          ForumThread @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([threadId], map: "ix_forum_reports_thread_id")
+  @@index([postId], map: "ix_forum_reports_post_id")
+  @@index([reportedBy], map: "ix_forum_reports_reported_by")
+  @@index([reviewedBy], map: "ix_forum_reports_reviewed_by")
+  @@index([status], map: "ix_forum_reports_status")
   @@map("forum_reports")
 }
 
@@ -350,6 +364,7 @@ model HelpWantedPost {
   @@index([createdDate], map: "ix_help_wanted_posts_created_date")
   @@index([status], map: "ix_help_wanted_posts_status")
   @@index([title], map: "ix_help_wanted_posts_title")
+  @@index([createdBy], map: "ix_help_wanted_posts_created_by")
   @@map("help_wanted_posts")
 }
 
@@ -366,6 +381,9 @@ model HelpWantedComment {
   replies     HelpWantedComment[] @relation("CommentReplies")
   post        HelpWantedPost      @relation(fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([postId], map: "ix_help_wanted_comments_post_id")
+  @@index([parentId], map: "ix_help_wanted_comments_parent_id")
+  @@index([createdBy], map: "ix_help_wanted_comments_created_by")
   @@map("help_wanted_comments")
 }
 
@@ -409,6 +427,8 @@ model SupportTicket {
   @@index([createdDate], map: "ix_support_tickets_created_date")
   @@index([status], map: "ix_support_tickets_status")
   @@index([title], map: "ix_support_tickets_title")
+  @@index([createdBy], map: "ix_support_tickets_created_by")
+  @@index([assignedTo], map: "ix_support_tickets_assigned_to")
   @@map("support_tickets")
 }
 
@@ -423,6 +443,8 @@ model SupportTicketMessage {
   creator        User          @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([ticketId], map: "ix_support_ticket_messages_ticket_id")
+  @@index([createdBy], map: "ix_support_ticket_messages_created_by")
   @@map("support_ticket_messages")
 }
 
@@ -453,6 +475,8 @@ model TokenBlacklist {
   expiresAt DateTime @map("expires_at") @db.Timestamp(6)
   user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([userId], map: "ix_token_blacklist_user_id")
+  @@index([expiresAt], map: "ix_token_blacklist_expires_at")
   @@map("token_blacklist")
 }
 
@@ -471,14 +495,14 @@ model card_tags {
 }
 
 model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  token     String   @unique @db.VarChar(255)
-  expiresAt DateTime @map("expires_at") @db.Timestamp(6)
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  token     String    @unique @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.Timestamp(6)
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   usedAt    DateTime? @map("used_at") @db.Timestamp(6)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token], map: "ix_password_reset_tokens_token")
   @@index([userId], map: "ix_password_reset_tokens_user_id")
