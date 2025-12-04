@@ -171,6 +171,7 @@ jobs:
 
       # Indexer security scanning
       - name: Run Trivy vulnerability scanner (Indexer)
+        if: always()
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:latest
