@@ -12,6 +12,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
+  # Lowercase image name for Trivy scanning (Docker registry names are case-sensitive)
+  IMAGE_PREFIX_LOWER: ${{ github.repository_owner }}/cityforge
 
 jobs:
   # Preparation job - sets up shared data
@@ -109,7 +111,7 @@ jobs:
       - name: Run Trivy vulnerability scanner (Frontend)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ github.ref_name }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LOWER }}-frontend:${{ github.ref_name }}
           format: "sarif"
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
@@ -174,7 +176,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-indexer:${{ github.ref_name }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LOWER }}-indexer:${{ github.ref_name }}
           format: "sarif"
           output: "trivy-indexer-results.sarif"
           severity: "CRITICAL,HIGH"
