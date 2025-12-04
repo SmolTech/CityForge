@@ -237,9 +237,15 @@ export function withAuth<T extends unknown[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
     try {
+      console.log(
+        "[AUTH] Starting authentication for",
+        request.method,
+        request.url
+      );
       const user = await authenticate(request, options);
 
       if (!user && !options.optional) {
+        console.log("[AUTH] Authentication required but no user found");
         return NextResponse.json(
           {
             error: {
@@ -251,9 +257,11 @@ export function withAuth<T extends unknown[]>(
         );
       }
 
+      console.log("[AUTH] Authentication successful, proceeding to handler");
       // Call the original handler with authenticated user
       return handler(request, { user: user! }, ...args);
     } catch (error) {
+      console.error("[AUTH] Exception in withAuth:", error);
       if (error instanceof AuthenticationError) {
         return NextResponse.json(
           {

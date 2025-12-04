@@ -84,11 +84,18 @@ export function validateCsrfToken(request: NextRequest): boolean {
     return false;
   }
 
-  // Use constant-time comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(cookieToken),
-    Buffer.from(headerToken)
-  );
+  try {
+    // Use constant-time comparison to prevent timing attacks
+    // Note: crypto.timingSafeEqual throws if buffer lengths differ
+    return crypto.timingSafeEqual(
+      Buffer.from(cookieToken),
+      Buffer.from(headerToken)
+    );
+  } catch {
+    // timingSafeEqual throws if buffer lengths are different
+    // This indicates tokens don't match, so return false
+    return false;
+  }
 }
 
 /**
@@ -137,25 +144,48 @@ export function withCsrfProtection<T extends unknown[]>(
   handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
-    // Skip CSRF check for exempt requests
-    if (isCsrfExempt(request)) {
-      return handler(request, ...args);
-    }
+    try {
+      console.log(
+        "[CSRF] Starting CSRF validation for",
+        request.method,
+        request.url
+      );
 
-    // Validate CSRF token
-    if (!validateCsrfToken(request)) {
+      // Skip CSRF check for exempt requests
+      if (isCsrfExempt(request)) {
+        console.log("[CSRF] Request is exempt from CSRF protection");
+        return handler(request, ...args);
+      }
+
+      console.log("[CSRF] Validating CSRF token...");
+      // Validate CSRF token
+      if (!validateCsrfToken(request)) {
+        console.log("[CSRF] CSRF token validation failed");
+        return NextResponse.json(
+          {
+            error: {
+              message: "CSRF token validation failed",
+              code: "CSRF_TOKEN_INVALID",
+            },
+          },
+          { status: 403 }
+        );
+      }
+
+      console.log("[CSRF] CSRF token valid, proceeding to handler");
+      // CSRF token valid, proceed with request
+      return handler(request, ...args);
+    } catch (error) {
+      console.error("[CSRF] Exception in withCsrfProtection:", error);
       return NextResponse.json(
         {
           error: {
-            message: "CSRF token validation failed",
-            code: "CSRF_TOKEN_INVALID",
+            message: "Internal server error in CSRF protection",
+            code: "INTERNAL_ERROR",
           },
         },
-        { status: 403 }
+        { status: 500 }
       );
     }
-
-    // CSRF token valid, proceed with request
-    return handler(request, ...args);
   };
 }

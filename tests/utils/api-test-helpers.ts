@@ -238,3 +238,168 @@ export async function assertApiResponse<T = any>(
     assertions(data);
   }
 }
+
+/**
+ * Helper to create a test NextRequest with FormData support (async version)
+ * Use this for FormData uploads in Vitest environment
+ */
+export async function createTestRequestWithFormData(
+  url: string,
+  options: RequestInit & { body?: FormData }
+): Promise<NextRequest> {
+  console.log("Debug - Processing FormData for Vitest/jsdom environment");
+
+  // Create headers object with proper typing
+  const headers: Record<string, string> = {};
+
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      // Convert Headers object to Record<string, string>
+      options.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else if (Array.isArray(options.headers)) {
+      // Convert array format to Record<string, string>
+      options.headers.forEach(([key, value]) => {
+        headers[key] = value;
+      });
+    } else {
+      // Already an object, spread it
+      Object.assign(headers, options.headers);
+    }
+  }
+
+  if (options.body instanceof FormData) {
+    const body = options.body;
+
+    // Generate a boundary for the multipart form
+    const boundary = `----formdata-vitest-${Math.random().toString(36).substring(2)}`;
+
+    // Manually construct the multipart body
+    let multipartBody = "";
+    for (const [name, value] of body.entries()) {
+      multipartBody += `--${boundary}\r\n`;
+
+      if (value instanceof File) {
+        multipartBody += `Content-Disposition: form-data; name="${name}"; filename="${value.name}"\r\n`;
+        multipartBody += `Content-Type: ${value.type || "application/octet-stream"}\r\n\r\n`;
+        // For test files, use predictable test content based on filename
+        if (value.name && value.size > 0) {
+          multipartBody += `test image content for ${value.name}`;
+        } else {
+          multipartBody += "";
+        }
+      } else {
+        multipartBody += `Content-Disposition: form-data; name="${name}"\r\n\r\n`;
+        multipartBody += String(value);
+      }
+      multipartBody += `\r\n`;
+    }
+    multipartBody += `--${boundary}--\r\n`;
+
+    // Set the Content-Type header
+    headers["Content-Type"] = `multipart/form-data; boundary=${boundary}`;
+
+    console.log(
+      `Debug - Applied FormData workaround with boundary: ${boundary}`
+    );
+    console.log(
+      `Debug - Final request Content-Type: multipart/form-data; boundary=${boundary}`
+    );
+
+    // Create request with manual multipart body
+    const requestOptions: Record<string, unknown> = {
+      headers,
+      body: multipartBody,
+    };
+
+    if (options.method) {
+      requestOptions["method"] = options.method;
+    }
+
+    const request = new NextRequest(
+      url,
+      requestOptions as ConstructorParameters<typeof NextRequest>[1]
+    );
+    console.log(
+      "Debug - Request headers:",
+      Object.fromEntries(request.headers)
+    );
+    console.log("Debug - Content-Type:", request.headers.get("content-type"));
+    return request;
+  }
+
+  // For non-FormData requests, use standard approach
+  const requestOptions: Record<string, unknown> = {
+    headers,
+  };
+
+  if (options.method) {
+    requestOptions["method"] = options.method;
+  }
+
+  if (options.body) {
+    requestOptions["body"] = options.body;
+  }
+
+  const request = new NextRequest(
+    url,
+    requestOptions as ConstructorParameters<typeof NextRequest>[1]
+  );
+  console.log("Debug - Request headers:", Object.fromEntries(request.headers));
+  console.log("Debug - Content-Type:", request.headers.get("content-type"));
+  return request;
+}
+
+/**
+ * Helper to create an authenticated test request with FormData support
+ */
+export async function createAuthenticatedRequestWithFormData(
+  url: string,
+  user: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: "admin" | "supporter" | "user";
+    isActive?: boolean;
+    emailVerified?: boolean;
+    isSupporterFlag?: boolean;
+  },
+  options: {
+    method?: string;
+    body?: FormData;
+    headers?: Record<string, string>;
+    cookies?: Record<string, string>;
+  } = {}
+): Promise<NextRequest> {
+  const token = createTestToken(user);
+
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${token}`,
+  };
+
+  const requestOptions: {
+    method?: string;
+    body?: FormData;
+    headers?: Record<string, string>;
+    cookies?: Record<string, string>;
+  } = {
+    headers,
+  };
+
+  if (options.method) {
+    requestOptions.method = options.method;
+  }
+
+  if (options.body !== undefined) {
+    requestOptions.body = options.body;
+  }
+
+  if (options.cookies) {
+    requestOptions.cookies = options.cookies;
+  }
+
+  return createTestRequestWithFormData(url, requestOptions);
+}
