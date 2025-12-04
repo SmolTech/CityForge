@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/client";
+import { Prisma } from "@prisma/client";
 import { logger } from "@/lib/logger";
 
 /**
@@ -437,22 +438,60 @@ export const POST = withAuth(
           WHERE sequence_schema = 'public'
         `;
 
+        // Allowlist of valid table names from Prisma schema
+        // This prevents SQL injection by validating table names
+        const allowedTables = [
+          "User",
+          "Tag",
+          "Card",
+          "CardSubmission",
+          "CardModification",
+          "ResourceCategory",
+          "QuickAccessItem",
+          "ResourceItem",
+          "ResourceConfig",
+          "Review",
+          "ForumCategory",
+          "ForumCategoryRequest",
+          "ForumThread",
+          "ForumPost",
+          "ForumReport",
+          "HelpWantedPost",
+          "HelpWantedComment",
+          "HelpWantedReport",
+          "SupportTicket",
+          "SupportTicketMessage",
+          "IndexingJob",
+          "TokenBlacklist",
+          "alembic_version",
+          "card_tags",
+          "PasswordResetToken",
+        ];
+
         for (const seq of sequences) {
           try {
             // Extract table name from sequence name (assumes format: tablename_id_seq)
             const tableName = seq.sequence_name.replace(/_id_seq$/, "");
 
-            // Get max ID from the table
-            const result = await prisma.$queryRawUnsafe<
-              Array<{ max_id: number | null }>
-            >(`SELECT MAX(id) as max_id FROM ${tableName}`);
+            // Security: Validate table name against allowlist to prevent SQL injection
+            if (!allowedTables.includes(tableName)) {
+              logger.warn(
+                `Skipping unknown table: ${tableName} (not in allowlist)`
+              );
+              continue;
+            }
+
+            // Security: Use Prisma.sql with Prisma.raw() for identifier to prevent SQL injection
+            // Prisma.raw() is safe for identifiers when combined with validation
+            const result = await prisma.$queryRaw<
+              Array<{ max_id: bigint | null }>
+            >`SELECT MAX(id) as max_id FROM ${Prisma.raw(tableName)}`;
 
             if (result.length > 0 && result[0]) {
-              const maxId = result[0].max_id || 0;
-              // Set sequence to max_id, with is_called=true so next value will be max_id+1
-              await prisma.$queryRawUnsafe(
-                `SELECT setval('${seq.sequence_name}', ${maxId}, true)`
-              );
+              const maxId = Number(result[0].max_id || 0);
+              // Security: Use $executeRaw with parameterized query to prevent SQL injection
+              // The sequence name is parameterized, and maxId is a number
+              await prisma.$executeRaw`SELECT setval(${seq.sequence_name}, ${maxId}, true)`;
               logger.info(
                 `Reset ${seq.sequence_name} to ${maxId} (next value: ${maxId + 1})`
               );
