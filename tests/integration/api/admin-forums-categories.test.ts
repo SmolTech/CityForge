@@ -48,6 +48,20 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Mock CSRF protection - bypass for unit tests
+vi.mock("@/lib/auth/csrf", () => ({
+  withCsrfProtection: (
+    handler: (request: NextRequest, ...args: unknown[]) => unknown
+  ) => handler,
+  generateCsrfToken: () => "test-csrf-token",
+  validateCsrfToken: () => true,
+  isCsrfExempt: () => true,
+  CSRF_COOKIE_NAME: "csrf_token",
+  CSRF_HEADER_NAME: "X-CSRF-Token",
+  setCsrfCookie: vi.fn(),
+  clearCsrfCookie: vi.fn(),
+}));
+
 // Mock authentication middleware - header-based test mode
 vi.mock("@/lib/auth/middleware", () => ({
   withAuth: (

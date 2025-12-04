@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { CLIENT_CONFIG } from "@/lib/client-config";
@@ -13,12 +13,22 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
   const {
     user,
     loading: authLoading,
     isAuthenticated,
     refreshUser,
   } = useAuth();
+
+  // Extract redirect parameter from URL on mount
+  useEffect(() => {
+    const redirect = searchParams.get("redirect");
+    if (redirect) {
+      setRedirectPath(redirect);
+    }
+  }, [searchParams]);
 
   const handleLogout = async () => {
     try {
@@ -53,11 +63,16 @@ export default function LoginPage() {
       // Refresh the auth context to update the user state
       await refreshUser();
 
-      // Redirect based on user role
-      if (response.user.role === "admin") {
-        router.push("/admin");
+      // Redirect to the intended page if redirect parameter was provided
+      if (redirectPath) {
+        router.push(redirectPath);
       } else {
-        router.push("/dashboard");
+        // Otherwise, redirect based on user role
+        if (response.user.role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch {
       setError("Invalid email or password");
@@ -126,12 +141,20 @@ export default function LoginPage() {
               {/* Action buttons */}
               <div className="space-y-3 pt-4">
                 <button
-                  onClick={() =>
-                    router.push(user.role === "admin" ? "/admin" : "/dashboard")
-                  }
+                  onClick={() => {
+                    if (redirectPath) {
+                      router.push(redirectPath);
+                    } else {
+                      router.push(
+                        user.role === "admin" ? "/admin" : "/dashboard"
+                      );
+                    }
+                  }}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Go to {user.role === "admin" ? "Admin Panel" : "Dashboard"}
+                  {redirectPath
+                    ? "Continue"
+                    : `Go to ${user.role === "admin" ? "Admin Panel" : "Dashboard"}`}
                 </button>
 
                 <button

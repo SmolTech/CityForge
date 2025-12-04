@@ -6,7 +6,24 @@ import {
   afterAll,
   afterEach,
   beforeEach,
+  vi,
 } from "vitest";
+import { NextRequest } from "next/server";
+
+// Mock CSRF protection - bypass for integration tests
+vi.mock("@/lib/auth/csrf", () => ({
+  withCsrfProtection: (
+    handler: (request: NextRequest, ...args: unknown[]) => unknown
+  ) => handler,
+  generateCsrfToken: () => "test-csrf-token",
+  validateCsrfToken: () => true,
+  isCsrfExempt: () => true,
+  CSRF_COOKIE_NAME: "csrf_token",
+  CSRF_HEADER_NAME: "X-CSRF-Token",
+  setCsrfCookie: vi.fn(),
+  clearCsrfCookie: vi.fn(),
+}));
+
 import {
   assertApiResponse,
   createAuthenticatedRequest,
