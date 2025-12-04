@@ -104,6 +104,7 @@ export function validateCsrfToken(request: NextRequest): boolean {
  * CSRF protection is not needed for:
  * - Safe HTTP methods (GET, HEAD, OPTIONS) - already handled by HTTP semantics
  * - Mobile app requests using Bearer tokens instead of cookies
+ * - Test requests with bypass header (for testing only)
  */
 export function isCsrfExempt(request: NextRequest): boolean {
   const method = request.method;
@@ -118,6 +119,15 @@ export function isCsrfExempt(request: NextRequest): boolean {
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return true;
+  }
+
+  // Test bypass mechanism - only in test environments
+  // This allows tests to bypass CSRF protection when needed
+  if (process.env.NODE_ENV === "test" || process.env["VITEST"] === "true") {
+    const bypassHeader = request.headers.get("x-test-bypass-csrf");
+    if (bypassHeader === "true") {
+      return true;
+    }
   }
 
   return false;
