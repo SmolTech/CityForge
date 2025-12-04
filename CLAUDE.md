@@ -105,6 +105,105 @@ docker build -t cityforge-frontend .
 docker build -t cityforge-indexer ./indexer
 ```
 
+### Container Security Scanning
+
+The project implements automated container vulnerability scanning using Trivy to enhance the security of Docker-based deployments:
+
+#### Security Scanning Features
+
+**Automated Vulnerability Detection:**
+
+- **Trivy Scanner**: Industry-standard vulnerability scanner integrated into CI/CD
+- **Container Scanning**: Both frontend (Next.js) and indexer (Python) containers
+- **Security Integration**: SARIF reports uploaded to GitHub Security tab
+- **Build Enforcement**: CRITICAL and HIGH vulnerabilities fail the build
+
+**GitHub Actions Integration:**
+
+The security scanning runs automatically in both Docker workflows:
+
+- `.github/workflows/docker.yml` - Sequential builds with security scanning
+- `.github/workflows/docker-parallel.yml` - Parallel builds with security scanning
+
+**Security Configuration:**
+
+```yaml
+# Example from docker workflows
+- name: Run Trivy vulnerability scanner
+  uses: aquasecurity/trivy-action@master
+  with:
+    image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+    format: "sarif"
+    output: "trivy-results.sarif"
+    severity: "CRITICAL,HIGH"
+    exit-code: "1" # Fail build on vulnerabilities
+
+- name: Upload Trivy scan results to GitHub Security tab
+  uses: github/codeql-action/upload-sarif@v3
+  if: always()
+  with:
+    sarif_file: "trivy-results.sarif"
+    category: "container-frontend"
+```
+
+#### Security Report Categories
+
+**GitHub Security Tab Integration:**
+
+- **Container Frontend**: `container-frontend` / `container-frontend-optimized`
+- **Container Indexer**: `container-indexer` / `container-indexer-optimized`
+- **SARIF Reports**: Structured vulnerability data for GitHub security dashboard
+- **Automated Alerts**: GitHub automatically creates security alerts for detected vulnerabilities
+
+#### Vulnerability Severity Levels
+
+**Build Failure Triggers:**
+
+- **CRITICAL**: Immediate security risk, fails build
+- **HIGH**: Significant security risk, fails build
+- **MEDIUM**: Documented but allows build to continue
+- **LOW**: Informational only, allows build to continue
+
+**Viewing Security Results:**
+
+1. **GitHub Security Tab**: Navigate to repository → Security → Code scanning
+2. **Action Logs**: View detailed scan results in GitHub Actions workflow logs
+3. **Pull Request Checks**: Security scan status appears as required check
+
+#### Manual Security Scanning
+
+For local development and testing:
+
+```bash
+# Install Trivy locally
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+# Scan built images locally
+trivy image cityforge-frontend:latest
+trivy image cityforge-indexer:latest
+
+# Generate SARIF report
+trivy image --format sarif --output results.sarif cityforge-frontend:latest
+```
+
+#### Security Best Practices
+
+**Container Hardening:**
+
+- Regular base image updates to patch known vulnerabilities
+- Multi-stage builds to minimize attack surface
+- Non-root user execution in production containers
+- Minimal dependencies and attack surface reduction
+
+**Continuous Security:**
+
+- Automated scanning on every container build
+- Security alerts for new vulnerabilities in dependencies
+- Regular security reviews of scan results
+- Prompt patching of CRITICAL and HIGH vulnerabilities
+
+The security scanning system ensures that only secure, vulnerability-free containers are deployed to production environments.
+
 ## Code Quality & Git Hooks
 
 The project enforces code quality through automated git hooks:
