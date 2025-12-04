@@ -17,31 +17,42 @@ export const POST = withAuth(
       const modelQueries = {
         User: () =>
           prisma.user.findMany({
-            include: {
-              reviewedModifications: true,
-              cardModifications: true,
-              reviewedSubmissions: true,
-              cardSubmissions: true,
-              approvedCards: true,
-              createdCards: true,
-              forumCategories: true,
-              categoryRequests: true,
-              reviewedCategoryRequests: true,
-              forumPosts: true,
-              editedForumPosts: true,
-              forumReports: true,
-              reviewedForumReports: true,
-              forumThreads: true,
-              helpWantedComments: true,
-              helpWantedPosts: true,
-              helpWantedReports: true,
-              reviewedHelpWantedReports: true,
-              reportedReviews: true,
-              reviews: true,
-              supportTicketMessages: true,
-              assignedTickets: true,
-              supportTickets: true,
-              revokedTokens: true,
+            select: {
+              // Basic user information (safe to export)
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              isActive: true,
+              emailVerified: true,
+              createdDate: true,
+              lastLogin: true,
+              support: true,
+              isSupporterFlag: true,
+
+              // Explicitly exclude sensitive fields:
+              // - passwordHash (security risk - could enable offline brute force)
+              // - revokedTokens (token blacklist - reveals security events)
+              // - emailVerificationToken (security risk)
+              // - passwordResetTokens (security risk)
+              // - Most activity relationships (privacy concern, excessive data)
+
+              // Include only essential administrative relationships for business insights
+              approvedCards: {
+                select: {
+                  id: true,
+                  name: true,
+                  approvedDate: true,
+                },
+              },
+              createdCards: {
+                select: {
+                  id: true,
+                  name: true,
+                  createdDate: true,
+                },
+              },
             },
           }),
         Tag: () => prisma.tag.findMany({ include: { card_tags: true } }),
@@ -121,19 +132,142 @@ export const POST = withAuth(
           }),
         HelpWantedReport: () =>
           prisma.helpWantedReport.findMany({
-            include: { post: true, reporter: true, reviewer: true },
+            select: {
+              id: true,
+              reason: true,
+              details: true,
+              status: true,
+              createdDate: true,
+              reviewedDate: true,
+              resolutionNotes: true,
+              post: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  category: true,
+                  status: true,
+                  location: true,
+                  createdDate: true,
+                },
+              },
+              // SECURITY: Include only safe user fields, exclude sensitive data
+              reporter: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+              reviewer: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+            },
           }),
         SupportTicket: () =>
           prisma.supportTicket.findMany({
-            include: { messages: true, assignedSupporter: true, creator: true },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              category: true,
+              status: true,
+              priority: true,
+              isAnonymous: true,
+              createdDate: true,
+              updatedDate: true,
+              resolvedDate: true,
+              closedDate: true,
+              messages: {
+                select: {
+                  id: true,
+                  content: true,
+                  isInternalNote: true,
+                  createdDate: true,
+                  updatedDate: true,
+                  // SECURITY: Include only safe user fields for message creators
+                  creator: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      role: true,
+                    },
+                  },
+                },
+              },
+              // SECURITY: Include only safe user fields, exclude sensitive data
+              assignedSupporter: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+              creator: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+            },
           }),
         SupportTicketMessage: () =>
           prisma.supportTicketMessage.findMany({
-            include: { creator: true, ticket: true },
+            select: {
+              id: true,
+              content: true,
+              isInternalNote: true,
+              createdDate: true,
+              updatedDate: true,
+              // SECURITY: Include only safe user fields, exclude sensitive data
+              creator: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+              ticket: {
+                select: {
+                  id: true,
+                  title: true,
+                  category: true,
+                  status: true,
+                  priority: true,
+                  createdDate: true,
+                },
+              },
+            },
           }),
         IndexingJob: () => prisma.indexingJob.findMany(),
         TokenBlacklist: () =>
-          prisma.tokenBlacklist.findMany({ include: { user: true } }),
+          prisma.tokenBlacklist.findMany({
+            select: {
+              id: true,
+              jti: true,
+              tokenType: true,
+              revokedAt: true,
+              expiresAt: true,
+              // SECURITY: Include only userId reference, NOT full user data
+              // Exporting user data alongside security tokens is a security risk
+              userId: true,
+            },
+          }),
         card_tags: () =>
           prisma.card_tags.findMany({ include: { cards: true, tags: true } }),
         alembic_version: () => prisma.alembic_version.findMany(),
