@@ -53,6 +53,7 @@
     "effect": "^3.19.8",
     "empathic": "^2.0.0",
     "fast-check": "^4.3.0",
+    "isomorphic-dompurify": "^2.33.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.5.4",
     "prisma": "^6.19.0",

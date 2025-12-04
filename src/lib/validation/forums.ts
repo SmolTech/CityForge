@@ -4,6 +4,8 @@
  * This module provides comprehensive validation that matches Flask's forum validation logic.
  */
 
+import DOMPurify from "isomorphic-dompurify";
+
 // Validation functions accept dynamic input data that may have any structure
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -25,19 +27,23 @@ export interface ValidationResult<T = unknown> {
 
 /**
  * Sanitize HTML to prevent XSS attacks
- * Removes all HTML tags but preserves text content
+ * Uses DOMPurify for robust XSS protection against:
+ * - Nested tag bypasses: <<script>alert(1)</script>
+ * - Self-closing tag bypasses: <img/src=x/onerror=alert(1)>
+ * - SVG-based XSS: <svg/onload=alert(1)>
+ * - HTML entity encoding attacks
+ * - All other XSS vectors
  */
 function sanitizeString(value: string): string {
   if (!value) return "";
-  // Remove HTML tags and preserve line breaks
-  return value
-    .replace(/<[^>]*>/g, "") // Remove HTML tags
-    .replace(/&lt;/g, "<") // Decode HTML entities
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .trim();
+
+  // Use DOMPurify to strip all HTML while preserving text content
+  const clean = DOMPurify.sanitize(value, {
+    ALLOWED_TAGS: [], // Remove all HTML tags
+    KEEP_CONTENT: true, // Keep text content
+  });
+
+  return clean.trim();
 }
 
 // Forum Post validation
