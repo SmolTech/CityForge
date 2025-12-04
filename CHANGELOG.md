@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.6] - 2025-11-28
 
+### Security
+
+- **[HIGH]** Fixed authorization bypass vulnerability in `withOptionalAuth` middleware that could allow unauthorized access during system failures (Issue #86)
+
 ### Fixed
 
 - Suggest edit feature validation error preventing users from submitting edits to business listings

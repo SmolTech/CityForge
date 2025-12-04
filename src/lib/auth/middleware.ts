@@ -30,6 +30,20 @@ export class AuthenticationError extends Error {
   }
 }
 
+export class TokenExpiredError extends AuthenticationError {
+  constructor() {
+    super("Token has expired", 401);
+    this.name = "TokenExpiredError";
+  }
+}
+
+export class InvalidTokenError extends AuthenticationError {
+  constructor(message: string = "Invalid token") {
+    super(message, 401);
+    this.name = "InvalidTokenError";
+  }
+}
+
 export class AuthorizationError extends Error {
   constructor(
     message: string,
@@ -80,17 +94,21 @@ function verifyToken(token: string): JWTPayload {
   try {
     const decoded = jwt.verify(token, jwtSecret);
     if (typeof decoded === "string") {
-      throw new AuthenticationError("Invalid token format", 401);
+      throw new InvalidTokenError("Invalid token format");
     }
     return decoded as JWTPayload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AuthenticationError("Token has expired", 401);
+      throw new TokenExpiredError();
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new AuthenticationError("Invalid token", 401);
+      throw new InvalidTokenError("Invalid token");
     }
-    throw new AuthenticationError("Token verification failed", 401);
+    // Re-throw our custom errors
+    if (error instanceof InvalidTokenError) {
+      throw error;
+    }
+    throw new InvalidTokenError("Token verification failed");
   }
 }
 
@@ -159,7 +177,7 @@ export async function authenticate(
     // Check if token is blacklisted
     const jti = payload.jti;
     if (!jti) {
-      throw new AuthenticationError("Invalid token format");
+      throw new InvalidTokenError("Invalid token format");
     }
 
     if (await isTokenBlacklisted(jti)) {
@@ -169,7 +187,7 @@ export async function authenticate(
     // Load user
     const userId = parseInt(payload.sub);
     if (!userId) {
-      throw new AuthenticationError("Invalid token payload");
+      throw new InvalidTokenError("Invalid token payload");
     }
 
     const user = await loadUser(userId);
@@ -300,9 +318,18 @@ export function withOptionalAuth<T extends unknown[]>(
       const user = await authenticate(request, { optional: true });
       return handler(request, { user }, ...args);
     } catch (error) {
-      // In optional auth, we ignore authentication errors and proceed with null user
-      logger.debug("Optional authentication failed:", error);
-      return handler(request, { user: null }, ...args);
+      // Only proceed with null user for expected authentication failures
+      if (
+        error instanceof AuthenticationError ||
+        error instanceof AuthorizationError
+      ) {
+        logger.debug("Optional authentication failed:", error);
+        return handler(request, { user: null }, ...args);
+      }
+
+      // Re-throw unexpected errors (database failures, system errors, etc.)
+      logger.error("Unexpected error in optional authentication:", error);
+      throw error;
     }
   };
 }
