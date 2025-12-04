@@ -6,7 +6,24 @@ import {
   afterAll,
   beforeEach,
   afterEach,
+  vi,
 } from "vitest";
+import { NextRequest } from "next/server";
+
+// Mock CSRF protection - bypass for integration tests
+vi.mock("@/lib/auth/csrf", () => ({
+  withCsrfProtection: (
+    handler: (request: NextRequest, ...args: unknown[]) => unknown
+  ) => handler,
+  generateCsrfToken: () => "test-csrf-token",
+  validateCsrfToken: () => true,
+  isCsrfExempt: () => true,
+  CSRF_COOKIE_NAME: "csrf_token",
+  CSRF_HEADER_NAME: "X-CSRF-Token",
+  setCsrfCookie: vi.fn(),
+  clearCsrfCookie: vi.fn(),
+}));
+
 import { GET as adminCardsRoute } from "@/app/api/admin/cards/route";
 import { GET as adminUsersRoute } from "@/app/api/admin/users/route";
 import { GET as adminSubmissionsRoute } from "@/app/api/admin/submissions/route";
