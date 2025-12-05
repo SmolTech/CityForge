@@ -1,25 +1,30 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
 # Install build dependencies for Python packages
-RUN apk add --no-cache gcc musl-dev libffi-dev libxml2-dev libxslt-dev postgresql-dev
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy indexer requirements and install dependencies
+# Copy indexer requirements and install dependencies with upgraded pip
 COPY indexer/requirements.txt .
 RUN pip install --upgrade pip==25.3 && \
     pip install --no-cache-dir -r requirements.txt
 
-# Clean up build dependencies to reduce image size
-RUN apk del gcc musl-dev libffi-dev
-
 # Copy indexer code
 COPY indexer/ .
 
-# Create non-root user (Alpine style)
-RUN addgroup -g 1001 appuser && adduser -u 1001 -G appuser -s /bin/sh -D appuser
+# Create non-root user (Debian style)
+RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
 RUN chown -R appuser:appuser /app
 
 USER appuser
+
+CMD ["python", "indexer.py"]
 
 CMD ["python", "indexer.py"]
