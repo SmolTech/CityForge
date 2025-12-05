@@ -96,8 +96,8 @@ python indexer.py
 
 Docker images are automatically built and pushed to GitHub Container Registry when code is pushed to `main` or `develop` branches:
 
-- `ghcr.io/smoltech/cityforge/cityforge-frontend`
-- `ghcr.io/smoltech/cityforge/cityforge-indexer`
+- `ghcr.io/smoltech/cityforge-frontend`
+- `ghcr.io/smoltech/cityforge-indexer`
 
 ```bash
 # Manual Docker builds for local testing
