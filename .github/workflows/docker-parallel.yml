@@ -13,7 +13,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
   # Lowercase image name for Trivy scanning (Docker registry names are case-sensitive)
-  IMAGE_PREFIX_LOWER: ${{ github.repository_owner }}/cityforge
+  IMAGE_PREFIX_LOWER: smoltech/cityforge
 
 jobs:
   # Preparation job - sets up shared data
