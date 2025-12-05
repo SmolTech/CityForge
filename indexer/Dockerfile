@@ -1,9 +1,9 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install build dependencies for Python packages
-RUN apt-get update && apt-get install -y \
+# Update package indexes and upgrade all packages to get latest security patches
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     build-essential \
     libpq-dev \
     libxml2-dev \
@@ -24,7 +24,5 @@ RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
 RUN chown -R appuser:appuser /app
 
 USER appuser
-
-CMD ["python", "indexer.py"]
 
 CMD ["python", "indexer.py"]
