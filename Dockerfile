@@ -1,9 +1,13 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
+
+# Update packages to latest versions for security patches
+RUN apk update && apk upgrade --no-cache
 
 # Install dependencies only when needed
 FROM base AS deps
-# Install dependencies with busybox trigger error tolerance for ARM64
-RUN (apk add --no-cache gcompat curl || true) && \
+# Update packages and install dependencies with busybox trigger error tolerance for ARM64
+RUN apk update && apk upgrade --no-cache && \
+    (apk add --no-cache gcompat curl || true) && \
     if ! apk info gcompat curl >/dev/null 2>&1; then \
         echo "Packages not found, attempting with --force-broken-world"; \
         apk add --no-cache --force-broken-world gcompat curl; \
@@ -40,9 +44,9 @@ RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
-# Install curl for health checks
-# Install curl with busybox trigger error tolerance for ARM64
-RUN (apk add --no-cache curl || true) && \
+# Update packages and install curl for health checks with busybox trigger error tolerance for ARM64
+RUN apk update && apk upgrade --no-cache && \
+    (apk add --no-cache curl || true) && \
     if ! apk info curl >/dev/null 2>&1; then \
         echo "Package not found, attempting with --force-broken-world"; \
         apk add --no-cache --force-broken-world curl; \
