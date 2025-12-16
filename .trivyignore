@@ -1,0 +1,49 @@
+# Trivy Ignore File
+# This file contains CVEs that should be ignored during security scanning
+
+# Linux kernel header vulnerabilities in linux-libc-dev package (Debian)
+# These are header files only and do not affect runtime security
+# The linux-libc-dev package provides Linux kernel headers for development
+# and does not include executable code that runs in the container
+# Waiting for Debian to release patched versions
+#
+# References:
+# - https://security-tracker.debian.org/tracker/source-package/linux
+# - These CVEs affect kernel headers, not the runtime kernel
+
+# CVEs from December 2025 batch
+CVE-2025-40342
+CVE-2025-40328
+CVE-2025-40324
+CVE-2025-40323
+CVE-2025-40322
+CVE-2025-40321
+CVE-2025-40318
+CVE-2025-40312
+CVE-2025-40309
+CVE-2025-40308
+CVE-2025-40307
+CVE-2025-40305
+CVE-2025-40304
+CVE-2025-40303
+CVE-2025-40302
+CVE-2025-40301
+CVE-2025-40297
+CVE-2025-40294
+CVE-2025-40293
+CVE-2025-40292
+CVE-2025-40287
+CVE-2025-40284
+CVE-2025-40283
+CVE-2025-40281
+CVE-2025-40280
+CVE-2025-40279
+CVE-2025-40277
+CVE-2025-40275
+CVE-2025-40272
+CVE-2025-40271
+CVE-2025-40269
+CVE-2025-40268
+CVE-2025-40250
+CVE-2025-40246
+CVE-2025-39862
