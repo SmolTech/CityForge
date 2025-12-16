@@ -116,6 +116,7 @@ jobs:
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1" # Fail build on critical/high vulnerabilities
+          trivyignores: ".trivyignore"
 
       - name: Upload Frontend Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -181,6 +182,7 @@ jobs:
           output: "trivy-indexer-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "1" # Fail build on critical/high vulnerabilities
+          trivyignores: ".trivyignore"
 
       - name: Upload Indexer Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
