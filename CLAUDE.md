@@ -2,1305 +2,219 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Overview
+## Project Overview
 
-CityForge is a full-stack community platform with web and mobile interfaces built with Next.js 15 and React Native/Expo. The application features a business directory, resource directory, community submissions, and search functionality. **IMPORTANT: The Flask backend has been replaced by Next.js API routes.** Docker images are built via GitHub Actions and pushed to GitHub Container Registry.
+CityForge is a community platform built with Next.js 15 that provides business directory, forums, help wanted posts, support tickets, and resource management. Version 0.9.0 merged the Flask backend into Next.js API routes, consolidating to a single-container architecture.
+
+## Core Commands
+
+### Development
+
+```bash
+npm run dev              # Start Next.js dev server with Turbopack
+npm run build            # Production build with Turbopack
+npm start                # Run production server
+```
+
+### Testing
+
+```bash
+npm test                 # Run Vitest in watch mode
+npm run test:run         # Run all tests once
+npm run test:unit        # Unit tests only (excludes integration tests)
+npm run test:coverage    # Generate coverage report
+npm run test:e2e         # Run Playwright E2E tests (requires dev server)
+npm run test:e2e:ui      # E2E tests in UI mode
+npm run test:e2e:debug   # E2E tests in debug mode
+```
+
+### Code Quality
+
+```bash
+npm run lint             # Run ESLint
+npm run lint:fix         # Auto-fix ESLint issues
+npm run format           # Format with Prettier
+npm run format:check     # Check Prettier formatting
+npm run typecheck        # TypeScript type checking
+npm run semgrep          # Security analysis
+
+```
+
+### Database
+
+```bash
+npx prisma generate      # Generate Prisma client after schema changes
+npx prisma db push       # Push schema changes to database (development)
+npx prisma migrate dev   # Create and apply migrations (development)
+npx prisma studio        # Open Prisma Studio UI
+
+node scripts/db-init.mjs # Initialize database with schema and admin user
+```
+
+### Docker Development
+
+```bash
+docker-compose up --build              # Build and start all services
+docker-compose up -d                   # Start in background
+docker exec -it cityforge-frontend sh  # Shell into frontend container
+docker exec cityforge-postgres psql -U postgres -d community_db  # Database access
+
+```
 
 ## Architecture
 
-**CRITICAL CHANGE: Flask Backend Replaced by Next.js**
+### Single-Container Next.js Architecture (0.9.0+)
 
-The project is now structured as a three-component application:
+The project consolidated from a Flask + Next.js architecture to Next.js-only:
 
-- **Full-Stack Next.js App**: Next.js 15 with TypeScript, Tailwind CSS v4, app router, and API routes (replaces separate Flask backend)
-- **Mobile App**: React Native with Expo for iOS and Android
-- **Indexer**: Python service that indexes business card websites into OpenSearch for full-text search
-- **Infrastructure**: Docker containers with automated builds via GitHub Actions
+- **Frontend**: Next.js 15 App Router (`src/app/`)
+- **Backend**: Next.js API Routes (`src/app/api/`)
+- **Database**: PostgreSQL with Prisma ORM
+- **Search**: OpenSearch for full-text search
+- **Indexer**: Python service for website crawling/indexing
 
-### Key Components
+### Authentication System
 
-- **Full-Stack Next.js App** (`src/app/`): Next.js pages and API routes for business directory, resources, admin dashboard, authentication, and search
-- **Mobile App** (`mobile/`): React Native/Expo mobile application with native navigation and secure token storage
-- **Indexer** (`indexer/`): Python script that crawls business websites and indexes content into OpenSearch
-- **Database Models**: PostgreSQL schemas for users, cards, tags, submissions, and resources (managed via Prisma ORM in Next.js)
-- **GitHub Actions** (`.github/workflows/`): Automated Docker image builds for all components
+- **JWT tokens** stored in httpOnly cookies (web) and returned in response body (mobile)
+- **CSRF protection** for cookie-based auth (web clients only)
+- Token blacklisting via `TokenBlacklist` model
+- Auth middleware in `src/lib/auth/middleware.ts`
+- Password reset flow with email verification
 
-## Development Commands
+### Database Models (Prisma)
 
-### Full-Stack Next.js Development
+Key models in `prisma/schema.prisma`:
 
-```bash
-# Development server with Turbopack (includes API routes)
-npm run dev
+- **User**: Authentication, roles (user/admin/support), email verification
 
-# Production build (includes frontend and API routes)
-npm run build
+- **Card**: Business directory entries with tags, reviews, approval workflow
 
-# Start production server (serves both frontend and API)
-npm start
+- **CardSubmission/CardModification**: User-submitted changes requiring admin review
+- **ForumCategory/ForumThread/ForumPost**: Discussion forums
+- **HelpWantedPost/HelpWantedComment**: Job/service requests
+- **SupportTicket/SupportTicketMessage**: Support system
+- **ResourceItem/ResourceCategory**: Community resources
+- **Review**: Business ratings and reviews with reporting
+- **IndexingJob**: Website crawling status
 
-# Code quality
-npm run lint          # ESLint check
-npm run lint:fix      # ESLint with auto-fix
-npm run format        # Prettier formatting
-npm run format:check  # Prettier check only
-npm run typecheck     # TypeScript validation
+### API Route Structure
 
-# Database operations (via Prisma)
-npx prisma generate   # Generate Prisma client
-npx prisma db push    # Push schema changes to database
-npx prisma migrate    # Create and apply migrations
-npx prisma studio     # Open Prisma Studio (database GUI)
+All API routes in `src/app/api/`:
 
-# Fix database sequence issues (if you get unique constraint errors)
-npm run fix-sequences # Reset auto-increment sequences to match data
-```
+- `auth/` - Registration, login, logout, password reset, email verification
+- `admin/` - Admin panel endpoints (users, submissions, reports, analytics)
 
-**Note:** If you encounter Prisma error P2002 (unique constraint violation on ID fields), run `npm run fix-sequences` to reset PostgreSQL sequences. See `docs/DATABASE_SEQUENCE_TROUBLESHOOTING.md` for details.
+- `cards/` - Business card CRUD
 
-### Mobile App Development
+- `forums/` - Forum categories, threads, posts
+- `help-wanted/` - Help wanted posts and comments
+- `resources/` - Resource items and categories
+- `reviews/` - Business reviews
+- `search/` - OpenSearch integration
+- `support-tickets/` - Support ticket system
+- `submissions/` - Card submission workflow
 
-`````bash
-# From mobile/ directory
-npm install
+- `tags/` - Tag management
+- `upload/` - Image uploads (Cloudinary or local)
 
-# Start Expo development server
-npm start
+### Error Handling
 
-# Run on iOS Simulator (macOS only)
-npm run ios
+Centralized error handling in `src/lib/errors/`:
 
-# Run on Android Emulator
-npm run android
+- Use `handleApiError()` or `withErrorHandler()` wrapper for all API routes
+- Typed error classes: `NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`
 
-# Run on web (for testing)
-npm run web
+- Automatic Prisma error conversion (P2002 → 409, P2025 → 404, P2003 → 400)
+- Production-safe: sensitive data hidden, no stack traces
+- Consistent JSON format: `{ error: { message, code, details? } }`
 
-# Environment configuration
-cp .env.example .env
-# Edit .env with appropriate API URL:
-#   iOS Simulator: http://localhost:5000
-#   Android Emulator: http://10.0.2.2:5000
+### Security
 
-### Indexer Development
+- **CSRF tokens** for cookie-based authentication
+- **Rate limiting** via middleware (disabled for E2E tests via `PLAYWRIGHT_E2E_TESTING`)
+- **Input sanitization** with DOMPurify
+- **Semgrep** static analysis in git hooks and CI
+- **Security headers** configured via `src/lib/security-headers.ts`
+- **Logger utility** with sensitive data redaction (`src/lib/logger.ts`)
+- Follow `SECURITY_GUIDELINES.md` for error handling and debug endpoints
 
-````bash
-# From indexer/ directory
-pip install -r requirements.txt
+### Git Hooks
 
-# Run indexer (requires OpenSearch and backend API to be running)
-python indexer.py
-`````
+Pre-commit: Format, lint-staged, semgrep
+Pre-push: Typecheck, lint, semgrep, audit, unit tests, build
 
-### Docker & Deployment
+## Common Development Patterns
 
-Docker images are automatically built and pushed to GitHub Container Registry when code is pushed to `main` or `develop` branches:
-
-- `ghcr.io/smoltech/cityforge-frontend`
-- `ghcr.io/smoltech/cityforge-indexer`
-
-```bash
-# Manual Docker builds for local testing
-docker build -t cityforge-frontend .
-docker build -t cityforge-indexer ./indexer
-```
-
-### Container Security Scanning
-
-The project implements automated container vulnerability scanning using Trivy to enhance the security of Docker-based deployments:
-
-#### Security Scanning Features
-
-**Automated Vulnerability Detection:**
-
-- **Trivy Scanner**: Industry-standard vulnerability scanner integrated into CI/CD
-- **Container Scanning**: Both frontend (Next.js) and indexer (Python) containers
-- **Security Integration**: SARIF reports uploaded to GitHub Security tab
-- **Build Enforcement**: CRITICAL and HIGH vulnerabilities fail the build
-
-**GitHub Actions Integration:**
-
-The security scanning runs automatically in both Docker workflows:
-
-- `.github/workflows/docker.yml` - Sequential builds with security scanning
-- `.github/workflows/docker-parallel.yml` - Parallel builds with security scanning
-
-**Security Configuration:**
-
-```yaml
-# Example from docker workflows
-- name: Run Trivy vulnerability scanner
-  uses: aquasecurity/trivy-action@master
-  with:
-    image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-    format: "sarif"
-    output: "trivy-results.sarif"
-    severity: "CRITICAL,HIGH"
-    exit-code: "1" # Fail build on vulnerabilities
-
-- name: Upload Trivy scan results to GitHub Security tab
-  uses: github/codeql-action/upload-sarif@v3
-  if: always()
-  with:
-    sarif_file: "trivy-results.sarif"
-    category: "container-frontend"
-```
-
-#### Security Report Categories
-
-**GitHub Security Tab Integration:**
-
-- **Container Frontend**: `container-frontend` / `container-frontend-optimized`
-- **Container Indexer**: `container-indexer` / `container-indexer-optimized`
-- **SARIF Reports**: Structured vulnerability data for GitHub security dashboard
-- **Automated Alerts**: GitHub automatically creates security alerts for detected vulnerabilities
-
-#### Vulnerability Severity Levels
-
-**Build Failure Triggers:**
-
-- **CRITICAL**: Immediate security risk, fails build
-- **HIGH**: Significant security risk, fails build
-- **MEDIUM**: Documented but allows build to continue
-- **LOW**: Informational only, allows build to continue
-
-**Viewing Security Results:**
-
-1. **GitHub Security Tab**: Navigate to repository → Security → Code scanning
-2. **Action Logs**: View detailed scan results in GitHub Actions workflow logs
-3. **Pull Request Checks**: Security scan status appears as required check
-
-#### Manual Security Scanning
-
-For local development and testing:
-
-```bash
-# Install Trivy locally
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-
-# Scan built images locally
-trivy image cityforge-frontend:latest
-trivy image cityforge-indexer:latest
-
-# Generate SARIF report
-trivy image --format sarif --output results.sarif cityforge-frontend:latest
-```
-
-#### Security Best Practices
-
-**Container Hardening:**
-
-- Regular base image updates to patch known vulnerabilities
-- Multi-stage builds to minimize attack surface
-- Non-root user execution in production containers
-- Minimal dependencies and attack surface reduction
-
-**Continuous Security:**
-
-- Automated scanning on every container build
-- Security alerts for new vulnerabilities in dependencies
-- Regular security reviews of scan results
-- Prompt patching of CRITICAL and HIGH vulnerabilities
-
-The security scanning system ensures that only secure, vulnerability-free containers are deployed to production environments.
-
-## Code Quality & Git Hooks
-
-The project enforces code quality through automated git hooks:
-
-- **Pre-commit**: Runs `lint-staged` (ESLint + Prettier on staged files)
-- **Pre-push**: Runs `npm run typecheck`, `npm run lint`, and `npm run build`
-
-## Key Development Notes
-
-#### Migration Best Practices
-
-1. **Always review** generated migrations before committing
-2. **Test migrations** on a copy of production data
-3. **Backup database** before running migrations in production
-4. **Never edit** applied migrations - create new ones instead
-5. **Commit migrations** to version control with your model changes
-
-**Scripts Overview:**
-
-- `initialize_db.py` - Master initialization script (handles both fresh and existing databases)
-- `create_admin_user.py` - Create admin user (separate from database initialization)
-- `init_fresh_db.py` - Legacy fresh database initialization (use `initialize_db.py` instead)
-- `seed_data.py` - Seed default data only (idempotent, safe to run multiple times)
-- `init_db.py` - **DEPRECATED** - Old initialization script (do not use)
-
-**Resource Models:**
-
-- `ResourceCategory`: Categories for the resource directory
-- `ResourceItem`: Items in the resource directory
-- `QuickAccessItem`: Featured quick-access items
-- `ResourceConfig`: Site-wide configuration values
-
-**Forum Models:**
-
-- `ForumCategory`: Forum categories with slugs and display ordering
-- `ForumThread`: Discussion threads within categories (with pin/lock status)
-- `ForumPost`: Individual posts within threads
-- `ForumCategoryRequest`: User requests for new forum categories (pending admin approval)
-- `ForumReport`: User reports of inappropriate content (pending admin resolution)
-
-### Authentication Security
-
-The application supports **dual authentication modes** for web and mobile clients:
-
-**Web Authentication (httpOnly Cookies):**
-
-- **httpOnly cookies**: JavaScript cannot access authentication tokens, preventing XSS token theft
-- **SameSite protection**: Cookies use `SameSite=Lax` to protect against CSRF attacks
-- **HTTPS enforcement**: Cookies are marked as `Secure` in production (HTTPS only)
-- **CORS credentials**: Backend configured to accept cookies from authorized origins only
-
-**Mobile Authentication (Bearer Tokens):**
-
-- **Secure storage**: Tokens stored using Expo SecureStore (encrypted, hardware-backed)
-- **Authorization headers**: Tokens sent via `Authorization: Bearer <token>` header
-- **No cookie support**: Mobile apps cannot use httpOnly cookies
-- **Token in response**: Login/register endpoints return `access_token` in response body
-
-**Shared Security Features:**
-
-- **Database-backed blacklist**: Logout immediately invalidates tokens via database blacklist
-- **Same token format**: Both web and mobile use identical J
-
-**CORS Configuration** (`backend/app/__init__.py`):
-
-```python
-CORS(
-    app,
-    supports_credentials=True,
-    origins=[
-        "http://localhost:3000",  # Development frontend
-        os.getenv("FRONTEND_URL", ""),  # Production frontend
-    ],
-)
-```
-
-**Frontend Configuration** (`src/lib/api/client.ts`):
-
-All API requests include `credentials: "include"` to send cookies:
+### Creating New API Routes
 
 ```typescript
-const fetchOptions: RequestInit = {
-  ...options,
-  headers,
-  credentials: "include", // Include cookies in requests
-};
+import { withErrorHandler, NotFoundError } from "@/lib/errors";
+import { requireAuth } from "@/lib/auth/middleware";
+
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const user = await requireAuth(request);
+  // Your logic here
+
+  return NextResponse.json({ data: result });
+}, "GET /api/your-route");
 ```
 
-**How It Works:**
+### Database Queries with Prisma
 
-1. **Login/Register**: Backend sets httpOnly cookie via `set_access_cookies()`
-2. **API Requests**: Frontend automatically sends cookie with every request
-3. **Token Validation**: Backend validates JWT from cookie on protected routes
-4. **Logout**: Backend clears cookie via `unset_jwt_cookies()` and blacklists token
-
-**Migration from localStorage:**
-
-Previous versions stored tokens in localStorage. The new httpOnly cookie approach:
-
-- ✅ Protects against XSS attacks (JavaScript cannot read cookies)
-- ✅ Automatic token transmission (no manual header setting)
-- ✅ Better security posture for production deployments
-- ✅ Comprehensive CORS configuration with multi-layer security
-- ✅ Mobile app support with Authorization headers
-
-### CORS Configuration
-
-The application implements comprehensive Cross-Origin Resource Sharing (CORS) protection with multiple layers of security:
-
-#### Multi-Layer CORS Architecture
-
-**1. nginx Proxy Layer (Primary - Production)**
-
-The nginx reverse proxy (`nginx.conf`) provides the primary CORS handling for production deployments:
-
-```nginx
-# Dynamic origin validation with regex patterns
-set $cors_origin "";
-if ($http_origin ~* ^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$) {
-    set $cors_origin $http_origin;
-}
-if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*community\.community$) {
-    set $cors_origin $http_origin;
-}
-```
-
-**2. Next.js Middleware Layer (Fallback - Development)**
-
-The Next.js middleware (`src/middleware.ts` and `src/lib/cors.ts`) provides CORS handling when nginx is not available:
-
-- Automatic preflight request handling
-- Dynamic origin validation
-- Development-friendly defaults
-- Seamless API route integration
-
-#### Configuration Management
-
-**Environment Variables:**
-
-- `CORS_ALLOWED_ORIGINS`: Comma-separated list of allowed domains
-- Supports environment-specific configuration
-- Automatic subdomain support for configured domains
-
-**Examples:**
-
-```bash
-# Development
-CORS_ALLOWED_ORIGINS=localhost:3000,127.0.0.1:3000
-
-# Production
-CORS_ALLOWED_ORIGINS=community.community,cityforge.cityforge
-```
-
-#### Security Features
-
-**Origin Validation:**
-
-- Exact domain matching with subdomain support
-- Localhost/IP development access
-- Regex-based pattern matching for security
-
-**Headers Configuration:**
-
-- Methods: `GET, POST, PUT, DELETE, OPTIONS`
-- Headers: `Authorization, Content-Type, X-Requested-With`
-- Credentials: `true` (supports cookie authentication)
-- Max Age: `86400` seconds (24 hours)
-
-**Mobile App Support:**
-
-- CORS headers provided but not required for mobile HTTP clients
-- Direct API access with Authorization headers
-- No same-origin policy restrictions
-
-#### Testing and Validation
-
-Use the provided test script to verify CORS configuration:
-
-```bash
-# Test local development
-./scripts/test-cors.sh http://localhost:3000
-
-# Test production
-./scripts/test-cors.sh https://your-domain.com
-```
-
-#### Deployment Configurations
-
-**Docker Compose** (`docker-compose.yml`):
-
-```yaml
-environment:
-  CORS_ALLOWED_ORIGINS: "localhost:3000,127.0.0.1:3000,community.community,cityforge.cityforge"
-```
-
-**Kubernetes** (`k8s/config.yaml`):
-
-```yaml
-data:
-  CORS_ALLOWED_ORIGINS: "community.community,www.community.community"
-```
-
-**API Route Integration:**
-
-Individual routes can override CORS settings using the `withCORS` wrapper:
+Always use Prisma client from `src/lib/db`:
 
 ```typescript
-import { withCORS } from "@/lib/cors";
+import { prisma } from "@/lib/db";
 
-export const GET = withCORS(
-  async (request) => {
-    return NextResponse.json({ data: "response" });
-  },
-  {
-    allowedOrigins: ["https://special-client.com"],
-  }
-);
+const cards = await prisma.card.findMany({
+  where: { approved: true },
+
+  include: { card_tags: { include: { tags: true } } },
+  orderBy: { createdDate: "desc" },
+});
 ```
 
-See `docs/CORS_CONFIGURATION.md` for complete documentation and troubleshooting guide.
+### Testing Integration Tests
 
-### JWT Token Management
-
-The application uses database-backed JWT token blacklisting for secure logout:
-
-- When users log out, their tokens are added to the `token_blacklist` table
-- Tokens are checked against the blacklist on every authenticated request
-- Expired tokens are automatically cleaned up by a Kubernetes CronJob
-
-### API Rate Limiting
-
-The Next.js application implements comprehensive rate limiting for authentication endpoints to protect against:
-
-- Brute force attacks on authentication endpoints
-- Resource exhaustion (DoS)
-- Account enumeration
-- Spam registration attempts
-
-#### Implementation Architecture
-
-**Next.js Middleware-Based Rate Limiting** (`src/lib/auth/rateLimit.ts`):
-
-- **In-memory sliding window algorithm** with IP-based tracking
-- **Configurable limits** per authentication endpoint
-- **Standard HTTP headers** (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
-- **429 status responses** with Retry-After header
-- **Automatic cleanup** to prevent memory leaks
-
-#### Rate Limits by Authentication Endpoint
-
-**Core Authentication:**
-
-- **Login** (`/api/auth/login`): 5 requests per minute
-- **Registration** (`/api/auth/register`): 3 requests per hour
-- **Forgot Password** (`/api/auth/forgot-password`): 5 requests per hour
-- **Reset Password** (`/api/auth/reset-password`): 5 requests per hour
-- **Resend Verification** (`/api/auth/resend-verification`): 3 requests per hour
-- **Verify Email** (`/api/auth/verify-email`): 10 requests per hour
-
-#### Rate Limit Configuration
-
-**Configuration Object** (`src/lib/auth/rateLimit.ts`):
+Integration tests use testcontainers for PostgreSQL:
 
 ```typescript
-export const AUTH_RATE_LIMITS = {
-  login: {
-    maxRequests: 5,
-    windowMs: 60000,
-    description: "5 logins per minute",
-  },
-  register: {
-    maxRequests: 3,
-    windowMs: 3600000,
-    description: "3 registrations per hour",
-  },
-  "forgot-password": {
-    maxRequests: 5,
-    windowMs: 3600000,
-    description: "5 password resets per hour",
-  },
-  "reset-password": {
-    maxRequests: 5,
-    windowMs: 3600000,
-    description: "5 password resets per hour",
-  },
-  "resend-verification": {
-    maxRequests: 3,
-    windowMs: 3600000,
-    description: "3 verification emails per hour",
-  },
-  "verify-email": {
-    maxRequests: 10,
-    windowMs: 3600000,
-    description: "10 verifications per hour",
-  },
-};
-```
-
-#### API Implementation
-
-**Route Protection** - Apply to any authentication endpoint:
-
-```typescript
-// Example: src/app/api/auth/login/route.ts
-import { withAuthRateLimit } from "@/lib/auth/rateLimit";
-
-const loginHandler = async (request: NextRequest) => {
-  // Your login logic here
-  return NextResponse.json({ success: true });
-};
-
-export const POST = withAuthRateLimit("login", loginHandler);
-```
-
-**Manual Rate Limit Checking:**
-
-```typescript
-import {
-  checkAuthRateLimit,
-  createRateLimitResponse,
-} from "@/lib/auth/rateLimit";
-
-export async function POST(request: NextRequest) {
-  const rateLimitResult = checkAuthRateLimit(request, "login");
-
-  if (!rateLimitResult.allowed) {
-    return createRateLimitResponse(rateLimitResult);
-  }
-
-  // Continue with normal request processing
-}
-```
-
-#### Rate Limit Response Format
-
-When rate limit is exceeded, the API returns HTTP 429 with:
-
-```json
-{
-  "error": {
-    "message": "Too many login attempts. Please try again in 45 seconds.",
-    "type": "RATE_LIMIT_EXCEEDED",
-    "retryAfter": 45
-  }
-}
-```
-
-**HTTP Headers:**
-
-```
-X-RateLimit-Limit: 5
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1640995200
-Retry-After: 45
-```
-
-#### IP Address Detection
-
-The rate limiting system automatically detects client IPs from:
-
-1. `X-Forwarded-For` header (first IP in chain)
-2. `X-Real-IP` header
-3. `X-Client-IP` header
-4. Fallback to `127.0.0.1` for development
-
-#### Memory Management
-
-**Automatic Cleanup:**
-
-- Rate limit entries expire automatically after window period
-- Memory usage scales with number of unique IPs, not total requests
-- No background processes required
-
-**Testing Utilities:**
-
-- `clearRateLimitStore()` - Clear all rate limit data for tests
-- `getRateLimitStatus()` - Get current rate limit status for debugging
-
-#### Testing
-
-Comprehensive test suite with 24 test cases covering:
-
-- **Core functionality**: Allow/deny within limits, window expiration
-- **Multi-endpoint isolation**: Different endpoints tracked independently
-- **IP handling**: Multiple IPs, header extraction, forwarded IPs
-- **Middleware integration**: Automatic response creation, header preservation
-- **Configuration validation**: All endpoints properly configured
-- **Memory management**: No leaks, proper cleanup
-
-Run tests: `npm test tests/utils/auth-rate-limit.test.ts`
-
-#### Production Considerations
-
-**For High-Traffic Production Deployments:**
-
-Consider replacing in-memory storage with Redis for multi-instance deployments:
-
-```typescript
-// Future enhancement - Redis-backed rate limiting
-// Would require implementing Redis adapter for the rate limiting system
-```
-
-**Current Implementation Benefits:**
-
-- ✅ Zero external dependencies
-- ✅ No Redis/database required
-- ✅ Automatic memory cleanup
-- ✅ High performance (in-memory)
-- ✅ Suitable for most production deployments
-
-### Security Headers
-
-The application implements comprehensive security headers to protect against common web vulnerabilities including XSS, clickjacking, MITM attacks, and data leakage.
-
-#### Multi-Layer Security Implementation
-
-**Dual Layer Approach:**
-
-- **Next.js Middleware** (`src/middleware.ts`) - Primary security headers applied to all responses
-- **nginx Configuration** (`nginx.conf`) - Backup security headers for production deployments
-
-This ensures security headers are present even if one layer fails or is misconfigured.
-
-#### Security Headers Implemented
-
-**Content Security Policy (CSP)**:
-
-- Prevents XSS attacks by controlling resource loading sources
-- Environment-specific policies (development includes `'unsafe-eval'`, production is strict)
-- Always includes `'unsafe-inline'` for styles (required by Tailwind CSS)
-
-**HTTP Strict Transport Security (HSTS)**:
-
-- Forces HTTPS connections to prevent MITM attacks
-- 1-year cache duration with subdomain inclusion and preload eligibility
-
-**Additional Headers**:
-
-- `X-Frame-Options: DENY` - Prevents clickjacking
-- `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
-- `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer information
-- `Permissions-Policy` - Disables unnecessary browser features (camera, microphone, geolocation)
-
-#### Implementation Files
-
-**Security Headers Utility** (`src/lib/security-headers.ts`):
-
-```typescript
-import { getSecurityHeaders } from "@/lib/security-headers";
-
-const headers = getSecurityHeaders();
-// Apply to response
-```
-
-**Next.js Middleware Integration** (`src/middleware.ts`):
-
-```typescript
-import { getSecurityHeaders } from "@/lib/security-headers";
-
-export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
-
-  // Apply security headers
-  const securityHeaders = getSecurityHeaders();
-  Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-
-  return response;
-}
-```
-
-**nginx Configuration** (`nginx.conf`):
-
-```nginx
-# Security Headers
-add_header X-Frame-Options "DENY" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-add_header Content-Security-Policy "..." always;
-```
-
-#### Environment Configuration
-
-**Development Environment**:
-
-- Includes `'unsafe-eval'` in script-src for hot reload
-- Relaxed CSP for development tools
-- WebSocket connections allowed for hot reload (`ws:`, `wss:`)
-
-**Production Environment**:
-
-- Strict CSP with minimal allowed sources
-- No `'unsafe-eval'` to prevent code injection
-- Maximum security configuration
-
-#### Testing and Validation
-
-**Automated Testing** (`tests/utils/security-headers.test.ts`):
-
-- 23 comprehensive tests covering all security headers
-- Environment-specific CSP validation
-- Error handling and graceful fallbacks
-
-**CLI Testing Tool** (`scripts/test-security-headers.sh`):
-
-```bash
-# Test local development
-./scripts/test-security-headers.sh http://localhost:3000
-
-# Test production deployment
-./scripts/test-security-headers.sh https://yourdomain.com
-```
-
-**Programmatic Validator** (`scripts/security-headers-validator.ts`):
-
-```bash
-npx tsx scripts/security-headers-validator.ts https://yourdomain.com
-```
-
-#### Security Benefits
-
-**Attack Vectors Mitigated**:
-
-- **Cross-Site Scripting (XSS)**: CSP blocks inline scripts and untrusted sources
-- **Clickjacking**: X-Frame-Options prevents iframe embedding
-- **Man-in-the-Middle (MITM)**: HSTS forces HTTPS connections
-- **Information Disclosure**: Referrer-Policy controls referrer leakage
-
-**Compliance**:
-
-- OWASP recommendations compliance
-- Industry security best practices
-- Modern browser compatibility
-
-For complete documentation, see `docs/SECURITY_HEADERS.md`.
-
-### API Endpoints
-
-**Public APIs:**
-
-- `/api/cards` - Business directory (GET with filtering by tag)
-- `/api/cards/<id>` - Individual card details
-- `/api/business/<id>` - Business card by ID with slug support
-- `/api/tags` - Available tags
-- `/api/submissions` - Submit new cards (POST)
-- `/api/cards/<id>/suggest-edit` - Suggest edits to existing cards (POST)
-- `/api/search` - Full-text search via OpenSearch
-- `/api/resources/*` - Resource directory endpoints
-- `/api/site-config` - Site configuration
-- `/api/upload` - File uploads
-
-**Auth APIs:**
-
-- `/register` - User registration
-- `/login` - User login
-- `/logout` - User logout
-- `/me` - Current user info
-- `/update-email`, `/update-password`, `/update-profile` - User account management
-
-**Admin APIs** (require admin role):
-
-- `/admin/cards/*` - CRUD operations for cards
-- `/admin/submissions/*` - Approve/reject card submissions
-- `/admin/modifications/*` - Approve/reject card edit suggestions
-- `/admin/users/*` - User management
-- `/admin/tags/*` - Tag management
-- `/admin/resources/*` - Resource directory management
-- `/admin/forums/*` - Forum administration (categories, requests, reports, threads)
-
-#### Admin Forum API Endpoints
-
-**Category Management:**
-
-- `GET /api/admin/forums/categories` - List all forum categories
-- `POST /api/admin/forums/categories` - Create new forum category
-- `GET /api/admin/forums/categories/{id}` - Get specific category details
-- `PUT /api/admin/forums/categories/{id}` - Update forum category
-- `DELETE /api/admin/forums/categories/{id}` - Delete forum category
-
-**Category Request Management:**
-
-- `GET /api/admin/forums/category-requests` - List pending category requests
-- `POST /api/admin/forums/category-requests/{id}/approve` - Approve category request
-- `POST /api/admin/forums/category-requests/{id}/reject` - Reject category request
-
-**Content Moderation:**
-
-- `GET /api/admin/forums/reports` - List reported content
-- `POST /api/admin/forums/reports/{id}/resolve` - Resolve report (dismiss, delete post, delete thread)
-
-**Thread Management:**
-
-- `DELETE /api/admin/forums/threads/{id}` - Delete thread and all posts
-- `POST /api/admin/forums/threads/{id}/pin` - Pin/unpin thread
-- `POST /api/admin/forums/threads/{id}/lock` - Lock/unlock thread
-
-### Frontend Structure
-
-Uses Next.js 15 app router with the following pages:
-
-- `/` - Homepage
-- `/business` - Business directory
-- `/resources` - Resource directory
-- `/search` - Search interface
-- `/submit` - Submit new business card
-- `/login`, `/register` - Authentication
-- `/dashboard` - User dashboard
-- `/settings` - User settings
-- `/admin` - Admin dashboard (admin users only)
-- `/admin/forums` - Admin forum management (admin users only)
-- `/forums/*` - Community forums (requires authentication)
-
-**Forum Pages (Authentication Required):**
-
-- `/forums` - Forum categories list
-- `/forums/[categorySlug]` - Category threads
-- `/forums/[categorySlug]/[threadId]` - Thread details and posts
-- `/forums/[categorySlug]/new` - Create new thread
-- `/forums/request-category` - Request new forum category
-
-**Authentication Enforcement:**
-All forum pages check authentication on mount and redirect unauthenticated users to `/login?redirect=[original-url]`. This allows users to return to their intended destination after logging in.
-
-### Admin Forum Management
-
-The application provides comprehensive forum administration tools for managing community discussions:
-
-#### Category Management
-
-**Features:**
-
-- Create, read, update, delete forum categories
-- Automatic slug generation from category names with conflict detection
-- Display order management for organizing category hierarchy
-- Category activation/deactivation without deletion
-- Input validation for names and descriptions
-
-**Workflow:**
-
-1. Admin creates category with name and description
-2. System generates URL-safe slug automatically
-3. Category appears in forum listings with specified display order
-4. Admin can later edit, reorder, or deactivate categories
-
-#### Community Category Requests
-
-**User Flow:**
-
-1. Users can request new forum categories via `/forums/request-category`
-2. Requests include category name, description, and justification
-3. Requests appear in admin panel for review
-
-**Admin Workflow:**
-
-1. Admin reviews pending requests at `/admin/forums`
-2. Admin can approve or reject requests with notes
-3. **Approved requests**: Automatically create new forum categories
-4. **Rejected requests**: User receives feedback via admin notes
-5. Complete audit trail maintains request history
-
-#### Content Moderation System
-
-**Report Processing:**
-
-- Users can report inappropriate forum content (posts, threads)
-- Reports include content details, reporter info, and reason
-- Reports queue in admin panel for review
-
-**Resolution Actions:**
-
-- **Dismiss Report**: Mark as reviewed, no action taken
-- **Delete Post**: Remove specific reported post
-- **Delete Thread**: Remove entire thread and all posts
-
-**Audit Trail:**
-
-- All resolutions logged with admin reviewer and timestamp
-- Complete history of moderation actions
-- Reports maintain status tracking (pending/resolved)
-
-#### Thread Management Tools
-
-**Administrative Controls:**
-
-- **Delete Threads**: Cascade deletion removes thread and all associated posts
-- **Pin/Unpin**: Featured threads appear at top of category listings
-- **Lock/Unlock**: Prevent new posts while preserving content
-
-**Safety Features:**
-
-- Confirmation required for destructive actions
-- Cascade deletions properly handle related data (posts, reports)
-- Status changes immediately reflected in forum interface
-
-#### API Implementation Highlights
-
-**Next.js 15 Compatibility:**
-
-- All admin forum APIs properly handle Next.js 15 async route parameters
-- Robust error handling with consistent JSON error responses
-- JWT authentication integration with role-based access control
-
-**Database Integration:**
-
-- Proper foreign key relationships ensure data integrity
-- Cascade deletion handling prevents orphaned records
-- Transaction support for complex operations
-
-**Security Features:**
-
-- Admin role verification on all endpoints
-- Input validation and sanitization
-- SQL injection prevention via parameterized queries
-- Rate limiting on admin endpoints
-
-The admin forum system provides professional-grade community management tools suitable for both small communities and larger forum deployments.
-
-### Mobile App Structure
-
-The mobile app (`mobile/`) is built with React Native and Expo:
-
-**Project Structure:**
-
-```
-mobile/
-├── src/
-│   ├── api/          # API client with token-based auth
-│   ├── components/   # Reusable UI components
-│   ├── contexts/     # React contexts (AuthContext)
-│   ├── navigation/   # React Navigation setup
-│   ├── screens/      # Screen components
-│   ├── types/        # TypeScript type definitions
-│   └── utils/        # Utilities (tokenStorage, etc.)
-├── assets/           # Images, fonts, icons
-├── App.tsx           # Root component
-└── app.json          # Expo configuration
-```
-
-**Main Screens:**
-
-- **Authentication Flow:**
-  - `LoginScreen` - User login with email/password
-  - `RegisterScreen` - New user registration
-
-- **Main Tabs (Bottom Navigation):**
-  - `BusinessScreen` - Business directory with infinite scroll
-  - `ResourcesScreen` - Resource directory with categories
-  - `SearchScreen` - Full-text search interface
-  - `ProfileScreen` - User profile and settings
-
-**Key Features:**
-
-- **React Navigation**: Bottom tabs + stack navigation for auth flow
-- **Secure Token Storage**: Expo SecureStore for encrypted token storage
-- **Auto-reconnect**: Auth state persists across app restarts
-- **Pull-to-refresh**: All list screens support pull-to-refresh
-- **Infinite scroll**: Business directory loads more items on scroll
-- **Error handling**: User-friendly error messages with retry options
-
-**Authentication Flow:**
-
-1. App checks for stored token on mount
-2. If token exists, validates with backend (`/api/auth/me`)
-3. If valid, user is authenticated and sees main tabs
-4. If invalid/missing, user sees login/register screens
-5. After login, token is stored in SecureStore and user sees main tabs
-
-**API Client** (`mobile/src/api/client.ts`):
-
-- Shares same API structure as web client
-- Uses Authorization headers instead of cookies
-- Automatically includes token from SecureStore
-- Handles 401 responses by clearing token and redirecting to login
-
-### Configuration Management
-
-The frontend uses React Context API to manage and share site configuration across all components:
-
-**ConfigContext** (`src/contexts/ConfigContext.tsx`):
-
-- Loads configuration once on app mount from `/api/config`
-- Provides centralized access to site configuration via `useConfig()` hook
-- Includes fallback configuration if API fetch fails
-
-- Eliminates duplicate API calls across components
-
-**Usage in components:**
-
-```tsx
-import { useConfig } from "@/contexts/ConfigContext";
-
-function MyComponent() {
-  const config = useConfig();
-  const siteConfig = config.site;
-
-  return <h1>{siteConfig.title}</h1>;
-}
-```
-
-**Configuration structure:**
-
-- `site`: Site-wide settings (title, description, copyright, etc.)
-- `resources`: Resource directory configuration
-- `quickAccess`: Quick access items for resources page
-- `resourceItems`: Resource directory items
-- `footer`: Footer configuration
-- `pagination`: Pagination settings (defaultLimit)
-
-**Important**: Always use `useConfig()` hook instead of directly fetching `/api/config` to avoid redundant API calls.
-
-### Pagination Configuration
-
-The application supports configurable pagination limits via the site configuration system:
-
-**Default Behavior:**
-
-- Default pagination limit: **20 items per page**
-- Configurable via `ResourceConfig` table with key `pagination_default_limit`
-- Automatically loaded from backend and available in frontend via `useConfig().pagination.defaultLimit`
-
-**Setting Custom Pagination Limit:**
-
-**Option 1: Via Admin UI (Recommended)**
-
-1. Login as an admin user
-2. Navigate to Site Settings (`/site-config`)
-3. Find "Items Per Page" in the "Pagination & Display" section
-4. Set desired value (5-100)
-5. Click "Save All Changes"
-
-**Option 2: Direct Database Update**
-
-```sql
-INSERT INTO resource_config (key, value, description)
-VALUES ('pagination_default_limit', '30', 'Default number of items per page in directory listings')
-ON CONFLICT (key) DO UPDATE SET value = '30';
-```
-
-Changes take effect after cache expires (10 minutes) or immediately with a hard refresh.
-
-**Frontend Usage:**
-
-```tsx
-import { useConfig } from "@/contexts/ConfigContext";
-
-function MyPage() {
-  const config = useConfig();
-  const itemsPerPage = config.pagination.defaultLimit; // Uses configured value
-
-  // Use in pagination logic
-  const offset = (currentPage - 1) * itemsPerPage;
-}
-```
-
-**Backend API Response:**
-
-The `/api/site-config` endpoint returns:
-
-```json
-{
-  "site": { ... },
-  "pagination": {
-    "defaultLimit": 20
-  }
-}
-```
-
-#### Frontend Caching (Next.js)
-
-The API client (`src/lib/api/client.ts`) implements Next.js fetch caching with `revalidate`:
-
-**Caching Strategy:**
-
-- Only caches GET requests
-- Skips caching for authenticated requests (user-specific data)
-- Automatically applies appropriate cache duration based on endpoint
-
-**Next.js API Route** (`src/app/api/config/route.ts`):
-
-- Uses `revalidate: 300` for 5-minute cache
-- Implements `stale-while-revalidate` pattern for better UX
-- Falls back to default config if backend is unavailable
-
-#### Benefits
-
-- **Faster Page Loads**: Cached responses served from browser/CDN
-- **Reduced Server Load**: Fewer database queries for frequently accessed data
-- **Better Offline Support**: Stale content served while revalidating
-- **Improved Scalability**: CDN can serve cached responses
-
-#### Cache Invalidation
-
-- **Time-Based**: Automatic expiration based on `max-age`
-- **Manual**: Admin actions (creating/editing cards) don't trigger automatic invalidation
-- **Browser**: Users can hard-refresh (Ctrl+Shift+R) to bypass cache
-
-**Note**: For production with multiple backend instances, consider implementing cache invalidation via Redis pub/sub or database triggers.
-
-### Styling
-
-- Tailwind CSS v4 with custom configuration
-- Geist fonts (sans and mono variants)
-- Responsive design with dark mode support
-
-### Search Functionality
-
-The indexer component (`indexer/indexer.py`) provides full-text search with error recovery capabilities:
-
-**Features:**
-
-- Crawls business card websites (respects robots.txt)
-- Discovers and parses sitemaps
-- Indexes content into OpenSearch
-- Supports multi-page indexing per business
-- **Database-backed progress tracking** for error recovery
-- **Automatic resume** after crashes or interruptions
-- **Retry logic** for failed indexing jobs (max 3 attempts)
-- Runs as a scheduled job or on-demand
-
-**Progress Tracking:**
-
-The indexer uses the `IndexingJob` database table to track the status of each business card's indexing:
-
-- **Status tracking**: pending, in_progress, completed, failed
-- **Progress tracking**: Pages indexed vs total pages
-- **Error logging**: Last error message for failed jobs
-- **Retry tracking**: Number of retry attempts (max 3)
-
-**CLI Commands:**
-
-```bash
-# Full indexing (index all resources)
-python indexer.py
-
-# Resume interrupted indexing (skip completed)
-python indexer.py --mode resume
-
-# Retry failed indexing jobs only
-python indexer.py --mode retry
-
-# Re-index a specific business card by ID
-python indexer.py --reindex-resource 10042
-
-# Reset all jobs and start fresh
-python indexer.py --reset
-
-# Disable tracking (faster, no resume support)
-python indexer.py --no-tracking
-```
-
-**Modes:**
-
-- **full** (default): Index all business cards, including previously completed ones
-- **resume**: Skip already completed business cards, index only pending/failed
-- **retry**: Retry only failed jobs that haven't exceeded max retries (3)
-
-**Error Recovery Process:**
-
-1. Indexer creates or updates `IndexingJob` record for each business card
-2. Status set to `in_progress` before indexing begins
-3. Progress tracked as pages are indexed
-4. On success: Status set to `completed`, error cleared
-5. On failure: Status set to `failed`, error message logged
-6. Retry with `--mode retry` to attempt failed jobs again
-7. Jobs are skipped after 3 failed retry attempts
-
-**Example Workflow:**
-
-```bash
-# Initial indexing (indexes 100 business cards)
-python indexer.py
-
-# Crashes after 60 cards...
-
-# Resume where it left off
-python indexer.py --mode resume
-# Only indexes the remaining 40 cards
-
-# If some failed, retry them
-python indexer.py --mode retry
-# Retries only the failed cards (max 3 attempts each)
-```
-
-**Database Model:**
-
-The `IndexingJob` table tracks:
-
-```python
-resource_id: int          # Business card ID (offset by 10000)
-
-status: str               # pending, in_progress, completed, failed
-pages_indexed: int        # Number of pages successfully indexed
-total_pages: int          # Total pages discovered for the site
-last_error: str           # Error message if failed
-started_at: datetime      # When indexing started
-completed_at: datetime    # When indexing completed
-retry_count: int          # Number of retry attempts (max 3)
+// Tests automatically start a Docker container
+// Use setupTestDatabase() from tests/helpers/database-helpers.ts
 ```
 
 ### Environment Variables
 
-The project provides `.env.example` files for each component to document required configuration:
+- **Build-time** (client): `NEXT_PUBLIC_*` variables
+- **Runtime** (server): All other variables
+- See `.env.example` for complete list
 
-- **Frontend**: `.env.example` - Copy to `.env.local` for development
-- **Backend**: `backend/.env.example` - Copy to `backend/.env` for development
-- **Indexer**: `indexer/.env.example` - Copy to `indexer/.env` for development
+- Critical: `DATABASE_URL`, `JWT_SECRET_KEY`, `OPENSEARCH_HOST`
 
-See the respective `.env.example` files for detailed documentation of all available environment variables and recommended values.
+### Deployment
 
-**Frontend Environment Variables:**
+- **Docker Compose**: Single command deployment with nginx reverse proxy
+- **Kubernetes**: Manifests in `k8s/`, includes migrations, backups, indexer cronjobs
+- Database initialization: Automatic via `scripts/db-init.mjs` in Docker entrypoint
 
-- `NEXT_PUBLIC_API_URL` - Backend API URL (required)
-- `NEXT_PUBLIC_SITE_URL` - Site URL for server-side fetches (optional)
-- `NEXT_PUBLIC_ITEMS_PER_PAGE` - Items per page for pagination (optional, default: 20)
+## Project-Specific Notes
 
-**Backend Environment Variables:**
+### Migration from 0.8.x to 0.9.0
 
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` - Database connection (required)
-- `DATABASE_URL` - Alternative to individual database params (optional)
-- `JWT_SECRET_KEY` - Secret key for JWT token generation (required)
-- `UPLOAD_FOLDER` - Directory for uploaded files (optional, default: uploads)
-- `FLASK_ENV` - Environment mode: development or production (optional, default: development)
-- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (optional, for search)
+Backend Flask functionality merged into Next.js. Use `scripts/convert-export-to-0.9.0.mjs` for data migration.
 
-**Indexer Environment Variables:**
+### Indexer Service
 
-- `OPENSEARCH_HOST`, `OPENSEARCH_PORT` - OpenSearch connection (required)
-- `NAMESPACE` - Namespace for index isolation (required, default: default)
-- `BACKEND_URL` - Backend API URL for loading cards (required)
+Python service (`indexer/indexer.py`) that crawls resource websites and indexes content to OpenSearch. Runs as cronjob in Kubernetes.
 
-### Logging Strategy
+### Mobile App
 
-The application implements structured logging with environment-based configuration:
+React Native/Expo app in `mobile/` - uses same API via Bearer token authentication (no cookies).
 
-**Example Log Entry (JSON):**
+### Namespace Support
 
-```json
-{
-  "timestamp": "2025-10-19T01:23:45.123456+00:00",
-  "level": "ERROR",
-  "message": "Failed to load dashboard data",
-  "module": "dashboard",
-  "function": "loadData",
-  "line": 42,
-  "exception": "...stack trace..."
-}
-```
+OpenSearch uses namespaces (set via `NAMESPACE` env var) for multi-tenant deployments.
 
-#### Frontend Logging (TypeScript/Next.js)
+### Sequence ID Fixes
 
-**Configuration** (`src/lib/logger.ts`):
-
-The frontend logger prevents console output in production while maintaining error visibility:
-
-**Features:**
-
-- **Development**: All logs (info, warn, debug) output to console
-- **Production**: Only errors are logged (prevents information disclosure)
-- **Centralized**: Single logger utility for consistency
-
-**Usage in Frontend Code:**
-
-```typescript
-import { logger } from "@/lib/logger";
-
-// Informational logs (development only)
-logger.info("User logged in successfully");
-logger.debug("API response:", data);
-
-// Warnings (development only)
-logger.warn("Deprecated API endpoint used");
-
-// Errors (all environments)
-logger.error("Failed to fetch data:", error);
-```
-
-**Why Different Approaches:**
-
-- **Backend**: Server logs are centralized and parseable (JSON for log aggregation tools)
-- **Frontend**: Browser console logs are visible to users (suppressed in production for security)
-
-#### Log Levels by Environment
-
-| Environment | Backend Level | Frontend Behavior |
-| ----------- | ------------- | ----------------- |
-| Development | DEBUG         | All logs shown    |
-| Staging     | INFO          | All logs shown    |
-| Production  | WARNING       | Errors only       |
-
-#### Centralized Logging (Future Enhancement)
-
-For production deployments at scale, consider:
-
-- **ELK Stack** (Elasticsearch, Logstash, Kibana)
-- **Grafana Loki** (lightweight alternative to ELK)
-- **CloudWatch Logs** (if deployed on AWS)
-- **Google Cloud Logging** (if deployed on GCP)
-
-JSON-formatted backend logs are already compatible with these tools.
+After manual database operations, run `node scripts/fix-sequences.mjs` to reset PostgreSQL sequences.
