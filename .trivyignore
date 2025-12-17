@@ -1,5 +1,6 @@
 # Trivy Ignore File
 # This file contains CVEs that should be ignored during security scanning
+# Used by both filesystem scans (frontend-ci.yml) and container scans (docker*.yml)
 
 # Linux kernel header vulnerabilities in linux-libc-dev package (Debian)
 # These are header files only and do not affect runtime security
