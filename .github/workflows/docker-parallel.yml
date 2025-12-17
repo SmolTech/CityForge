@@ -117,7 +117,6 @@ jobs:
           severity: "CRITICAL"
           exit-code: "1" # Fail build on critical vulnerabilities only
           trivyignores: ".trivyignore"
-          scanners: "vuln" # Only scan vulnerabilities, not secrets
 
       - name: Upload Frontend Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -184,7 +183,6 @@ jobs:
           severity: "CRITICAL"
           exit-code: "1" # Fail build on critical vulnerabilities only
           trivyignores: ".trivyignore"
-          scanners: "vuln" # Only scan vulnerabilities, not secrets
 
       - name: Upload Indexer Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
