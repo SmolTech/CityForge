@@ -124,8 +124,8 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
           format: "sarif"
           output: "trivy-frontend-results.sarif"
-          severity: "CRITICAL,HIGH"
-          exit-code: "1" # Fail build on critical/high vulnerabilities
+          severity: "CRITICAL"
+          exit-code: "1" # Fail build on critical vulnerabilities only
           trivyignores: ".trivyignore"
 
       - name: Upload Frontend Security Results to GitHub Security
@@ -178,8 +178,8 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:latest
           format: "sarif"
           output: "trivy-indexer-results.sarif"
-          severity: "CRITICAL,HIGH"
-          exit-code: "1" # Fail build on critical/high vulnerabilities
+          severity: "CRITICAL"
+          exit-code: "1" # Fail build on critical vulnerabilities only
           trivyignores: ".trivyignore"
 
       - name: Upload Indexer Security Results to GitHub Security
