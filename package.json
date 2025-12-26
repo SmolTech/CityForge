@@ -57,7 +57,7 @@
     "jsonwebtoken": "^9.0.2",
     "next": "^15.5.4",
     "prisma": "^6.19.0",
-    "react": "^19.2.0",
+    "react": "^19.2.1",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
