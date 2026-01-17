@@ -1,6 +1,12 @@
 import { getEmailService } from "@/lib/email";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
+import {
+  sendSubmissionWebhook,
+  sendModificationWebhook,
+  sendForumReportWebhook,
+  sendCategoryRequestWebhook,
+} from "@/lib/webhooks";
 
 // Type definitions for submission and modification data
 interface SubmissionData {
@@ -100,6 +106,16 @@ export async function sendSubmissionNotification(
   submission: SubmissionData,
   submitter: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendSubmissionWebhook(submission, submitter);
+  } catch (error) {
+    logger.error("Failed to send submission webhook", {
+      submissionId: submission.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -344,6 +360,16 @@ export async function sendModificationNotification(
   submitter: { id: number; firstName: string; lastName: string; email: string },
   card: { id: number; name: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendModificationWebhook(modification, submitter, card);
+  } catch (error) {
+    logger.error("Failed to send modification webhook", {
+      modificationId: modification.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -604,6 +630,16 @@ export async function sendForumReportNotification(
   report: ForumReportData,
   reporter: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendForumReportWebhook(report, report.thread, reporter, report.post);
+  } catch (error) {
+    logger.error("Failed to send forum report webhook", {
+      reportId: report.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -883,6 +919,16 @@ export async function sendCategoryRequestNotification(
   request: ForumCategoryRequestData,
   requester: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendCategoryRequestWebhook(request, requester);
+  } catch (error) {
+    logger.error("Failed to send category request webhook", {
+      requestId: request.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {

@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/errors";
 import { withAuthRateLimit } from "@/lib/auth/rateLimit";
 import { logger } from "@/lib/logger";
 import { generateSecureToken, getEmailService } from "@/lib/email";
+import { sendPasswordResetWebhook } from "@/lib/webhooks";
 
 /**
  * POST /api/auth/forgot-password
@@ -104,6 +105,22 @@ export const POST = withAuthRateLimit(
       const emailService = getEmailService();
       if (emailService) {
         try {
+          // Send webhook first (non-blocking)
+          try {
+            await sendPasswordResetWebhook(
+              user.email,
+              resetToken,
+              expirationDate,
+              `${user.firstName} ${user.lastName}`
+            );
+          } catch (webhookError) {
+            logger.error("Failed to send password reset webhook", {
+              userId: user.id,
+              email: user.email,
+              error: webhookError,
+            });
+          }
+
           await emailService.sendPasswordResetEmail(
             user.email,
             resetUrl,
