@@ -100,6 +100,16 @@ export async function sendVerificationEmail(
   token: string,
   userName?: string
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendEmailVerificationWebhook(email, token, userName);
+  } catch (error) {
+    logger.error("Failed to send email verification webhook", {
+      email,
+      error,
+    });
+  }
+
   const verificationUrl = `${process.env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000"}/verify-email?token=${token}`;
 
   const emailService = getEmailService();
