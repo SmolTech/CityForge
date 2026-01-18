@@ -18,7 +18,7 @@
     "eas-cli": "^16.26.0",
     "expo": "~54.0.25",
     "expo-secure-store": "^15.0.8",
-    "expo-status-bar": "~3.0.8",
+    "expo-status-bar": "~3.0.9",
     "react": "19.2.0",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "^5.6.1",
