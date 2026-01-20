@@ -1,11 +1,6 @@
 import { logger } from "../logger";
 import crypto from "crypto";
-import {
-  WebhookEvent,
-  WebhookEndpoint,
-  WebhookDelivery,
-  WebhookEventType,
-} from "./types";
+import { WebhookEvent, WebhookEndpoint, WebhookDelivery } from "./types";
 
 interface WebhookConfig {
   endpoints: WebhookEndpoint[];
