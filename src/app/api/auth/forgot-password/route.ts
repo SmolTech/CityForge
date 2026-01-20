@@ -110,7 +110,7 @@ export const POST = withAuthRateLimit(
             await sendPasswordResetWebhook(
               user.email,
               resetToken,
-              expirationDate,
+              expiresAt,
               `${user.firstName} ${user.lastName}`
             );
           } catch (webhookError) {
