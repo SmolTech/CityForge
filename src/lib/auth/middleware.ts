@@ -343,6 +343,21 @@ export function withOptionalAuth<T extends unknown[]>(
 }
 
 /**
+ * Helper function that throws if user is not authenticated
+ * This is a convenience wrapper around authenticate for simple cases
+ */
+export async function requireAuth(
+  request: NextRequest,
+  options: AuthMiddlewareOptions = {}
+): Promise<AuthenticatedUser> {
+  const user = await authenticate(request, options);
+  if (!user) {
+    throw new AuthenticationError("Authentication required");
+  }
+  return user;
+}
+
+/**
  * Check if a user has support permissions (can view/manage all support tickets)
  * Returns true if user is admin, has support flag, or legacy isSupporterFlag
  */
