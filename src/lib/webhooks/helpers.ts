@@ -1,12 +1,12 @@
+import { createAndSendWebhookEvent } from "./service";
 import {
-  createAndSendWebhookEvent,
   SubmissionCreatedEvent,
   ModificationCreatedEvent,
   ForumReportCreatedEvent,
   ForumCategoryRequestCreatedEvent,
   EmailVerificationRequestedEvent,
   PasswordResetRequestedEvent,
-} from "./service";
+} from "./types";
 
 /**
  * Send webhook for new business submission

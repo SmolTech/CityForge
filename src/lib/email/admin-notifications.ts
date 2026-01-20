@@ -108,7 +108,16 @@ export async function sendSubmissionNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendSubmissionWebhook(submission, submitter);
+    await sendSubmissionWebhook({
+      ...submission,
+      description: submission.description ?? undefined,
+      website_url: submission.website_url ?? undefined,
+      phone_number: submission.phone_number ?? undefined,
+      email: submission.email ?? undefined,
+      address: submission.address ?? undefined,
+      contact_name: submission.contact_name ?? undefined,
+      tags_text: submission.tags_text ?? undefined,
+    }, submitter);
   } catch (error) {
     logger.error("Failed to send submission webhook", {
       submissionId: submission.id,
@@ -362,7 +371,16 @@ export async function sendModificationNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendModificationWebhook(modification, submitter, card);
+    await sendModificationWebhook({
+      ...modification,
+      description: modification.description ?? undefined,
+      website_url: modification.website_url ?? undefined,
+      phone_number: modification.phone_number ?? undefined,
+      email: modification.email ?? undefined,
+      address: modification.address ?? undefined,
+      contact_name: modification.contact_name ?? undefined,
+      tags_text: modification.tags_text ?? undefined,
+    }, submitter, card);
   } catch (error) {
     logger.error("Failed to send modification webhook", {
       modificationId: modification.id,
@@ -632,7 +650,10 @@ export async function sendForumReportNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendForumReportWebhook(report, report.thread, reporter, report.post);
+    await sendForumReportWebhook({
+      ...report,
+      details: report.details ?? undefined,
+    }, report.thread, reporter, report.post);
   } catch (error) {
     logger.error("Failed to send forum report webhook", {
       reportId: report.id,
@@ -921,7 +942,10 @@ export async function sendCategoryRequestNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendCategoryRequestWebhook(request, requester);
+    await sendCategoryRequestWebhook({
+      ...request,
+      created_date: request.created_date || new Date().toISOString(),
+    }, requester);
   } catch (error) {
     logger.error("Failed to send category request webhook", {
       requestId: request.id,

@@ -301,10 +301,18 @@ class WebhookService {
     const endpointIndex = this.config.endpoints.findIndex((e) => e.id === id);
     if (endpointIndex === -1) return null;
 
+    const existingEndpoint = this.config.endpoints[endpointIndex];
     this.config.endpoints[endpointIndex] = {
-      ...this.config.endpoints[endpointIndex],
-      ...updates,
-      id, // Prevent ID changes
+      id: existingEndpoint.id,
+      name: updates.name ?? existingEndpoint.name,
+      url: updates.url ?? existingEndpoint.url,
+      secret: updates.secret ?? existingEndpoint.secret,
+      enabled: updates.enabled ?? existingEndpoint.enabled,
+      events: updates.events ?? existingEndpoint.events,
+      headers: updates.headers ?? existingEndpoint.headers,
+      retryPolicy: updates.retryPolicy ?? existingEndpoint.retryPolicy,
+      timeoutSeconds: updates.timeoutSeconds ?? existingEndpoint.timeoutSeconds,
+      created_at: existingEndpoint.created_at,
       updated_at: new Date().toISOString(),
     };
 
@@ -340,7 +348,8 @@ class WebhookService {
    * Get endpoint by ID
    */
   getEndpoint(id: string): WebhookEndpoint | null {
-    return this.config.endpoints.find((e) => e.id === id) || null;
+    const endpoint = this.config.endpoints.find((e) => e.id === id);
+    return endpoint ?? null;
   }
 
   /**
