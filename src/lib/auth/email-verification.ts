@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
 import { getEmailService } from "@/lib/email";
+import { sendEmailVerificationWebhook } from "@/lib/webhooks/helpers";
 
 /**
  * Generate a secure email verification token
