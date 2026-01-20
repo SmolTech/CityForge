@@ -142,7 +142,7 @@ export async function sendForumReportWebhook(
             : report.created_date,
       },
       thread,
-      post,
+      post: post || undefined,
       reporter,
       admin_url: `${baseUrl}/admin/forums/reports`,
     }
@@ -203,7 +203,7 @@ export async function sendEmailVerificationWebhook(
     {
       user: {
         email,
-        firstName: userName,
+        ...(userName && { firstName: userName }),
       },
       verification_url: `${baseUrl}/verify-email?token=${token}`,
       token,
@@ -228,7 +228,7 @@ export async function sendPasswordResetWebhook(
     {
       user: {
         email,
-        firstName: userName,
+        ...(userName && { firstName: userName }),
       },
       reset_url: `${baseUrl}/reset-password?token=${token}`,
       token,

@@ -301,24 +301,37 @@ class WebhookService {
     const endpointIndex = this.config.endpoints.findIndex((e) => e.id === id);
     if (endpointIndex === -1) return null;
 
-    const existingEndpoint = this.config.endpoints[endpointIndex];
-    this.config.endpoints[endpointIndex] = {
+    const existingEndpoint = this.config.endpoints[endpointIndex]!;
+    const updatedEndpoint: WebhookEndpoint = {
       id: existingEndpoint.id,
       name: updates.name ?? existingEndpoint.name,
       url: updates.url ?? existingEndpoint.url,
-      secret: updates.secret ?? existingEndpoint.secret,
       enabled: updates.enabled ?? existingEndpoint.enabled,
       events: updates.events ?? existingEndpoint.events,
-      headers: updates.headers ?? existingEndpoint.headers,
       retryPolicy: updates.retryPolicy ?? existingEndpoint.retryPolicy,
       timeoutSeconds: updates.timeoutSeconds ?? existingEndpoint.timeoutSeconds,
       created_at: existingEndpoint.created_at,
       updated_at: new Date().toISOString(),
     };
 
+    // Only set optional fields if they exist
+    if (updates.secret !== undefined) {
+      updatedEndpoint.secret = updates.secret;
+    } else if (existingEndpoint.secret) {
+      updatedEndpoint.secret = existingEndpoint.secret;
+    }
+
+    if (updates.headers !== undefined) {
+      updatedEndpoint.headers = updates.headers;
+    } else if (existingEndpoint.headers) {
+      updatedEndpoint.headers = existingEndpoint.headers;
+    }
+
+    this.config.endpoints[endpointIndex] = updatedEndpoint;
+
     await this.saveConfig();
     logger.info("Webhook endpoint updated", { endpointId: id });
-    return this.config.endpoints[endpointIndex];
+    return this.config.endpoints[endpointIndex]!;
   }
 
   /**

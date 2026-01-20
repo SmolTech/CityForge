@@ -108,16 +108,19 @@ export async function sendSubmissionNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendSubmissionWebhook({
-      ...submission,
-      description: submission.description ?? undefined,
-      website_url: submission.website_url ?? undefined,
-      phone_number: submission.phone_number ?? undefined,
-      email: submission.email ?? undefined,
-      address: submission.address ?? undefined,
-      contact_name: submission.contact_name ?? undefined,
-      tags_text: submission.tags_text ?? undefined,
-    }, submitter);
+    const submissionData = {
+      id: submission.id,
+      name: submission.name,
+      created_date: submission.created_date || new Date().toISOString(),
+      ...(submission.description && { description: submission.description }),
+      ...(submission.website_url && { website_url: submission.website_url }),
+      ...(submission.phone_number && { phone_number: submission.phone_number }),
+      ...(submission.email && { email: submission.email }),
+      ...(submission.address && { address: submission.address }),
+      ...(submission.contact_name && { contact_name: submission.contact_name }),
+      ...(submission.tags_text && { tags_text: submission.tags_text }),
+    };
+    await sendSubmissionWebhook(submissionData, submitter);
   } catch (error) {
     logger.error("Failed to send submission webhook", {
       submissionId: submission.id,
@@ -371,16 +374,19 @@ export async function sendModificationNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendModificationWebhook({
-      ...modification,
-      description: modification.description ?? undefined,
-      website_url: modification.website_url ?? undefined,
-      phone_number: modification.phone_number ?? undefined,
-      email: modification.email ?? undefined,
-      address: modification.address ?? undefined,
-      contact_name: modification.contact_name ?? undefined,
-      tags_text: modification.tags_text ?? undefined,
-    }, submitter, card);
+    const modificationData = {
+      id: modification.id,
+      name: modification.name,
+      created_date: modification.created_date || new Date().toISOString(),
+      ...(modification.description && { description: modification.description }),
+      ...(modification.website_url && { website_url: modification.website_url }),
+      ...(modification.phone_number && { phone_number: modification.phone_number }),
+      ...(modification.email && { email: modification.email }),
+      ...(modification.address && { address: modification.address }),
+      ...(modification.contact_name && { contact_name: modification.contact_name }),
+      ...(modification.tags_text && { tags_text: modification.tags_text }),
+    };
+    await sendModificationWebhook(modificationData, submitter, card);
   } catch (error) {
     logger.error("Failed to send modification webhook", {
       modificationId: modification.id,
@@ -650,10 +656,13 @@ export async function sendForumReportNotification(
 ): Promise<void> {
   // Send webhook first (non-blocking)
   try {
-    await sendForumReportWebhook({
-      ...report,
-      details: report.details ?? undefined,
-    }, report.thread, reporter, report.post);
+    const reportData = {
+      id: report.id,
+      reason: report.reason,
+      created_date: report.created_date || new Date().toISOString(),
+      ...(report.details && { details: report.details }),
+    };
+    await sendForumReportWebhook(reportData, report.thread, reporter, report.post);
   } catch (error) {
     logger.error("Failed to send forum report webhook", {
       reportId: report.id,
