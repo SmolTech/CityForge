@@ -686,6 +686,38 @@ export default function AdminDashboard() {
                 Monitor platform usage and performance
               </p>
             </Link>
+
+            {/* Webhooks */}
+            <Link
+              href="/admin/webhooks"
+              className="block bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 dark:border-gray-700"
+            >
+              <div className="flex items-center mb-4">
+                <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-900 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Webhooks
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Configure webhook endpoints for external integrations
+              </p>
+            </Link>
           </div>
         </div>
       </div>
