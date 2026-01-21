@@ -142,7 +142,7 @@ export async function sendForumReportWebhook(
             : report.created_date,
       },
       thread,
-      post: post ?? undefined,
+      ...(post && { post }),
       reporter,
       admin_url: `${baseUrl}/admin/forums/reports`,
     }
