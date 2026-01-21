@@ -403,3 +403,38 @@ export async function createAuthenticatedRequestWithFormData(
 
   return createTestRequestWithFormData(url, requestOptions);
 }
+
+/**
+ * Helper to create cookie-based authenticated requests for CSRF testing
+ * This bypasses the Bearer token exemption to test actual CSRF protection
+ */
+export function createCookieAuthenticatedRequest(
+  url: string,
+  user: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: "admin" | "supporter" | "user";
+    isActive?: boolean;
+    emailVerified?: boolean;
+    isSupporterFlag?: boolean;
+  },
+  options: {
+    method?: string;
+    body?: string;
+    headers?: Record<string, string>;
+  } = {}
+): NextRequest {
+  const token = createTestToken(user);
+
+  // Use the same pattern as createTestRequest with cookies
+  return createTestRequest(url, {
+    method: options.method || "GET",
+    body: options.body,
+    headers: options.headers || {}, // Ensure headers is not undefined
+    cookies: {
+      access_token_cookie: token, // Use correct cookie name
+    },
+  });
+}
