@@ -4,13 +4,14 @@ import { requireAuth } from "@/lib/auth/middleware";
 import { webhookService } from "@/lib/webhooks";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export const GET = withErrorHandler(
   async (request: NextRequest, { params }: RouteContext) => {
+    const { id } = await params;
     const user = await requireAuth(request);
 
     if (user.role !== "admin") {
@@ -20,7 +21,7 @@ export const GET = withErrorHandler(
       );
     }
 
-    const endpoint = webhookService.getEndpoint(params.id);
+    const endpoint = webhookService.getEndpoint(id);
 
     if (!endpoint) {
       return NextResponse.json(
@@ -41,6 +42,7 @@ export const GET = withErrorHandler(
 
 export const PUT = withErrorHandler(
   async (request: NextRequest, { params }: RouteContext) => {
+    const { id } = await params;
     const user = await requireAuth(request);
 
     if (user.role !== "admin") {
@@ -77,7 +79,7 @@ export const PUT = withErrorHandler(
       }
     }
 
-    const endpoint = await webhookService.updateEndpoint(params.id, updates);
+    const endpoint = await webhookService.updateEndpoint(id, updates);
 
     if (!endpoint) {
       return NextResponse.json(
@@ -98,6 +100,7 @@ export const PUT = withErrorHandler(
 
 export const DELETE = withErrorHandler(
   async (request: NextRequest, { params }: RouteContext) => {
+    const { id } = await params;
     const user = await requireAuth(request);
 
     if (user.role !== "admin") {
@@ -107,7 +110,7 @@ export const DELETE = withErrorHandler(
       );
     }
 
-    const success = await webhookService.removeEndpoint(params.id);
+    const success = await webhookService.removeEndpoint(id);
 
     if (!success) {
       return NextResponse.json(
