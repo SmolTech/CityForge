@@ -109,6 +109,7 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
 
       - name: Run Trivy vulnerability scanner (Frontend)
+        if: success()
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LOWER }}-frontend:${{ github.ref_name }}
@@ -121,7 +122,7 @@ jobs:
 
       - name: Upload Frontend Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: success() && hashFiles('trivy-frontend-results.sarif') != ''
         with:
           sarif_file: "trivy-frontend-results.sarif"
           category: "container-frontend"
@@ -175,7 +176,7 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
 
       - name: Run Trivy vulnerability scanner (Indexer)
-        if: always()
+        if: success()
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX_LOWER }}-indexer:${{ github.ref_name }}
@@ -188,7 +189,7 @@ jobs:
 
       - name: Upload Indexer Security Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: success() && hashFiles('trivy-indexer-results.sarif') != ''
         with:
           sarif_file: "trivy-indexer-results.sarif"
           category: "container-indexer"
