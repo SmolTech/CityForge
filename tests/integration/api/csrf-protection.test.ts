@@ -11,9 +11,13 @@ import { POST as uploadRoute } from "@/app/api/upload/route";
 import { POST as createReviewRoute } from "@/app/api/cards/[id]/reviews/route";
 import {
   createTestRequest,
+  createCookieAuthenticatedRequest,
   createAuthenticatedRequest,
 } from "../../utils/api-test-helpers";
-import { createTestUserInDb } from "../../utils/database-test-helpers";
+import {
+  createTestUserInDb,
+  createTestCardInDb,
+} from "../../utils/database-test-helpers";
 import {
   setupIntegrationTests,
   teardownIntegrationTests,
@@ -48,8 +52,18 @@ describe("CSRF Protection Integration Tests", () => {
     });
 
     it("should reject POST /api/upload without CSRF token", async () => {
-      // Create request with minimal valid structure but no CSRF token
-      const request = createAuthenticatedRequest(
+      // Create multipart form data for proper upload endpoint testing
+      const boundary = "----formdata-test-boundary";
+      const formData = [
+        `--${boundary}`,
+        `Content-Disposition: form-data; name="file"; filename="test.png"`,
+        `Content-Type: image/png`,
+        ``,
+        `fake-image-data`,
+        `--${boundary}--`,
+      ].join("\r\n");
+
+      const request = createCookieAuthenticatedRequest(
         "http://localhost:3000/api/upload",
         {
           id: testUser.id,
@@ -60,9 +74,9 @@ describe("CSRF Protection Integration Tests", () => {
         },
         {
           method: "POST",
-          body: JSON.stringify({ test: "data" }), // Use JSON instead of FormData for simplicity
+          body: formData,
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": `multipart/form-data; boundary=${boundary}`,
           },
         }
       );
@@ -147,6 +161,8 @@ describe("CSRF Protection Integration Tests", () => {
   });
 
   describe("Review endpoint CSRF protection", () => {
+    let testCard: { id: number };
+
     beforeEach(async () => {
       // Create test user
       testUser = await createTestUserInDb({
@@ -154,6 +170,12 @@ describe("CSRF Protection Integration Tests", () => {
         firstName: "Test",
         lastName: "User",
         password: "TestPassword123!",
+      });
+
+      // Create a test card to review
+      testCard = await createTestCardInDb({
+        name: "Test Business",
+        userId: testUser.id,
       });
     });
 
@@ -164,8 +186,8 @@ describe("CSRF Protection Integration Tests", () => {
         comment: "Really enjoyed the service.",
       };
 
-      const request = createAuthenticatedRequest(
-        "http://localhost:3000/api/cards/999/reviews", // Using non-existent card ID for simplicity
+      const request = createCookieAuthenticatedRequest(
+        `http://localhost:3000/api/cards/${testCard.id}/reviews`,
         {
           id: testUser.id,
           email: testUser.email,
@@ -175,14 +197,15 @@ describe("CSRF Protection Integration Tests", () => {
         },
         {
           method: "POST",
-          body: reviewData,
-          // Explicitly omit CSRF token
-          headers: {},
+          body: JSON.stringify(reviewData),
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
       const response = await createReviewRoute(request, {
-        params: Promise.resolve({ id: "999" }),
+        params: Promise.resolve({ id: testCard.id.toString() }),
       });
 
       expect(response.status).toBe(403);

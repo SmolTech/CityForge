@@ -896,9 +896,9 @@ describe("Cards API Routes", () => {
         params: Promise.resolve({ id: card.id.toString() }),
       });
 
-      await assertApiResponse(response, 401, (data) => {
+      await assertApiResponse(response, 403, (data) => {
         expect(data.error).toBeDefined();
-        expect(data.error.message).toBe("No authentication token provided");
+        expect(data.error.code).toBe("CSRF_TOKEN_INVALID");
       });
     });
 
