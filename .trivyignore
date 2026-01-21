@@ -64,3 +64,10 @@ CVE-2025-68223
 CVE-2025-66031
 CVE-2025-12816
 CVE-2025-65945
+
+# Mobile app build dependencies (added 2026-01-21)
+# CVE-2026-23745: tar package in mobile/node_modules
+# This affects the eas-cli build tool, not runtime mobile app security
+# The vulnerability is in file extraction functionality used during builds
+# Temporary ignore until eas-cli updates its tar dependency
+CVE-2026-23745
