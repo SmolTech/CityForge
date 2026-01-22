@@ -172,6 +172,9 @@ spec:
               value: "9200"
             - name: OPENSEARCH_NAMESPACE
               value: "cityforge"
+            # Webhooks configuration
+            - name: WEBHOOKS_ENABLED
+              value: "true"
             # Upload folder configuration
             - name: UPLOAD_FOLDER
               value: "/app/uploads"
