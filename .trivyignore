@@ -71,3 +71,10 @@ CVE-2025-65945
 # The vulnerability is in file extraction functionality used during builds
 # Temporary ignore until eas-cli updates its tar dependency
 CVE-2026-23745
+
+# Additional mobile app tar vulnerabilities (added 2026-01-22)
+# CVE-2026-23950: tar package in mobile/node_modules
+# Similar to CVE-2026-23745, this affects build-time tools, not runtime security
+# The tar package is used by build tools like eas-cli, not the actual mobile app
+# Temporary ignore until build dependencies are updated
+CVE-2026-23950
