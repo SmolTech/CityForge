@@ -14,6 +14,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
+  // Check if webhooks are enabled
+  if (process.env["WEBHOOKS_ENABLED"] !== "true") {
+    return NextResponse.json(
+      { error: { message: "Webhooks are not enabled" } },
+      { status: 404 }
+    );
+  }
+
   const endpoints = webhookService.getEndpoints();
 
   return NextResponse.json({
@@ -28,6 +36,19 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const user = await requireAuth(request);
 
   if (user.role !== "admin") {
+    return NextResponse.json(
+      { error: { message: "Admin access required" } },
+      { status: 403 }
+    );
+  }
+
+  // Check if webhooks are enabled
+  if (process.env["WEBHOOKS_ENABLED"] !== "true") {
+    return NextResponse.json(
+      { error: { message: "Webhooks are not enabled" } },
+      { status: 404 }
+    );
+  }
     return NextResponse.json(
       { error: { message: "Admin access required" } },
       { status: 403 }
