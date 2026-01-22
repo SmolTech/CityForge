@@ -49,11 +49,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       { status: 404 }
     );
   }
-    return NextResponse.json(
-      { error: { message: "Admin access required" } },
-      { status: 403 }
-    );
-  }
 
   const body = await request.json();
 
