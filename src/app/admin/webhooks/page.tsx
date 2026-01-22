@@ -36,7 +36,6 @@ const WEBHOOK_EVENTS = [
 
 export default function AdminWebhooksPage() {
   const [loading, setLoading] = useState(true);
-  const [webhooksEnabled, setWebhooksEnabled] = useState(false);
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookEndpoint | null>(
@@ -111,7 +110,6 @@ export default function AdminWebhooksPage() {
 
         if (configResponse.ok) {
           const config = await configResponse.json();
-          setWebhooksEnabled(config.webhooksEnabled);
 
           if (!config.webhooksEnabled) {
             // Webhooks are disabled, redirect to admin dashboard
