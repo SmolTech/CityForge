@@ -607,8 +607,8 @@ export default function AdminWebhooksPage() {
                 Delete Webhook
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to delete "{deletingWebhook.name}"? This
-                action cannot be undone.
+                Are you sure you want to delete &ldquo;{deletingWebhook.name}
+                &rdquo;? This action cannot be undone.
               </p>
               <div className="flex gap-2">
                 <button
