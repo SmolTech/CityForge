@@ -36,6 +36,7 @@ const WEBHOOK_EVENTS = [
 
 export default function AdminWebhooksPage() {
   const [loading, setLoading] = useState(true);
+  const [webhooksEnabled, setWebhooksEnabled] = useState(false);
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookEndpoint | null>(
@@ -95,15 +96,47 @@ export default function AdminWebhooksPage() {
 
   useEffect(() => {
     const init = async () => {
+      // First check authentication
       const isAuth = await checkAuth();
-      if (isAuth) {
-        await loadWebhooks();
+      if (!isAuth) {
+        setLoading(false);
+        return;
       }
+
+      // Check if webhooks are enabled
+      try {
+        const configResponse = await fetch("/api/admin/config", {
+          credentials: "include",
+        });
+
+        if (configResponse.ok) {
+          const config = await configResponse.json();
+          setWebhooksEnabled(config.webhooksEnabled);
+
+          if (!config.webhooksEnabled) {
+            // Webhooks are disabled, redirect to admin dashboard
+            router.push("/admin");
+            return;
+          }
+
+          // Webhooks are enabled, load them
+          await loadWebhooks();
+        } else {
+          // Failed to get config, assume webhooks are disabled
+          router.push("/admin");
+          return;
+        }
+      } catch (error) {
+        logger.error("Failed to check webhook configuration:", error);
+        router.push("/admin");
+        return;
+      }
+
       setLoading(false);
     };
 
     init();
-  }, [checkAuth, loadWebhooks]);
+  }, [checkAuth, loadWebhooks, router]);
 
   const resetForm = () => {
     setFormData({
