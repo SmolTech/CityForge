@@ -1,3 +1,5 @@
+import React from "react";
+
 interface AdminStatsCardsProps {
   stats: {
     pendingSubmissions: number;
@@ -9,7 +11,10 @@ interface AdminStatsCardsProps {
   };
 }
 
-export function AdminStatsCards({ stats }: AdminStatsCardsProps) {
+// Memoized component to prevent unnecessary re-renders
+export const AdminStatsCards = React.memo(function AdminStatsCards({
+  stats,
+}: AdminStatsCardsProps) {
   return (
     <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg shadow p-4 border border-purple-200 dark:border-purple-700">
@@ -169,4 +174,4 @@ export function AdminStatsCards({ stats }: AdminStatsCardsProps) {
       </div>
     </div>
   );
-}
+});
