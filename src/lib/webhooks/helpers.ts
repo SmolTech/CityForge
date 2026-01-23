@@ -189,6 +189,10 @@ export async function sendCategoryRequestWebhook(
 
 /**
  * Send webhook for email verification request
+ *
+ * SECURITY NOTE: This webhook includes the verification token in the payload.
+ * Ensure webhook endpoints are properly secured as tokens provide account access.
+ * Consider using short TTL tokens and webhook endpoint authentication.
  */
 export async function sendEmailVerificationWebhook(
   email: string,
@@ -206,13 +210,17 @@ export async function sendEmailVerificationWebhook(
         ...(userName && { firstName: userName }),
       },
       verification_url: `${baseUrl}/verify-email?token=${token}`,
-      token,
+      token, // SECURITY: Token included for integration needs - ensure webhook endpoints are secured
     }
   );
 }
 
 /**
  * Send webhook for password reset request
+ *
+ * SECURITY NOTE: This webhook includes the password reset token in the payload.
+ * Ensure webhook endpoints are properly secured as tokens provide account access.
+ * Consider using short TTL tokens and webhook endpoint authentication.
  */
 export async function sendPasswordResetWebhook(
   email: string,
@@ -231,7 +239,7 @@ export async function sendPasswordResetWebhook(
         ...(userName && { firstName: userName }),
       },
       reset_url: `${baseUrl}/reset-password?token=${token}`,
-      token,
+      token, // SECURITY: Token included for integration needs - ensure webhook endpoints are secured
       expires_at: expiresAt.toISOString(),
     }
   );

@@ -92,7 +92,7 @@ if (typeof window === "undefined") {
   setInterval(
     () => {
       const deleted = apiCache.cleanup();
-      if (deleted > 0) {
+      if (deleted > 0 && process.env.NODE_ENV === "development") {
         console.log(`Cache cleanup: removed ${deleted} expired entries`);
       }
     },

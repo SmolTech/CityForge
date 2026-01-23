@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleCORSPreflight, addCORSHeaders } from "@/lib/cors";
 import { addSecurityHeaders } from "@/lib/security-headers";
 import { createTimingMiddleware } from "@/lib/monitoring/metrics";
+import { logger } from "@/lib/logger";
 
 /**
  * Request timeout configuration for different endpoint types
@@ -42,7 +43,7 @@ function getServerTimeout(pathname: string): number {
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
 export async function middleware(request: NextRequest) {
-  console.log("[MIDDLEWARE DEBUG] Called for:", {
+  logger.info("[MIDDLEWARE DEBUG] Called for:", {
     pathname: request.nextUrl.pathname,
     method: request.method,
   });
