@@ -144,7 +144,7 @@ export const POST = withAuthRateLimit(
           email: user.email,
           resetUrl,
         });
-        console.log("\n🔗 Password Reset Link:", resetUrl, "\n");
+        logger.info("\n🔗 Password Reset Link:", resetUrl, "\n");
       }
 
       return NextResponse.json(

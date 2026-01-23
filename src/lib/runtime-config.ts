@@ -1,4 +1,5 @@
 import fs from "fs";
+import { logger } from "@/lib/logger";
 
 /**
  * Runtime configuration loader
@@ -17,7 +18,7 @@ let cachedConfig: RuntimeConfig | null = null;
 export function getRuntimeConfig(): RuntimeConfig {
   // Return cached config if available
   if (cachedConfig) {
-    console.log("[RuntimeConfig] Returning cached config:", cachedConfig);
+    logger.info("[RuntimeConfig] Returning cached config:", cachedConfig);
     return cachedConfig;
   }
 
@@ -28,16 +29,16 @@ export function getRuntimeConfig(): RuntimeConfig {
   try {
     if (fs.existsSync(configPath)) {
       const configData = fs.readFileSync(configPath, "utf-8");
-      console.log("[RuntimeConfig] Read from file:", configData);
+      logger.info("[RuntimeConfig] Read from file:", configData);
       const parsedConfig = JSON.parse(configData) as RuntimeConfig;
       cachedConfig = parsedConfig;
-      console.log("[RuntimeConfig] Parsed config:", parsedConfig);
+      logger.info("[RuntimeConfig] Parsed config:", parsedConfig);
       return parsedConfig;
     } else {
-      console.log("[RuntimeConfig] File does not exist:", configPath);
+      logger.info("[RuntimeConfig] File does not exist:", configPath);
     }
   } catch (error) {
-    console.error("[RuntimeConfig] Failed to read runtime config:", error);
+    logger.error("[RuntimeConfig] Failed to read runtime config:", error);
   }
 
   // Fallback to environment variables (for development)
@@ -46,11 +47,11 @@ export function getRuntimeConfig(): RuntimeConfig {
     process.env["NEXT_PUBLIC_SITE_URL"] ||
     "http://localhost:3000";
 
-  console.log(
+  logger.info(
     "[RuntimeConfig] Using fallback, SITE_URL:",
     process.env["SITE_URL"]
   );
-  console.log("[RuntimeConfig] Using fallback, siteUrl:", siteUrl);
+  logger.info("[RuntimeConfig] Using fallback, siteUrl:", siteUrl);
 
   const fallbackConfig: RuntimeConfig = { siteUrl };
   cachedConfig = fallbackConfig;
