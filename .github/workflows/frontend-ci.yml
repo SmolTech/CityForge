@@ -108,7 +108,7 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/cityforge_test"
 
       - name: Generate coverage report
-        run: npm run test:coverage
+        run: npm run test:unit:coverage -- --coverage.thresholds.lines=10 --coverage.thresholds.functions=40 --coverage.thresholds.statements=10 --coverage.thresholds.branches=30
         env:
           NODE_ENV: test
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/cityforge_test"
