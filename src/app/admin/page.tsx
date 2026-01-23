@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
@@ -37,6 +37,35 @@ export default function AdminDashboard() {
     totalTags: 0,
   });
   const router = useRouter();
+
+  // Memoize pending counts calculation for better performance
+  const pendingCounts = useMemo(() => {
+    const submissionCount = stats.pendingSubmissions;
+    const modificationCount = stats.pendingModifications;
+    const reportCount = stats.reportedReviews;
+    const forumReportCount = stats.pendingForumReports;
+    const categoryRequestCount = stats.pendingCategoryRequests;
+
+    return {
+      submissions: submissionCount,
+      modifications: modificationCount,
+      reports: reportCount,
+      forumReports: forumReportCount,
+      categoryRequests: categoryRequestCount,
+      total:
+        submissionCount +
+        modificationCount +
+        reportCount +
+        forumReportCount +
+        categoryRequestCount,
+    };
+  }, [
+    stats.pendingSubmissions,
+    stats.pendingModifications,
+    stats.reportedReviews,
+    stats.pendingForumReports,
+    stats.pendingCategoryRequests,
+  ]);
 
   useEffect(() => {
     const checkAuth = async () => {

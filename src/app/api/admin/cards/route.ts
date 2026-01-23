@@ -34,13 +34,31 @@ export const GET = withAuth(
       }
       // If status === "all", don't filter by approved
 
-      // Get cards with tags and creator info
+      // Optimized queries with selective loading for better performance
       const [cards, total] = await Promise.all([
         prisma.card.findMany({
           where,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            websiteUrl: true,
+            phoneNumber: true,
+            email: true,
+            address: true,
+            contactName: true,
+            featured: true,
+            imageUrl: true,
+            approved: true,
+            createdDate: true,
+            addressOverrideUrl: true,
+            updatedDate: true,
+            createdBy: true,
+            approvedBy: true,
+            approvedDate: true,
+            // Optimized nested selects instead of includes
             card_tags: {
-              include: {
+              select: {
                 tags: {
                   select: {
                     name: true,
@@ -110,12 +128,18 @@ export const GET = withAuth(
         tags: card.card_tags.map((ct) => ct.tags.name),
       }));
 
-      return NextResponse.json({
+      // Return optimized response with caching
+      const response = NextResponse.json({
         cards: transformedCards,
         total,
         limit,
         offset,
       });
+
+      // Cache admin responses for 30 seconds to balance freshness and performance
+      response.headers.set("Cache-Control", "private, max-age=30, s-maxage=0");
+
+      return response;
     } catch (error) {
       return handleApiError(error);
     }
