@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     const cacheKey = `help-wanted:${category || "all"}:${status || "all"}:${limit}:${offset}`;
 
     // Check cache first
-    let cachedResult = apiCache.get(cacheKey);
+    const cachedResult = apiCache.get(cacheKey);
     if (cachedResult) {
       const response = NextResponse.json(cachedResult);
       response.headers.set("Cache-Control", "public, max-age=180");
