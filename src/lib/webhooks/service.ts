@@ -395,250 +395,296 @@ class WebhookService {
     const baseUrl =
       process.env["NEXT_PUBLIC_APP_URL"] || "https://yoursite.com";
 
-    switch (event.type) {
-      case "submission.created": {
-        const data = event.data as any;
-        return {
-          text: `**New Business Submission** :office:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `New business submission: ${data.submission.name}`,
-              color: "good",
-              title: data.submission.name,
-              title_link: data.admin_url,
-              text: data.submission.description || "No description provided",
-              fields: [
-                {
-                  title: "Submitted by",
-                  value: `${data.submitter.firstName} ${data.submitter.lastName} (${data.submitter.email})`,
-                  short: true,
-                },
-                {
-                  title: "Website",
-                  value: data.submission.website_url || "Not provided",
-                  short: true,
-                },
-                {
-                  title: "Phone",
-                  value: data.submission.phone_number || "Not provided",
-                  short: true,
-                },
-                {
-                  title: "Email",
-                  value: data.submission.email || "Not provided",
-                  short: true,
-                },
-                {
-                  title: "Address",
-                  value: data.submission.address || "Not provided",
-                  short: false,
-                },
-                {
-                  title: "Tags",
-                  value: data.submission.tags_text || "None",
-                  short: false,
-                },
-              ],
-              footer: "CityForge Admin",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+    try {
+      switch (event.type) {
+        case "submission.created": {
+          const data = event.data as any;
+          const submission = data.submission || {};
+          const submitter = data.submitter || {};
 
-      case "modification.created": {
-        const data = event.data as any;
-        return {
-          text: `**Business Modification Request** :pencil:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `Business modification request for: ${data.modification.name}`,
-              color: "warning",
-              title: `${data.modification.name} - Modification Request`,
-              title_link: data.admin_url,
-              text: data.modification.description || "No description provided",
-              fields: [
-                {
-                  title: "Submitted by",
-                  value: `${data.submitter.firstName} ${data.submitter.lastName} (${data.submitter.email})`,
-                  short: true,
-                },
-                {
-                  title: "Business ID",
-                  value: data.modification.cardId?.toString() || "Unknown",
-                  short: true,
-                },
-              ],
-              footer: "CityForge Admin",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+          return {
+            text: `**New Business Submission** :office:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `New business submission: ${submission.name || "Unnamed Business"}`,
+                color: "good",
+                title: submission.name || "Unnamed Business",
+                title_link: data.admin_url || `${baseUrl}/admin/submissions`,
+                text: submission.description || "No description provided",
+                fields: [
+                  {
+                    title: "Submitted by",
+                    value: `${submitter.firstName || "Unknown"} ${submitter.lastName || "User"} (${submitter.email || "No email"})`,
+                    short: true,
+                  },
+                  {
+                    title: "Website",
+                    value: submission.website_url || "Not provided",
+                    short: true,
+                  },
+                  {
+                    title: "Phone",
+                    value: submission.phone_number || "Not provided",
+                    short: true,
+                  },
+                  {
+                    title: "Email",
+                    value: submission.email || "Not provided",
+                    short: true,
+                  },
+                  {
+                    title: "Address",
+                    value: submission.address || "Not provided",
+                    short: false,
+                  },
+                  {
+                    title: "Tags",
+                    value: submission.tags_text || "None",
+                    short: false,
+                  },
+                ],
+                footer: "CityForge Admin",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
 
-      case "forum.report.created": {
-        const data = event.data as any;
-        return {
-          text: `**Forum Content Reported** :warning:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `Forum content reported: ${data.report.reason}`,
-              color: "danger",
-              title: "Content Report",
-              title_link: data.admin_url,
-              text: `Report reason: ${data.report.reason}`,
-              fields: [
-                {
-                  title: "Reported by",
-                  value: data.reporter
-                    ? `${data.reporter.firstName} ${data.reporter.lastName}`
-                    : "Anonymous",
-                  short: true,
-                },
-                {
-                  title: "Content Type",
-                  value: data.report.contentType || "Unknown",
-                  short: true,
-                },
-              ],
-              footer: "CityForge Admin",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+        case "modification.created": {
+          const data = event.data as any;
+          const modification = data.modification || {};
+          const submitter = data.submitter || {};
 
-      case "forum.category_request.created": {
-        const data = event.data as any;
-        return {
-          text: `**New Forum Category Request** :speech_balloon:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `New forum category request: ${data.request.name}`,
-              color: "good",
-              title: data.request.name,
-              title_link: data.admin_url,
-              text: data.request.description || "No description provided",
-              fields: [
-                {
-                  title: "Requested by",
-                  value: `${data.requester.firstName} ${data.requester.lastName} (${data.requester.email})`,
-                  short: true,
-                },
-              ],
-              footer: "CityForge Admin",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+          return {
+            text: `**Business Modification Request** :pencil:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `Business modification request for: ${modification.name || "Unknown Business"}`,
+                color: "warning",
+                title: `${modification.name || "Unknown Business"} - Modification Request`,
+                title_link: data.admin_url || `${baseUrl}/admin/modifications`,
+                text: modification.description || "No description provided",
+                fields: [
+                  {
+                    title: "Submitted by",
+                    value: `${submitter.firstName || "Unknown"} ${submitter.lastName || "User"} (${submitter.email || "No email"})`,
+                    short: true,
+                  },
+                  {
+                    title: "Business ID",
+                    value: modification.cardId?.toString() || "Unknown",
+                    short: true,
+                  },
+                ],
+                footer: "CityForge Admin",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
 
-      case "auth.email_verification.requested": {
-        const data = event.data as any;
-        return {
-          text: `**Email Verification Requested** :email:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `Email verification requested for ${data.user.email}`,
-              color: "good",
-              title: "Email Verification Request",
-              fields: [
-                {
-                  title: "User",
-                  value: `${data.user.firstName} ${data.user.lastName}`,
-                  short: true,
-                },
-                {
-                  title: "Email",
-                  value: data.user.email,
-                  short: true,
-                },
-              ],
-              footer: "CityForge",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+        case "forum.report.created": {
+          const data = event.data as any;
+          const report = data.report || {};
+          const reporter = data.reporter || {};
 
-      case "auth.password_reset.requested": {
-        const data = event.data as any;
-        return {
-          text: `**Password Reset Requested** :key:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `Password reset requested for ${data.user.email}`,
-              color: "warning",
-              title: "Password Reset Request",
-              fields: [
-                {
-                  title: "User",
-                  value: `${data.user.firstName} ${data.user.lastName}`,
-                  short: true,
-                },
-                {
-                  title: "Email",
-                  value: data.user.email,
-                  short: true,
-                },
-              ],
-              footer: "CityForge",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+          return {
+            text: `**Forum Content Reported** :warning:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `Forum content reported: ${report.reason || "Unknown reason"}`,
+                color: "danger",
+                title: "Content Report",
+                title_link: data.admin_url || `${baseUrl}/admin/reports`,
+                text: `Report reason: ${report.reason || "No reason provided"}`,
+                fields: [
+                  {
+                    title: "Reported by",
+                    value: reporter.firstName
+                      ? `${reporter.firstName} ${reporter.lastName || ""}`
+                      : "Anonymous",
+                    short: true,
+                  },
+                  {
+                    title: "Content Type",
+                    value: report.contentType || "Unknown",
+                    short: true,
+                  },
+                ],
+                footer: "CityForge Admin",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
 
-      case "admin.notification": {
-        const data = event.data as any;
-        return {
-          text: `**Admin Notification** :bell:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `Admin notification: ${data.message}`,
-              color: "good",
-              title: "Admin Notification",
-              text: data.message,
-              footer: "CityForge Admin",
-              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
-            },
-          ],
-        };
-      }
+        case "forum.category_request.created": {
+          const data = event.data as any;
+          const request = data.request || {};
+          const requester = data.requester || {};
 
-      default: {
-        // Fallback for unknown event types - cast to avoid TypeScript never type
-        const eventTyped = event as { type: string; timestamp: string };
-        return {
-          text: `**CityForge Event: ${eventTyped.type}** :information_source:`,
-          username: "CityForge",
-          icon_url: `${baseUrl}/favicon.ico`,
-          attachments: [
-            {
-              fallback: `CityForge event: ${eventTyped.type}`,
-              color: "good",
-              title: `Event: ${eventTyped.type}`,
-              text: "View details in admin panel",
-              footer: "CityForge",
-              ts: Math.floor(new Date(eventTyped.timestamp).getTime() / 1000),
-            },
-          ],
-        };
+          return {
+            text: `**New Forum Category Request** :speech_balloon:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `New forum category request: ${request.name || "Unnamed Category"}`,
+                color: "good",
+                title: request.name || "Unnamed Category",
+                title_link: data.admin_url || `${baseUrl}/admin/categories`,
+                text: request.description || "No description provided",
+                fields: [
+                  {
+                    title: "Requested by",
+                    value: `${requester.firstName || "Unknown"} ${requester.lastName || "User"} (${requester.email || "No email"})`,
+                    short: true,
+                  },
+                ],
+                footer: "CityForge Admin",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
+
+        case "auth.email_verification.requested": {
+          const data = event.data as any;
+          const user = data.user || {};
+
+          return {
+            text: `**Email Verification Requested** :email:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `Email verification requested for ${user.email || "Unknown user"}`,
+                color: "good",
+                title: "Email Verification Request",
+                fields: [
+                  {
+                    title: "User",
+                    value: `${user.firstName || "Unknown"} ${user.lastName || "User"}`,
+                    short: true,
+                  },
+                  {
+                    title: "Email",
+                    value: user.email || "No email",
+                    short: true,
+                  },
+                ],
+                footer: "CityForge",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
+
+        case "auth.password_reset.requested": {
+          const data = event.data as any;
+          const user = data.user || {};
+
+          return {
+            text: `**Password Reset Requested** :key:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `Password reset requested for ${user.email || "Unknown user"}`,
+                color: "warning",
+                title: "Password Reset Request",
+                fields: [
+                  {
+                    title: "User",
+                    value: `${user.firstName || "Unknown"} ${user.lastName || "User"}`,
+                    short: true,
+                  },
+                  {
+                    title: "Email",
+                    value: user.email || "No email",
+                    short: true,
+                  },
+                ],
+                footer: "CityForge",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
+
+        case "admin.notification": {
+          const data = event.data as any;
+
+          return {
+            text: `**Admin Notification** :bell:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `Admin notification: ${data.message || "Notification"}`,
+                color: "good",
+                title: "Admin Notification",
+                text: data.message || "No message provided",
+                footer: "CityForge Admin",
+                ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
+
+        default: {
+          // Fallback for unknown event types - cast to avoid TypeScript never type
+          const eventTyped = event as {
+            type: string;
+            timestamp: string;
+            data?: any;
+          };
+          return {
+            text: `**CityForge Event: ${eventTyped.type}** :information_source:`,
+            username: "CityForge",
+            icon_url: `${baseUrl}/favicon.ico`,
+            attachments: [
+              {
+                fallback: `CityForge event: ${eventTyped.type}`,
+                color: "good",
+                title: `Event: ${eventTyped.type}`,
+                text: "View details in admin panel",
+                footer: "CityForge",
+                ts: Math.floor(new Date(eventTyped.timestamp).getTime() / 1000),
+              },
+            ],
+          };
+        }
       }
+    } catch (error) {
+      logger.error("Error transforming webhook event for Mattermost", {
+        eventType: event.type,
+        error,
+        eventData: event.data,
+      });
+
+      // Return a safe fallback message if transformation fails
+      return {
+        text: `**CityForge Event: ${event.type}** :warning:`,
+        username: "CityForge",
+        icon_url: `${baseUrl}/favicon.ico`,
+        attachments: [
+          {
+            fallback: `CityForge event: ${event.type}`,
+            color: "warning",
+            title: `Event: ${event.type}`,
+            text: "Error formatting event data. Check logs for details.",
+            footer: "CityForge",
+            ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+          },
+        ],
+      };
     }
   }
 
