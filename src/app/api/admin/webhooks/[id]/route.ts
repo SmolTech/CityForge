@@ -21,7 +21,7 @@ export const GET = withErrorHandler(
       );
     }
 
-    const endpoint = webhookService.getEndpoint(id);
+    const endpoint = await webhookService.getEndpoint(id);
 
     if (!endpoint) {
       return NextResponse.json(

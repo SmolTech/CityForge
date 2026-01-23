@@ -192,7 +192,7 @@ export interface WebhookEndpoint {
   enabled: boolean;
   events: WebhookEventType[];
   headers?: Record<string, string>;
-  retryPolicy: {
+  retryPolicy?: {
     maxRetries: number;
     retryDelaySeconds: number;
     exponentialBackoff: boolean;
