@@ -171,7 +171,7 @@ export interface AdminNotificationEvent extends BaseWebhookEvent {
       html: string;
       text: string;
     };
-    related_data: any;
+    related_data: Record<string, unknown>;
   };
 }
 
@@ -192,7 +192,7 @@ export interface WebhookEndpoint {
   enabled: boolean;
   events: WebhookEventType[];
   headers?: Record<string, string>;
-  retryPolicy: {
+  retryPolicy?: {
     maxRetries: number;
     retryDelaySeconds: number;
     exponentialBackoff: boolean;

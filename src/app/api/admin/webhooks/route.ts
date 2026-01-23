@@ -22,7 +22,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  const endpoints = webhookService.getEndpoints();
+  const endpoints = await webhookService.getEndpoints();
 
   return NextResponse.json({
     endpoints: endpoints.map((endpoint) => ({
