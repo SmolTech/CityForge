@@ -520,6 +520,7 @@ model WebhookEndpoint {
   headers        String?  // JSON object for custom headers
   retryPolicy    String?  // JSON object for retry configuration
   timeoutSeconds Int      @default(30)
+  format         String   @default("mattermost") // "mattermost" | "raw"
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

@@ -198,6 +198,7 @@ export interface WebhookEndpoint {
     exponentialBackoff: boolean;
   };
   timeoutSeconds: number;
+  format?: "mattermost" | "raw"; // Default to "mattermost"
   created_at: string;
   updated_at: string;
 }

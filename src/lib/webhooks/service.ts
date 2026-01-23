@@ -100,6 +100,7 @@ class WebhookService {
         enabled: endpoint.enabled,
         events: JSON.parse(endpoint.events) as WebhookEventType[],
         timeoutSeconds: endpoint.timeoutSeconds,
+        format: (endpoint.format as "mattermost" | "raw") || "mattermost",
         created_at: endpoint.createdAt.toISOString(),
         updated_at: endpoint.updatedAt.toISOString(),
       };
@@ -198,16 +199,21 @@ class WebhookService {
     }
 
     try {
-      const signature = this.generateSignature(
-        JSON.stringify(event),
-        endpoint.secret
-      );
+      const format = endpoint.format || "mattermost";
+      const payload =
+        format === "mattermost"
+          ? this.transformEventForMattermost(event)
+          : event;
+      const payloadString = JSON.stringify(payload);
+
+      const signature = this.generateSignature(payloadString, endpoint.secret);
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "User-Agent": `CityForge-Webhooks/${event.source.version}`,
         "X-CityForge-Event": event.type,
         "X-CityForge-Delivery": delivery.id,
         "X-CityForge-Timestamp": event.timestamp,
+        "X-CityForge-Format": format,
         ...(signature && { "X-CityForge-Signature": signature }),
         ...(endpoint.headers || {}),
       };
@@ -217,7 +223,7 @@ class WebhookService {
         {
           method: "POST",
           headers,
-          body: JSON.stringify(event),
+          body: payloadString,
         },
         endpoint.timeoutSeconds * 1000
       );
@@ -383,6 +389,260 @@ class WebhookService {
   }
 
   /**
+   * Transform webhook event to Mattermost-compatible format
+   */
+  private transformEventForMattermost(event: WebhookEvent): object {
+    const baseUrl =
+      process.env["NEXT_PUBLIC_APP_URL"] || "https://yoursite.com";
+
+    switch (event.type) {
+      case "submission.created": {
+        const data = event.data as any;
+        return {
+          text: `**New Business Submission** :office:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `New business submission: ${data.submission.name}`,
+              color: "good",
+              title: data.submission.name,
+              title_link: data.admin_url,
+              text: data.submission.description || "No description provided",
+              fields: [
+                {
+                  title: "Submitted by",
+                  value: `${data.submitter.firstName} ${data.submitter.lastName} (${data.submitter.email})`,
+                  short: true,
+                },
+                {
+                  title: "Website",
+                  value: data.submission.website_url || "Not provided",
+                  short: true,
+                },
+                {
+                  title: "Phone",
+                  value: data.submission.phone_number || "Not provided",
+                  short: true,
+                },
+                {
+                  title: "Email",
+                  value: data.submission.email || "Not provided",
+                  short: true,
+                },
+                {
+                  title: "Address",
+                  value: data.submission.address || "Not provided",
+                  short: false,
+                },
+                {
+                  title: "Tags",
+                  value: data.submission.tags_text || "None",
+                  short: false,
+                },
+              ],
+              footer: "CityForge Admin",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "modification.created": {
+        const data = event.data as any;
+        return {
+          text: `**Business Modification Request** :pencil:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `Business modification request for: ${data.modification.name}`,
+              color: "warning",
+              title: `${data.modification.name} - Modification Request`,
+              title_link: data.admin_url,
+              text: data.modification.description || "No description provided",
+              fields: [
+                {
+                  title: "Submitted by",
+                  value: `${data.submitter.firstName} ${data.submitter.lastName} (${data.submitter.email})`,
+                  short: true,
+                },
+                {
+                  title: "Business ID",
+                  value: data.modification.cardId?.toString() || "Unknown",
+                  short: true,
+                },
+              ],
+              footer: "CityForge Admin",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "forum.report.created": {
+        const data = event.data as any;
+        return {
+          text: `**Forum Content Reported** :warning:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `Forum content reported: ${data.report.reason}`,
+              color: "danger",
+              title: "Content Report",
+              title_link: data.admin_url,
+              text: `Report reason: ${data.report.reason}`,
+              fields: [
+                {
+                  title: "Reported by",
+                  value: data.reporter
+                    ? `${data.reporter.firstName} ${data.reporter.lastName}`
+                    : "Anonymous",
+                  short: true,
+                },
+                {
+                  title: "Content Type",
+                  value: data.report.contentType || "Unknown",
+                  short: true,
+                },
+              ],
+              footer: "CityForge Admin",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "forum.category_request.created": {
+        const data = event.data as any;
+        return {
+          text: `**New Forum Category Request** :speech_balloon:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `New forum category request: ${data.request.name}`,
+              color: "good",
+              title: data.request.name,
+              title_link: data.admin_url,
+              text: data.request.description || "No description provided",
+              fields: [
+                {
+                  title: "Requested by",
+                  value: `${data.requester.firstName} ${data.requester.lastName} (${data.requester.email})`,
+                  short: true,
+                },
+              ],
+              footer: "CityForge Admin",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "auth.email_verification.requested": {
+        const data = event.data as any;
+        return {
+          text: `**Email Verification Requested** :email:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `Email verification requested for ${data.user.email}`,
+              color: "good",
+              title: "Email Verification Request",
+              fields: [
+                {
+                  title: "User",
+                  value: `${data.user.firstName} ${data.user.lastName}`,
+                  short: true,
+                },
+                {
+                  title: "Email",
+                  value: data.user.email,
+                  short: true,
+                },
+              ],
+              footer: "CityForge",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "auth.password_reset.requested": {
+        const data = event.data as any;
+        return {
+          text: `**Password Reset Requested** :key:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `Password reset requested for ${data.user.email}`,
+              color: "warning",
+              title: "Password Reset Request",
+              fields: [
+                {
+                  title: "User",
+                  value: `${data.user.firstName} ${data.user.lastName}`,
+                  short: true,
+                },
+                {
+                  title: "Email",
+                  value: data.user.email,
+                  short: true,
+                },
+              ],
+              footer: "CityForge",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      case "admin.notification": {
+        const data = event.data as any;
+        return {
+          text: `**Admin Notification** :bell:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `Admin notification: ${data.message}`,
+              color: "good",
+              title: "Admin Notification",
+              text: data.message,
+              footer: "CityForge Admin",
+              ts: Math.floor(new Date(event.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+
+      default: {
+        // Fallback for unknown event types - cast to avoid TypeScript never type
+        const eventTyped = event as { type: string; timestamp: string };
+        return {
+          text: `**CityForge Event: ${eventTyped.type}** :information_source:`,
+          username: "CityForge",
+          icon_url: `${baseUrl}/favicon.ico`,
+          attachments: [
+            {
+              fallback: `CityForge event: ${eventTyped.type}`,
+              color: "good",
+              title: `Event: ${eventTyped.type}`,
+              text: "View details in admin panel",
+              footer: "CityForge",
+              ts: Math.floor(new Date(eventTyped.timestamp).getTime() / 1000),
+            },
+          ],
+        };
+      }
+    }
+  }
+
+  /**
    * Fetch with timeout
    */
   private async fetchWithTimeout(
@@ -447,6 +707,7 @@ class WebhookService {
             ? JSON.stringify(endpoint.retryPolicy)
             : null,
           timeoutSeconds: endpoint.timeoutSeconds ?? 30,
+          format: endpoint.format ?? "mattermost",
         },
       });
 
@@ -458,6 +719,7 @@ class WebhookService {
         enabled: newEndpoint.enabled,
         events: JSON.parse(newEndpoint.events) as WebhookEventType[],
         timeoutSeconds: newEndpoint.timeoutSeconds,
+        format: (newEndpoint.format as "mattermost" | "raw") || "mattermost",
         created_at: newEndpoint.createdAt.toISOString(),
         updated_at: newEndpoint.updatedAt.toISOString(),
       };
@@ -511,6 +773,9 @@ class WebhookService {
           ...(updates.timeoutSeconds !== undefined && {
             timeoutSeconds: updates.timeoutSeconds,
           }),
+          ...(updates.format !== undefined && {
+            format: updates.format,
+          }),
         },
       });
 
@@ -522,6 +787,8 @@ class WebhookService {
         enabled: updatedEndpoint.enabled,
         events: JSON.parse(updatedEndpoint.events) as WebhookEventType[],
         timeoutSeconds: updatedEndpoint.timeoutSeconds,
+        format:
+          (updatedEndpoint.format as "mattermost" | "raw") || "mattermost",
         created_at: updatedEndpoint.createdAt.toISOString(),
         updated_at: updatedEndpoint.updatedAt.toISOString(),
       };
@@ -590,6 +857,7 @@ class WebhookService {
           enabled: endpoint.enabled,
           events: JSON.parse(endpoint.events) as WebhookEventType[],
           timeoutSeconds: endpoint.timeoutSeconds,
+          format: (endpoint.format as "mattermost" | "raw") || "mattermost",
           created_at: endpoint.createdAt.toISOString(),
           updated_at: endpoint.updatedAt.toISOString(),
         };
@@ -631,6 +899,7 @@ class WebhookService {
         enabled: endpoint.enabled,
         events: JSON.parse(endpoint.events) as WebhookEventType[],
         timeoutSeconds: endpoint.timeoutSeconds,
+        format: (endpoint.format as "mattermost" | "raw") || "mattermost",
         created_at: endpoint.createdAt.toISOString(),
         updated_at: endpoint.updatedAt.toISOString(),
       };

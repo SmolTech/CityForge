@@ -14,12 +14,13 @@ interface WebhookEndpoint {
   enabled: boolean;
   events: WebhookEventType[];
   headers?: Record<string, string>;
-  retryPolicy: {
+  retryPolicy?: {
     maxRetries: number;
     retryDelaySeconds: number;
     exponentialBackoff: boolean;
   };
   timeoutSeconds: number;
+  format?: "mattermost" | "raw";
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +59,7 @@ export default function AdminWebhooksPage() {
     maxRetries: 3,
     retryDelaySeconds: 5,
     exponentialBackoff: true,
+    format: "mattermost" as "mattermost" | "raw",
   });
 
   const checkAuth = useCallback(async () => {
@@ -148,6 +150,7 @@ export default function AdminWebhooksPage() {
       maxRetries: 3,
       retryDelaySeconds: 5,
       exponentialBackoff: true,
+      format: "mattermost" as "mattermost" | "raw",
     });
   };
 
@@ -171,6 +174,7 @@ export default function AdminWebhooksPage() {
         events: formData.events,
         headers,
         timeoutSeconds: formData.timeoutSeconds,
+        format: formData.format,
         retryPolicy: {
           maxRetries: formData.maxRetries,
           retryDelaySeconds: formData.retryDelaySeconds,
@@ -222,6 +226,7 @@ export default function AdminWebhooksPage() {
         events: formData.events,
         headers,
         timeoutSeconds: formData.timeoutSeconds,
+        format: formData.format,
         retryPolicy: {
           maxRetries: formData.maxRetries,
           retryDelaySeconds: formData.retryDelaySeconds,
@@ -313,9 +318,10 @@ export default function AdminWebhooksPage() {
       events: webhook.events,
       headers: webhook.headers ? JSON.stringify(webhook.headers, null, 2) : "",
       timeoutSeconds: webhook.timeoutSeconds,
-      maxRetries: webhook.retryPolicy.maxRetries,
-      retryDelaySeconds: webhook.retryPolicy.retryDelaySeconds,
-      exponentialBackoff: webhook.retryPolicy.exponentialBackoff,
+      maxRetries: webhook.retryPolicy?.maxRetries || 3,
+      retryDelaySeconds: webhook.retryPolicy?.retryDelaySeconds || 5,
+      exponentialBackoff: webhook.retryPolicy?.exponentialBackoff || true,
+      format: webhook.format || "mattermost",
     });
   };
 
@@ -413,11 +419,11 @@ export default function AdminWebhooksPage() {
 
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         Timeout: {webhook.timeoutSeconds}s | Max Retries:{" "}
-                        {webhook.retryPolicy.maxRetries} |{" "}
-                        {webhook.retryPolicy.exponentialBackoff
+                        {webhook.retryPolicy?.maxRetries || 3} |{" "}
+                        {webhook.retryPolicy?.exponentialBackoff
                           ? "Exponential"
                           : "Linear"}{" "}
-                        backoff
+                        backoff | Format: {webhook.format || "mattermost"}
                       </div>
                     </div>
 
@@ -583,6 +589,31 @@ export default function AdminWebhooksPage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Payload Format
+                  </label>
+                  <select
+                    value={formData.format}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        format: e.target.value as "mattermost" | "raw",
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="mattermost">
+                      Mattermost Compatible (Recommended)
+                    </option>
+                    <option value="raw">Raw Event Data</option>
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mattermost format creates rich attachments with formatted
+                    data. Raw format sends the original event structure.
+                  </p>
                 </div>
 
                 <div>
