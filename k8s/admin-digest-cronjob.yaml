@@ -1,0 +1,121 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-admin-digest
+  labels:
+    app: cityforge
+    component: admin-digest
+spec:
+  # Run daily at 8:00 AM (adjust timezone as needed)
+  schedule: "0 8 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cityforge
+            component: admin-digest
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+            - name: admin-digest
+              image: ghcr.io/smoltech/cityforge:latest
+              imagePullPolicy: Always
+              command: ["node"]
+              args: ["scripts/daily-admin-digest.mjs"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: database-url
+                - name: SMTP_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: smtp-host
+                      optional: true
+                - name: SMTP_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: smtp-port
+                      optional: true
+                - name: SMTP_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: smtp-user
+                      optional: true
+                - name: SMTP_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: smtp-pass
+                      optional: true
+                - name: SMTP_FROM_EMAIL
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: smtp-from-email
+                      optional: true
+                - name: MAILGUN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email-secret
+                      key: api-key
+                      optional: true
+                - name: MAILGUN_DOMAIN
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email-secret
+                      key: domain
+                      optional: true
+                - name: CLOUDFLARE_EMAIL_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cloudflare-email-secret
+                      key: api-token
+                      optional: true
+                - name: CLOUDFLARE_ZONE_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: cloudflare-email-secret
+                      key: zone-id
+                      optional: true
+                - name: WEBHOOKS_ENABLED
+                  value: "true"
+                - name: NEXT_PUBLIC_SITE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: site-url
+                - name: JWT_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: jwt-secret-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
