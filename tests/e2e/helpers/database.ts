@@ -110,6 +110,16 @@ export async function cleanDatabase() {
     await safeDelete(() => db.resourceConfig.deleteMany({}), "resource_config");
     await safeDelete(() => db.tokenBlacklist.deleteMany({}), "token_blacklist");
     await safeDelete(() => db.indexingJob.deleteMany({}), "indexing_jobs");
+    // Clean webhook tables in dependency order
+    await safeDelete(
+      () => db.webhookDelivery.deleteMany({}),
+      "webhook_deliveries"
+    );
+    await safeDelete(() => db.webhookEvent.deleteMany({}), "webhook_events");
+    await safeDelete(
+      () => db.webhookEndpoint.deleteMany({}),
+      "webhook_endpoints"
+    );
     // Users last since many tables reference them
     await safeDelete(() => db.user.deleteMany({}), "users");
 

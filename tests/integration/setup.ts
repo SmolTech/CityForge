@@ -149,6 +149,10 @@ export async function cleanDatabase() {
   await prisma.resourceConfig.deleteMany({});
   await prisma.tokenBlacklist.deleteMany({});
   await prisma.helpWantedPost.deleteMany({});
+  // Clean webhook tables (in dependency order)
+  await prisma.webhookDelivery.deleteMany({});
+  await prisma.webhookEvent.deleteMany({});
+  await prisma.webhookEndpoint.deleteMany({});
   await prisma.user.deleteMany({});
 
   // Verify cleanup
