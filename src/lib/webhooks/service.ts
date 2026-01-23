@@ -1,5 +1,4 @@
 import { logger } from "../logger";
-import { prisma } from "../db/client";
 import crypto from "crypto";
 import { WebhookEvent, WebhookEndpoint, WebhookDelivery } from "./types";
 
@@ -270,48 +269,21 @@ class WebhookService {
   async addEndpoint(
     endpoint: Omit<WebhookEndpoint, "id" | "created_at" | "updated_at">
   ): Promise<WebhookEndpoint> {
-    const newEndpoint = await prisma.webhookEndpoint.create({
-      data: {
-        name: endpoint.name,
-        url: endpoint.url,
-        secret: endpoint.secret ?? null,
-        enabled: endpoint.enabled ?? true,
-        events: JSON.stringify(endpoint.events),
-        headers: endpoint.headers ? JSON.stringify(endpoint.headers) : null,
-        retryPolicy: endpoint.retryPolicy
-          ? JSON.stringify(endpoint.retryPolicy)
-          : null,
-        timeoutSeconds: endpoint.timeoutSeconds ?? 30,
-      },
-    });
-
-    // Convert database model to service type
-    const webhookEndpoint: WebhookEndpoint = {
-      id: newEndpoint.id,
-      name: newEndpoint.name,
-      url: newEndpoint.url,
-      secret: newEndpoint.secret || undefined,
-      enabled: newEndpoint.enabled,
-      events: JSON.parse(newEndpoint.events),
-      headers: newEndpoint.headers
-        ? JSON.parse(newEndpoint.headers)
-        : undefined,
-      retryPolicy: newEndpoint.retryPolicy
-        ? JSON.parse(newEndpoint.retryPolicy)
-        : undefined,
-      timeoutSeconds: newEndpoint.timeoutSeconds,
-      created_at: newEndpoint.createdAt.toISOString(),
-      updated_at: newEndpoint.updatedAt.toISOString(),
+    const newEndpoint: WebhookEndpoint = {
+      ...endpoint,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    // Also add to in-memory config for compatibility
-    this.config.endpoints.push(webhookEndpoint);
+    this.config.endpoints.push(newEndpoint);
+    await this.saveConfig();
 
     logger.info("Webhook endpoint added", {
-      endpointId: webhookEndpoint.id,
-      url: webhookEndpoint.url,
+      endpointId: newEndpoint.id,
+      url: newEndpoint.url,
     });
-    return webhookEndpoint;
+    return newEndpoint;
   }
 
   /**
@@ -361,54 +333,23 @@ class WebhookService {
    * Remove webhook endpoint
    */
   async removeEndpoint(id: string): Promise<boolean> {
-    try {
-      await prisma.webhookEndpoint.delete({
-        where: { id },
-      });
+    const initialLength = this.config.endpoints.length;
+    this.config.endpoints = this.config.endpoints.filter((e) => e.id !== id);
 
-      // Also remove from in-memory config
-      this.config.endpoints = this.config.endpoints.filter((e) => e.id !== id);
-
+    if (this.config.endpoints.length < initialLength) {
+      await this.saveConfig();
       logger.info("Webhook endpoint removed", { endpointId: id });
       return true;
-    } catch (error) {
-      logger.error("Failed to remove webhook endpoint", {
-        endpointId: id,
-        error,
-      });
-      return false;
     }
+
+    return false;
   }
 
   /**
    * Get all endpoints
    */
-  async getEndpoints(): Promise<WebhookEndpoint[]> {
-    try {
-      const endpoints = await prisma.webhookEndpoint.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-
-      return endpoints.map((endpoint) => ({
-        id: endpoint.id,
-        name: endpoint.name,
-        url: endpoint.url,
-        secret: endpoint.secret || undefined,
-        enabled: endpoint.enabled,
-        events: JSON.parse(endpoint.events),
-        headers: endpoint.headers ? JSON.parse(endpoint.headers) : undefined,
-        retryPolicy: endpoint.retryPolicy
-          ? JSON.parse(endpoint.retryPolicy)
-          : undefined,
-        timeoutSeconds: endpoint.timeoutSeconds,
-        created_at: endpoint.createdAt.toISOString(),
-        updated_at: endpoint.updatedAt.toISOString(),
-      }));
-    } catch (error) {
-      logger.error("Failed to load webhook endpoints from database", { error });
-      // Fallback to in-memory config
-      return [...this.config.endpoints];
-    }
+  getEndpoints(): WebhookEndpoint[] {
+    return [...this.config.endpoints];
   }
 
   /**
