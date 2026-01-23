@@ -1,6 +1,12 @@
 import { logger } from "../logger";
+import { prisma } from "../db/client";
 import crypto from "crypto";
-import { WebhookEvent, WebhookEndpoint, WebhookDelivery } from "./types";
+import {
+  WebhookEvent,
+  WebhookEndpoint,
+  WebhookDelivery,
+  WebhookEventType,
+} from "./types";
 
 interface WebhookConfig {
   endpoints: WebhookEndpoint[];
@@ -48,9 +54,34 @@ class WebhookService {
       return;
     }
 
-    const relevantEndpoints = this.config.endpoints.filter(
-      (endpoint) => endpoint.enabled && endpoint.events.includes(event.type)
-    );
+    // Store event in database first
+    try {
+      await prisma.webhookEvent.create({
+        data: {
+          id: event.id,
+          type: event.type,
+          data: JSON.stringify(event.data),
+          timestamp: new Date(event.timestamp),
+          environment: event.environment,
+          sourceInfo: JSON.stringify(event.source),
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to store webhook event in database", {
+        eventId: event.id,
+        error,
+      });
+    }
+
+    // Get relevant endpoints from database
+    const relevantEndpoints = await prisma.webhookEndpoint.findMany({
+      where: {
+        enabled: true,
+        events: {
+          contains: event.type,
+        },
+      },
+    });
 
     if (relevantEndpoints.length === 0) {
       logger.debug("No endpoints configured for event type", {
@@ -61,7 +92,24 @@ class WebhookService {
 
     // Queue delivery for each endpoint
     for (const endpoint of relevantEndpoints) {
-      await this.queueDelivery(endpoint, event);
+      // Convert database model to service type
+      const result: WebhookEndpoint = {
+        id: endpoint.id,
+        name: endpoint.name,
+        url: endpoint.url,
+        enabled: endpoint.enabled,
+        events: JSON.parse(endpoint.events) as WebhookEventType[],
+        timeoutSeconds: endpoint.timeoutSeconds,
+        created_at: endpoint.createdAt.toISOString(),
+        updated_at: endpoint.updatedAt.toISOString(),
+      };
+
+      if (endpoint.secret) result.secret = endpoint.secret;
+      if (endpoint.headers) result.headers = JSON.parse(endpoint.headers);
+      if (endpoint.retryPolicy)
+        result.retryPolicy = JSON.parse(endpoint.retryPolicy);
+
+      await this.queueDelivery(result, event);
     }
   }
 
@@ -72,27 +120,52 @@ class WebhookService {
     endpoint: WebhookEndpoint,
     event: WebhookEvent
   ): Promise<void> {
-    const delivery: WebhookDelivery = {
-      id: crypto.randomUUID(),
-      webhookEndpointId: endpoint.id,
-      eventId: event.id,
-      eventType: event.type,
-      status: "pending",
-      attempt: 0,
-      maxRetries: endpoint.retryPolicy.maxRetries,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const deliveryId = crypto.randomUUID();
+    const maxRetries = endpoint.retryPolicy?.maxRetries ?? 3;
 
-    this.deliveryQueue.set(delivery.id, delivery);
-    logger.info("Webhook delivery queued", {
-      deliveryId: delivery.id,
-      endpointId: endpoint.id,
-      eventType: event.type,
-    });
+    try {
+      // Store delivery in database
+      await prisma.webhookDelivery.create({
+        data: {
+          id: deliveryId,
+          webhookEndpointId: endpoint.id,
+          eventId: event.id,
+          eventType: event.type,
+          status: "pending",
+          attempt: 0,
+          maxRetries,
+        },
+      });
 
-    // Immediately try to deliver
-    await this.attemptDelivery(delivery, endpoint, event);
+      // Also add to in-memory queue for immediate processing
+      const delivery: WebhookDelivery = {
+        id: deliveryId,
+        webhookEndpointId: endpoint.id,
+        eventId: event.id,
+        eventType: event.type,
+        status: "pending",
+        attempt: 0,
+        maxRetries,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      this.deliveryQueue.set(delivery.id, delivery);
+      logger.info("Webhook delivery queued", {
+        deliveryId: delivery.id,
+        endpointId: endpoint.id,
+        eventType: event.type,
+      });
+
+      // Immediately try to deliver
+      await this.attemptDelivery(delivery, endpoint, event);
+    } catch (error) {
+      logger.error("Failed to queue webhook delivery", {
+        endpointId: endpoint.id,
+        eventId: event.id,
+        error,
+      });
+    }
   }
 
   /**
@@ -106,6 +179,23 @@ class WebhookService {
     delivery.attempt++;
     delivery.lastAttemptAt = new Date().toISOString();
     delivery.status = "retrying";
+
+    // Update database with attempt info
+    try {
+      await prisma.webhookDelivery.update({
+        where: { id: delivery.id },
+        data: {
+          attempt: delivery.attempt,
+          lastAttemptAt: new Date(delivery.lastAttemptAt),
+          status: delivery.status,
+        },
+      });
+    } catch (dbError) {
+      logger.error("Failed to update delivery attempt in database", {
+        deliveryId: delivery.id,
+        error: dbError,
+      });
+    }
 
     try {
       const signature = this.generateSignature(
@@ -139,6 +229,25 @@ class WebhookService {
       if (response.ok) {
         delivery.status = "delivered";
         delivery.updated_at = new Date().toISOString();
+
+        // Update database with success
+        try {
+          await prisma.webhookDelivery.update({
+            where: { id: delivery.id },
+            data: {
+              status: delivery.status,
+              responseStatus: delivery.responseStatus,
+              responseHeaders: JSON.stringify(delivery.responseHeaders),
+              responseBody: delivery.responseBody,
+            },
+          });
+        } catch (dbError) {
+          logger.error("Failed to update delivery success in database", {
+            deliveryId: delivery.id,
+            error: dbError,
+          });
+        }
+
         logger.info("Webhook delivered successfully", {
           deliveryId: delivery.id,
           endpointId: endpoint.id,
@@ -153,6 +262,30 @@ class WebhookService {
         error instanceof Error ? error.message : String(error);
       delivery.updated_at = new Date().toISOString();
 
+      // Update database with error
+      try {
+        await prisma.webhookDelivery.update({
+          where: { id: delivery.id },
+          data: {
+            errorMessage: delivery.errorMessage,
+            ...(delivery.responseStatus && {
+              responseStatus: delivery.responseStatus,
+            }),
+            ...(delivery.responseHeaders && {
+              responseHeaders: JSON.stringify(delivery.responseHeaders),
+            }),
+            ...(delivery.responseBody && {
+              responseBody: delivery.responseBody,
+            }),
+          },
+        });
+      } catch (dbError) {
+        logger.error("Failed to update delivery error in database", {
+          deliveryId: delivery.id,
+          error: dbError,
+        });
+      }
+
       logger.error("Webhook delivery failed", {
         deliveryId: delivery.id,
         endpointId: endpoint.id,
@@ -163,6 +296,22 @@ class WebhookService {
 
       if (delivery.attempt >= delivery.maxRetries) {
         delivery.status = "failed";
+
+        // Update database with final failure
+        try {
+          await prisma.webhookDelivery.update({
+            where: { id: delivery.id },
+            data: {
+              status: delivery.status,
+            },
+          });
+        } catch (dbError) {
+          logger.error("Failed to update delivery final failure in database", {
+            deliveryId: delivery.id,
+            error: dbError,
+          });
+        }
+
         this.deliveryQueue.delete(delivery.id);
         logger.error("Webhook delivery permanently failed after max retries", {
           deliveryId: delivery.id,
@@ -178,6 +327,22 @@ class WebhookService {
           Date.now() + delaySeconds * 1000
         ).toISOString();
         delivery.status = "pending";
+
+        // Update database with retry schedule
+        try {
+          await prisma.webhookDelivery.update({
+            where: { id: delivery.id },
+            data: {
+              status: delivery.status,
+              nextRetryAt: new Date(delivery.nextRetryAt),
+            },
+          });
+        } catch (dbError) {
+          logger.error("Failed to update delivery retry schedule in database", {
+            deliveryId: delivery.id,
+            error: dbError,
+          });
+        }
 
         logger.info("Webhook delivery retry scheduled", {
           deliveryId: delivery.id,
@@ -195,9 +360,9 @@ class WebhookService {
     attempt: number,
     retryPolicy: WebhookEndpoint["retryPolicy"]
   ): number {
-    let delay = retryPolicy.retryDelaySeconds;
+    let delay = retryPolicy?.retryDelaySeconds ?? 30;
 
-    if (retryPolicy.exponentialBackoff) {
+    if (retryPolicy?.exponentialBackoff) {
       // Exponential backoff: delay * (2 ^ (attempt - 1))
       delay = delay * Math.pow(2, attempt - 1);
     }
@@ -269,21 +434,52 @@ class WebhookService {
   async addEndpoint(
     endpoint: Omit<WebhookEndpoint, "id" | "created_at" | "updated_at">
   ): Promise<WebhookEndpoint> {
-    const newEndpoint: WebhookEndpoint = {
-      ...endpoint,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      const newEndpoint = await prisma.webhookEndpoint.create({
+        data: {
+          name: endpoint.name,
+          url: endpoint.url,
+          secret: endpoint.secret ?? null,
+          enabled: endpoint.enabled ?? true,
+          events: JSON.stringify(endpoint.events),
+          headers: endpoint.headers ? JSON.stringify(endpoint.headers) : null,
+          retryPolicy: endpoint.retryPolicy
+            ? JSON.stringify(endpoint.retryPolicy)
+            : null,
+          timeoutSeconds: endpoint.timeoutSeconds ?? 30,
+        },
+      });
 
-    this.config.endpoints.push(newEndpoint);
-    await this.saveConfig();
+      // Convert database model to service type
+      const webhookEndpoint: WebhookEndpoint = {
+        id: newEndpoint.id,
+        name: newEndpoint.name,
+        url: newEndpoint.url,
+        enabled: newEndpoint.enabled,
+        events: JSON.parse(newEndpoint.events) as WebhookEventType[],
+        timeoutSeconds: newEndpoint.timeoutSeconds,
+        created_at: newEndpoint.createdAt.toISOString(),
+        updated_at: newEndpoint.updatedAt.toISOString(),
+      };
 
-    logger.info("Webhook endpoint added", {
-      endpointId: newEndpoint.id,
-      url: newEndpoint.url,
-    });
-    return newEndpoint;
+      if (newEndpoint.secret) webhookEndpoint.secret = newEndpoint.secret;
+      if (newEndpoint.headers)
+        webhookEndpoint.headers = JSON.parse(newEndpoint.headers);
+      if (newEndpoint.retryPolicy)
+        webhookEndpoint.retryPolicy = JSON.parse(newEndpoint.retryPolicy);
+
+      // Also add to in-memory config for compatibility during transition
+      this.config.endpoints.push(webhookEndpoint);
+
+      logger.info("Webhook endpoint added", {
+        endpointId: webhookEndpoint.id,
+        url: webhookEndpoint.url,
+      });
+      return webhookEndpoint;
+    } catch (error) {
+      logger.error("Failed to add webhook endpoint", { error });
+      throw error;
+    }
   }
 
   /**
@@ -293,71 +489,162 @@ class WebhookService {
     id: string,
     updates: Partial<WebhookEndpoint>
   ): Promise<WebhookEndpoint | null> {
-    const endpointIndex = this.config.endpoints.findIndex((e) => e.id === id);
-    if (endpointIndex === -1) return null;
+    try {
+      const updatedEndpoint = await prisma.webhookEndpoint.update({
+        where: { id },
+        data: {
+          ...(updates.name && { name: updates.name }),
+          ...(updates.url && { url: updates.url }),
+          ...(updates.enabled !== undefined && { enabled: updates.enabled }),
+          ...(updates.events && { events: JSON.stringify(updates.events) }),
+          ...(updates.secret !== undefined && {
+            secret: updates.secret || null,
+          }),
+          ...(updates.headers !== undefined && {
+            headers: updates.headers ? JSON.stringify(updates.headers) : null,
+          }),
+          ...(updates.retryPolicy !== undefined && {
+            retryPolicy: updates.retryPolicy
+              ? JSON.stringify(updates.retryPolicy)
+              : null,
+          }),
+          ...(updates.timeoutSeconds !== undefined && {
+            timeoutSeconds: updates.timeoutSeconds,
+          }),
+        },
+      });
 
-    const existingEndpoint = this.config.endpoints[endpointIndex]!;
-    const updatedEndpoint: WebhookEndpoint = {
-      id: existingEndpoint.id,
-      name: updates.name ?? existingEndpoint.name,
-      url: updates.url ?? existingEndpoint.url,
-      enabled: updates.enabled ?? existingEndpoint.enabled,
-      events: updates.events ?? existingEndpoint.events,
-      retryPolicy: updates.retryPolicy ?? existingEndpoint.retryPolicy,
-      timeoutSeconds: updates.timeoutSeconds ?? existingEndpoint.timeoutSeconds,
-      created_at: existingEndpoint.created_at,
-      updated_at: new Date().toISOString(),
-    };
+      // Convert database model to service type
+      const webhookEndpoint: WebhookEndpoint = {
+        id: updatedEndpoint.id,
+        name: updatedEndpoint.name,
+        url: updatedEndpoint.url,
+        enabled: updatedEndpoint.enabled,
+        events: JSON.parse(updatedEndpoint.events) as WebhookEventType[],
+        timeoutSeconds: updatedEndpoint.timeoutSeconds,
+        created_at: updatedEndpoint.createdAt.toISOString(),
+        updated_at: updatedEndpoint.updatedAt.toISOString(),
+      };
 
-    // Only set optional fields if they exist
-    if (updates.secret !== undefined) {
-      updatedEndpoint.secret = updates.secret;
-    } else if (existingEndpoint.secret) {
-      updatedEndpoint.secret = existingEndpoint.secret;
+      if (updatedEndpoint.secret)
+        webhookEndpoint.secret = updatedEndpoint.secret;
+      if (updatedEndpoint.headers)
+        webhookEndpoint.headers = JSON.parse(updatedEndpoint.headers);
+      if (updatedEndpoint.retryPolicy)
+        webhookEndpoint.retryPolicy = JSON.parse(updatedEndpoint.retryPolicy);
+
+      // Update in-memory config
+      const endpointIndex = this.config.endpoints.findIndex((e) => e.id === id);
+      if (endpointIndex >= 0) {
+        this.config.endpoints[endpointIndex] = webhookEndpoint;
+      }
+
+      logger.info("Webhook endpoint updated", { endpointId: id });
+      return webhookEndpoint;
+    } catch (error) {
+      logger.error("Failed to update webhook endpoint", {
+        endpointId: id,
+        error,
+      });
+      return null;
     }
-
-    if (updates.headers !== undefined) {
-      updatedEndpoint.headers = updates.headers;
-    } else if (existingEndpoint.headers) {
-      updatedEndpoint.headers = existingEndpoint.headers;
-    }
-
-    this.config.endpoints[endpointIndex] = updatedEndpoint;
-
-    await this.saveConfig();
-    logger.info("Webhook endpoint updated", { endpointId: id });
-    return this.config.endpoints[endpointIndex]!;
   }
 
   /**
    * Remove webhook endpoint
    */
   async removeEndpoint(id: string): Promise<boolean> {
-    const initialLength = this.config.endpoints.length;
-    this.config.endpoints = this.config.endpoints.filter((e) => e.id !== id);
+    try {
+      await prisma.webhookEndpoint.delete({
+        where: { id },
+      });
 
-    if (this.config.endpoints.length < initialLength) {
-      await this.saveConfig();
+      // Also remove from in-memory config
+      this.config.endpoints = this.config.endpoints.filter((e) => e.id !== id);
+
       logger.info("Webhook endpoint removed", { endpointId: id });
       return true;
+    } catch (error) {
+      logger.error("Failed to remove webhook endpoint", {
+        endpointId: id,
+        error,
+      });
+      return false;
     }
-
-    return false;
   }
 
   /**
    * Get all endpoints
    */
-  getEndpoints(): WebhookEndpoint[] {
-    return [...this.config.endpoints];
+  async getEndpoints(): Promise<WebhookEndpoint[]> {
+    try {
+      const endpoints = await prisma.webhookEndpoint.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      const webhookEndpoints: WebhookEndpoint[] = endpoints.map((endpoint) => {
+        const result: WebhookEndpoint = {
+          id: endpoint.id,
+          name: endpoint.name,
+          url: endpoint.url,
+          enabled: endpoint.enabled,
+          events: JSON.parse(endpoint.events) as WebhookEventType[],
+          timeoutSeconds: endpoint.timeoutSeconds,
+          created_at: endpoint.createdAt.toISOString(),
+          updated_at: endpoint.updatedAt.toISOString(),
+        };
+
+        if (endpoint.secret) result.secret = endpoint.secret;
+        if (endpoint.headers) result.headers = JSON.parse(endpoint.headers);
+        if (endpoint.retryPolicy)
+          result.retryPolicy = JSON.parse(endpoint.retryPolicy);
+
+        return result;
+      });
+
+      // Update in-memory cache
+      this.config.endpoints = webhookEndpoints;
+
+      return webhookEndpoints;
+    } catch (error) {
+      logger.error("Failed to load webhook endpoints from database", { error });
+      // Fallback to in-memory config
+      return [...this.config.endpoints];
+    }
   }
 
   /**
    * Get endpoint by ID
    */
-  getEndpoint(id: string): WebhookEndpoint | null {
-    const endpoint = this.config.endpoints.find((e) => e.id === id);
-    return endpoint ?? null;
+  async getEndpoint(id: string): Promise<WebhookEndpoint | null> {
+    try {
+      const endpoint = await prisma.webhookEndpoint.findUnique({
+        where: { id },
+      });
+
+      if (!endpoint) return null;
+
+      const result: WebhookEndpoint = {
+        id: endpoint.id,
+        name: endpoint.name,
+        url: endpoint.url,
+        enabled: endpoint.enabled,
+        events: JSON.parse(endpoint.events) as WebhookEventType[],
+        timeoutSeconds: endpoint.timeoutSeconds,
+        created_at: endpoint.createdAt.toISOString(),
+        updated_at: endpoint.updatedAt.toISOString(),
+      };
+
+      if (endpoint.secret) result.secret = endpoint.secret;
+      if (endpoint.headers) result.headers = JSON.parse(endpoint.headers);
+      if (endpoint.retryPolicy)
+        result.retryPolicy = JSON.parse(endpoint.retryPolicy);
+
+      return result;
+    } catch (error) {
+      logger.error("Failed to get webhook endpoint", { endpointId: id, error });
+      return null;
+    }
   }
 
   /**
