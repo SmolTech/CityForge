@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export default function TestForumsPage() {
   const [result, setResult] = useState<string>("Loading...");
@@ -9,14 +10,14 @@ export default function TestForumsPage() {
   useEffect(() => {
     async function test() {
       try {
-        console.log("Testing forums API...");
+        logger.info("Testing forums API...");
         const data = await apiClient.getForumCategories(true);
-        console.log("API Response:", data);
+        logger.info("API Response:", data);
         setResult(
           `SUCCESS: Found ${data.length} categories: ${JSON.stringify(data, null, 2)}`
         );
       } catch (error) {
-        console.error("API Error:", error);
+        logger.error("API Error:", error);
         setResult(`ERROR: ${error}`);
       }
     }

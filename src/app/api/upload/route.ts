@@ -67,7 +67,7 @@ async function parseMultipartForTests(
         };
       }
 
-      console.log(
+      logger.info(
         `[UPLOAD] Parsed file from multipart: ${filename}, type: ${validMimeType}, size: ${fileContent.length}`
       );
       return file;
@@ -275,7 +275,7 @@ export const POST = withAuth(async (request: NextRequest) => {
         file = formData.get("file") as File;
         logger.info("[UPLOAD] Standard FormData parsing succeeded");
       } catch (error) {
-        console.log(
+        logger.info(
           "[UPLOAD] Standard FormData parsing failed, using manual parsing for tests"
         );
 
@@ -284,7 +284,7 @@ export const POST = withAuth(async (request: NextRequest) => {
           requestBody = await request.text();
           file = await parseMultipartForTests(requestBody, contentType);
         } catch (parseError) {
-          console.error("[UPLOAD] Manual parsing also failed:", parseError);
+          logger.error("[UPLOAD] Manual parsing also failed:", parseError);
           throw error; // Throw the original error
         }
       }
@@ -345,7 +345,7 @@ export const POST = withAuth(async (request: NextRequest) => {
       throw new Error(localResult.error || "Local upload failed");
     }
   } catch (error) {
-    console.error("[UPLOAD] Exception in handler:", error);
+    logger.error("[UPLOAD] Exception in handler:", error);
     return handleApiError(error, "POST /api/upload");
   }
 });

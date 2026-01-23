@@ -8,6 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface HealthData {
   status: string;
@@ -79,7 +80,7 @@ export function MonitoringDashboard() {
       const data = await response.json();
       setHealthData(data);
     } catch (err) {
-      console.error("Failed to fetch health data:", err);
+      logger.error("Failed to fetch health data:", err);
       setError("Failed to fetch health data");
     }
   };
@@ -90,7 +91,7 @@ export function MonitoringDashboard() {
       const data = await response.json();
       setMetricsData(data);
     } catch (err) {
-      console.error("Failed to fetch metrics data:", err);
+      logger.error("Failed to fetch metrics data:", err);
       setError("Failed to fetch metrics data");
     }
   };

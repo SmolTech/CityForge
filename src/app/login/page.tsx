@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { CLIENT_CONFIG } from "@/lib/client-config";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,7 @@ export default function LoginPage() {
       // Force page refresh to clear any cached state
       window.location.reload();
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
     }
   };
 

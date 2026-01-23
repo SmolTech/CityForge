@@ -11,6 +11,7 @@ import {
 } from "@/lib/errors";
 import { sendSubmissionNotification } from "@/lib/email/admin-notifications";
 import { metrics } from "@/lib/monitoring/metrics";
+import { logger } from "@/lib/logger";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -131,7 +132,7 @@ export const POST = withCsrfProtection(
         });
       } catch (emailError) {
         // Log email error but don't fail the submission
-        console.error(
+        logger.error(
           "Failed to send submission notification email:",
           emailError
         );
