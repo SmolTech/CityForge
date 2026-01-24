@@ -31,6 +31,20 @@ export const GET = withAuth(
       const [users, totalCount] = await Promise.all([
         prisma.user.findMany({
           where: whereClause,
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            isActive: true,
+            isSupporterFlag: true,
+            support: true,
+            emailVerified: true,
+            createdDate: true,
+            lastLogin: true,
+            registrationIpAddress: true,
+          },
           orderBy: { createdDate: "desc" },
           take: limit,
           skip: offset,
@@ -49,8 +63,10 @@ export const GET = withAuth(
         is_active: user.isActive,
         is_supporter_flag: user.isSupporterFlag,
         support: user.support,
+        email_verified: user.emailVerified,
         created_date: user.createdDate,
         last_login: user.lastLogin,
+        registration_ip_address: user.registrationIpAddress,
       }));
 
       return NextResponse.json({
