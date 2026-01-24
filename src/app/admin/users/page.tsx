@@ -94,6 +94,42 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleBatchDeactivate = async (userIds: number[]) => {
+    try {
+      const result = await apiClient.adminBatchUpdateUsers(
+        userIds,
+        "deactivate"
+      );
+      await loadUsers();
+      alert(result.message);
+    } catch (error) {
+      logger.error("Failed to deactivate users:", error);
+      alert("Failed to deactivate users. Please try again.");
+    }
+  };
+
+  const handleBatchActivate = async (userIds: number[]) => {
+    try {
+      const result = await apiClient.adminBatchUpdateUsers(userIds, "activate");
+      await loadUsers();
+      alert(result.message);
+    } catch (error) {
+      logger.error("Failed to activate users:", error);
+      alert("Failed to activate users. Please try again.");
+    }
+  };
+
+  const handleBatchDelete = async (userIds: number[]) => {
+    try {
+      const result = await apiClient.adminBatchDeleteUsers(userIds);
+      await loadUsers();
+      alert(result.message);
+    } catch (error) {
+      logger.error("Failed to delete users:", error);
+      alert("Failed to delete users. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -146,6 +182,9 @@ export default function AdminUsersPage() {
             onSetEditingUser={setEditingUser}
             onSetShowPasswordReset={setShowPasswordReset}
             onSetDeletingUser={setDeletingUser}
+            onBatchDeactivate={handleBatchDeactivate}
+            onBatchActivate={handleBatchActivate}
+            onBatchDelete={handleBatchDelete}
           />
         </div>
       </div>

@@ -62,6 +62,8 @@ class CombinedApiClient extends ApiClient {
   adminUpdateUser!: AdminApi["updateUser"];
   adminDeleteUser!: AdminApi["deleteUser"];
   adminResetUserPassword!: AdminApi["resetUserPassword"];
+  adminBatchUpdateUsers!: AdminApi["batchUpdateUsers"];
+  adminBatchDeleteUsers!: AdminApi["batchDeleteUsers"];
   adminGetTags!: AdminApi["getTags"];
   adminCreateTag!: AdminApi["createTag"];
   adminUpdateTag!: AdminApi["updateTag"];
@@ -213,6 +215,12 @@ class CombinedApiClient extends ApiClient {
     this.adminUpdateUser = this.adminApi.updateUser.bind(this.adminApi);
     this.adminDeleteUser = this.adminApi.deleteUser.bind(this.adminApi);
     this.adminResetUserPassword = this.adminApi.resetUserPassword.bind(
+      this.adminApi
+    );
+    this.adminBatchUpdateUsers = this.adminApi.batchUpdateUsers.bind(
+      this.adminApi
+    );
+    this.adminBatchDeleteUsers = this.adminApi.batchDeleteUsers.bind(
       this.adminApi
     );
     this.adminGetTags = this.adminApi.getTags.bind(this.adminApi);
