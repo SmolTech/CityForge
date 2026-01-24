@@ -138,8 +138,10 @@ export function createMockUser(
     isActive: boolean;
     emailVerified: boolean;
     isSupporterFlag: boolean;
+    support: boolean;
     createdDate: Date;
     lastLogin: Date;
+    registrationIpAddress: string;
   }> = {}
 ) {
   return {
@@ -152,8 +154,10 @@ export function createMockUser(
     isActive: true,
     emailVerified: true,
     isSupporterFlag: false,
+    support: false,
     createdDate: new Date(),
     lastLogin: new Date(),
+    registrationIpAddress: null,
     ...overrides,
   };
 }
