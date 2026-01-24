@@ -71,6 +71,9 @@ describe("POST /api/auth/register", () => {
         first_name: "New",
         last_name: "User",
       },
+      headers: {
+        "x-real-ip": "192.168.1.1",
+      },
     });
 
     const response = await POST(request);
@@ -99,6 +102,7 @@ describe("POST /api/auth/register", () => {
         isActive: true,
         emailVerified: false,
         createdDate: expect.any(Date),
+        registrationIpAddress: "192.168.1.1",
       },
       select: expect.any(Object),
     });
@@ -357,6 +361,9 @@ describe("POST /api/auth/register", () => {
         password: "Password123",
         first_name: "Test",
         last_name: "User",
+      },
+      headers: {
+        "x-real-ip": "192.168.1.1",
       },
     });
 
