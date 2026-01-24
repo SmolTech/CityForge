@@ -141,7 +141,7 @@ export function createMockUser(
     support: boolean;
     createdDate: Date;
     lastLogin: Date;
-    registrationIpAddress: string;
+    registrationIpAddress: string | null;
   }> = {}
 ) {
   return {
