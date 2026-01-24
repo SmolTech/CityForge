@@ -92,6 +92,9 @@ export default function AdminUsers({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Joined
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    IP Address
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider min-w-[200px]">
                     Actions
                   </th>
@@ -133,6 +136,9 @@ export default function AdminUsers({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(user.created_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
+                      {user.registration_ip_address || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium min-w-[200px]">
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
@@ -199,8 +205,15 @@ export default function AdminUsers({
                     </span>
                   </div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Joined {new Date(user.created_date).toLocaleDateString()}
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 space-y-1">
+                  <div>
+                    Joined {new Date(user.created_date).toLocaleDateString()}
+                  </div>
+                  {user.registration_ip_address && (
+                    <div className="font-mono">
+                      IP: {user.registration_ip_address}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button

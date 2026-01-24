@@ -22,6 +22,7 @@ model User {
   emailVerified             Boolean?               @default(false) @map("email_verified")
   emailVerificationToken    String?                @map("email_verification_token") @db.VarChar(255)
   emailVerificationSentAt   DateTime?              @map("email_verification_sent_at") @db.Timestamp(6)
+  registrationIpAddress     String?                @map("registration_ip_address") @db.VarChar(45)
   reviewedModifications     CardModification[]     @relation("ModificationReviewer")
   cardModifications         CardModification[]     @relation("ModificationCreator")
   reviewedSubmissions       CardSubmission[]       @relation("SubmissionReviewer")

@@ -26,11 +26,13 @@ npm run prepare  # Set up git hooks
 ```bash
 cp .env.example .env.local
 # Edit .env.local with your configuration
+
 ```
 
 3. **Start with Docker:**
 
 ```bash
+
 docker-compose up --build
 ```
 
@@ -69,6 +71,7 @@ See `.env.example` for complete configuration options.
 ### Unit Tests
 
 ```bash
+
 npm test                    # Watch mode
 npm run test:run            # Run once
 npm run test:unit           # Unit tests only
@@ -90,6 +93,7 @@ npm run lint                # ESLint check
 npm run lint:fix            # Auto-fix issues
 npm run format              # Prettier formatting
 npm run typecheck           # TypeScript check
+
 npm run semgrep             # Security analysis
 ```
 
@@ -120,6 +124,7 @@ node scripts/fix-sequences.mjs  # Fix PostgreSQL sequences
 ### Docker Operations
 
 ```bash
+
 docker-compose up -d        # Start in background
 docker-compose logs -f      # View logs
 docker-compose down         # Stop all services
@@ -145,6 +150,7 @@ npm run semgrep:ci          # CI-friendly output
 **Database connection issues:**
 
 ```bash
+
 # Check database status
 docker-compose ps postgres
 
