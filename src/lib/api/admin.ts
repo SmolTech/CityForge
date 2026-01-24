@@ -187,6 +187,26 @@ export class AdminApi extends ApiClient {
     });
   }
 
+  // Batch user operations
+  async batchUpdateUsers(
+    userIds: number[],
+    action: "activate" | "deactivate"
+  ): Promise<{ message: string; count: number }> {
+    return this.request("/api/admin/users", {
+      method: "PUT",
+      body: JSON.stringify({ userIds, action }),
+    });
+  }
+
+  async batchDeleteUsers(
+    userIds: number[]
+  ): Promise<{ message: string; count: number }> {
+    return this.request("/api/admin/users", {
+      method: "DELETE",
+      body: JSON.stringify({ userIds }),
+    });
+  }
+
   // Tag management
   async getTags(): Promise<{
     tags: Array<{
