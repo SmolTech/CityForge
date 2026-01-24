@@ -4,8 +4,8 @@
  * Sends a daily summary of pending approvals to admins via email and webhooks
  */
 import { PrismaClient } from "@prisma/client";
-import { createAndSendWebhookEvent } from "../src/lib/webhooks/helpers.js";
-import { getEmailService } from "../src/lib/email/index.js";
+import { createAndSendWebhookEvent } from "../src/lib/webhooks/helpers.ts";
+import { getEmailService } from "../src/lib/email/index.ts";
 
 const prisma = new PrismaClient();
 
