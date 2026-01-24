@@ -27,7 +27,7 @@ spec:
             fsGroup: 1000
           containers:
             - name: admin-digest
-              image: ghcr.io/smoltech/cityforge:latest
+              image: ghcr.io/smoltech/cityforge-frontend:latest
               imagePullPolicy: Always
               command: ["node"]
               args: ["scripts/daily-admin-digest.mjs"]
@@ -41,41 +41,45 @@ spec:
                   drop:
                     - ALL
               env:
-                - name: DATABASE_URL
+                - name: NODE_ENV
+                  value: "production"
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                      key: username
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                      key: password
+                - name: POSTGRES_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_HOST
+                - name: POSTGRES_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_PORT
+                - name: POSTGRES_DB
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_DB
+                - name: JWT_SECRET_KEY
                   valueFrom:
                     secretKeyRef:
                       name: cityforge-secrets
-                      key: database-url
-                - name: SMTP_HOST
+                      key: jwt_secret_key
+                - name: NEXT_PUBLIC_SITE_URL
                   valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: smtp-host
-                      optional: true
-                - name: SMTP_PORT
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: smtp-port
-                      optional: true
-                - name: SMTP_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: smtp-user
-                      optional: true
-                - name: SMTP_PASS
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: smtp-pass
-                      optional: true
-                - name: SMTP_FROM_EMAIL
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: smtp-from-email
-                      optional: true
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: NEXT_PUBLIC_SITE_URL
+                - name: WEBHOOKS_ENABLED
+                  value: "true"
                 - name: MAILGUN_API_KEY
                   valueFrom:
                     secretKeyRef:
@@ -88,30 +92,6 @@ spec:
                       name: mailgun-email-secret
                       key: domain
                       optional: true
-                - name: CLOUDFLARE_EMAIL_API_TOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      name: cloudflare-email-secret
-                      key: api-token
-                      optional: true
-                - name: CLOUDFLARE_ZONE_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: cloudflare-email-secret
-                      key: zone-id
-                      optional: true
-                - name: WEBHOOKS_ENABLED
-                  value: "true"
-                - name: NEXT_PUBLIC_SITE_URL
-                  valueFrom:
-                    configMapKeyRef:
-                      name: cityforge-config
-                      key: site-url
-                - name: JWT_SECRET_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: jwt-secret-key
               resources:
                 requests:
                   cpu: 100m
