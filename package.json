@@ -57,7 +57,7 @@
     "fast-check": "^4.3.0",
     "isomorphic-dompurify": "^2.33.0",
     "jsonwebtoken": "^9.0.3",
-    "next": "^15.5.4",
+    "next": "^16.1.5",
     "prisma": "^6.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.3",
