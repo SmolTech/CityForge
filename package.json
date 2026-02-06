@@ -52,7 +52,7 @@
     "deepmerge-ts": "^7.1.5",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
-    "effect": "^3.19.8",
+    "effect": "^3.19.14",
     "empathic": "^2.0.0",
     "fast-check": "^4.3.0",
     "isomorphic-dompurify": "^2.33.0",
