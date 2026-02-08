@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * Security Headers Configuration for CityForge
@@ -81,7 +82,7 @@ function getAdditionalCSPDirectives(): Record<string, string> {
   try {
     return JSON.parse(additionalDirectives);
   } catch (error) {
-    console.warn(
+    logger.warn(
       "Invalid SECURITY_CSP_ADDITIONAL_DIRECTIVES format, ignoring:",
       error
     );

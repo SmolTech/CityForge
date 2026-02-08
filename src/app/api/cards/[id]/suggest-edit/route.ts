@@ -11,6 +11,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { sendModificationNotification } from "@/lib/email/admin-notifications";
+import { logger } from "@/lib/logger";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -156,7 +157,7 @@ export const POST = withCsrfProtection(
           );
         } catch (emailError) {
           // Log email error but don't fail the modification
-          console.error(
+          logger.error(
             "Failed to send modification notification email:",
             emailError
           );

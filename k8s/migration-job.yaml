@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: prisma-migration
-  namespace: worcester
   labels:
     app: cityforge
     component: migration

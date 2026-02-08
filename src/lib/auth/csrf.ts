@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * CSRF Token Configuration
@@ -155,7 +156,7 @@ export function withCsrfProtection<T extends unknown[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
     try {
-      console.log(
+      logger.info(
         "[CSRF] Starting CSRF validation for",
         request.method,
         request.url
@@ -163,14 +164,14 @@ export function withCsrfProtection<T extends unknown[]>(
 
       // Skip CSRF check for exempt requests
       if (isCsrfExempt(request)) {
-        console.log("[CSRF] Request is exempt from CSRF protection");
+        logger.info("[CSRF] Request is exempt from CSRF protection");
         return handler(request, ...args);
       }
 
-      console.log("[CSRF] Validating CSRF token...");
+      logger.info("[CSRF] Validating CSRF token...");
       // Validate CSRF token
       if (!validateCsrfToken(request)) {
-        console.log("[CSRF] CSRF token validation failed");
+        logger.info("[CSRF] CSRF token validation failed");
         return NextResponse.json(
           {
             error: {
@@ -182,11 +183,11 @@ export function withCsrfProtection<T extends unknown[]>(
         );
       }
 
-      console.log("[CSRF] CSRF token valid, proceeding to handler");
+      logger.info("[CSRF] CSRF token valid, proceeding to handler");
       // CSRF token valid, proceed with request
       return handler(request, ...args);
     } catch (error) {
-      console.error("[CSRF] Exception in withCsrfProtection:", error);
+      logger.error("[CSRF] Exception in withCsrfProtection:", error);
       return NextResponse.json(
         {
           error: {

@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { prisma } from "@/lib/db/client";
+import { apiCache } from "@/lib/cache";
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<number, { count: number; resetTime: number }>();
@@ -113,9 +114,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || undefined;
-    const status = searchParams.get("status") || undefined; // Don't default to "open"
+    const status = searchParams.get("status") || undefined;
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
+
+    // Generate cache key for this request
+    const cacheKey = `help-wanted:${category || "all"}:${status || "all"}:${limit}:${offset}`;
+
+    // Check cache first
+    const cachedResult = apiCache.get(cacheKey);
+    if (cachedResult) {
+      const response = NextResponse.json(cachedResult);
+      response.headers.set("Cache-Control", "public, max-age=180");
+      response.headers.set("X-Cache", "HIT");
+      return response;
+    }
 
     const where: Record<string, unknown> = {
       ...(status && status !== "all" && { status }),
@@ -125,7 +138,17 @@ export async function GET(request: NextRequest) {
     const [posts, totalCount] = await Promise.all([
       prisma.helpWantedPost.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          status: true,
+          location: true,
+          budget: true,
+          contactPreference: true,
+          createdDate: true,
+          updatedDate: true,
           creator: {
             select: {
               id: true,
@@ -174,12 +197,20 @@ export async function GET(request: NextRequest) {
       comment_count: post._count.comments,
     }));
 
-    return NextResponse.json({
+    const result = {
       posts: transformedPosts,
       total: totalCount,
       offset,
       limit,
-    });
+    };
+
+    // Cache the result for 3 minutes
+    apiCache.set(cacheKey, result, 180);
+
+    const response = NextResponse.json(result);
+    response.headers.set("Cache-Control", "public, max-age=180");
+    response.headers.set("X-Cache", "MISS");
+    return response;
   } catch (error: unknown) {
     return handleApiError(error, "GET /api/help-wanted");
   }

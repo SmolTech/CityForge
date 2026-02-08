@@ -237,7 +237,7 @@ export function withAuth<T extends unknown[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
     try {
-      console.log(
+      logger.info(
         "[AUTH] Starting authentication for",
         request.method,
         request.url
@@ -245,7 +245,7 @@ export function withAuth<T extends unknown[]>(
       const user = await authenticate(request, options);
 
       if (!user && !options.optional) {
-        console.log("[AUTH] Authentication required but no user found");
+        logger.info("[AUTH] Authentication required but no user found");
         return NextResponse.json(
           {
             error: {
@@ -257,11 +257,11 @@ export function withAuth<T extends unknown[]>(
         );
       }
 
-      console.log("[AUTH] Authentication successful, proceeding to handler");
+      logger.info("[AUTH] Authentication successful, proceeding to handler");
       // Call the original handler with authenticated user
       return handler(request, { user: user! }, ...args);
     } catch (error) {
-      console.error("[AUTH] Exception in withAuth:", error);
+      logger.error("[AUTH] Exception in withAuth:", error);
       if (error instanceof AuthenticationError) {
         return NextResponse.json(
           {
@@ -340,6 +340,21 @@ export function withOptionalAuth<T extends unknown[]>(
       throw error;
     }
   };
+}
+
+/**
+ * Helper function that throws if user is not authenticated
+ * This is a convenience wrapper around authenticate for simple cases
+ */
+export async function requireAuth(
+  request: NextRequest,
+  options: AuthMiddlewareOptions = {}
+): Promise<AuthenticatedUser> {
+  const user = await authenticate(request, options);
+  if (!user) {
+    throw new AuthenticationError("Authentication required");
+  }
+  return user;
 }
 
 /**

@@ -1,4 +1,4 @@
-name: Build and Push Docker Images (Optimized - Fixed Cache)
+name: Build and Push Docker Images
 
 on:
   push:
@@ -119,9 +119,10 @@ jobs:
 
       # Frontend security scanning
       - name: Run Trivy vulnerability scanner (Frontend)
+        if: success()
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+          image-ref: ${{ fromJSON(steps.meta-frontend.outputs.json).tags[0] }}
           format: "sarif"
           output: "trivy-frontend-results.sarif"
           severity: "CRITICAL"
@@ -130,8 +131,8 @@ jobs:
           image-platform: linux/amd64
 
       - name: Upload Frontend Security Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: success() && hashFiles('trivy-frontend-results.sarif') != ''
         with:
           sarif_file: "trivy-frontend-results.sarif"
           category: "container-frontend-optimized"
@@ -173,10 +174,10 @@ jobs:
 
       # Indexer security scanning
       - name: Run Trivy vulnerability scanner (Indexer)
-        if: always()
+        if: success()
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.INDEXER_IMAGE_NAME }}:latest
+          image-ref: ${{ fromJSON(steps.meta-indexer.outputs.json).tags[0] }}
           format: "sarif"
           output: "trivy-indexer-results.sarif"
           severity: "CRITICAL"
@@ -185,8 +186,8 @@ jobs:
           image-platform: linux/amd64
 
       - name: Upload Indexer Security Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: success() && hashFiles('trivy-indexer-results.sarif') != ''
         with:
           sarif_file: "trivy-indexer-results.sarif"
           category: "container-indexer-optimized"

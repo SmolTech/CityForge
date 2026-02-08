@@ -1,6 +1,6 @@
 {
   "name": "cityforge",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude='tests/integration/**/*'",
     "test:coverage": "vitest run --coverage",
+    "test:unit:coverage": "vitest run --exclude='tests/integration/**/*' --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
@@ -25,6 +26,7 @@
     "semgrep": ".venv/bin/semgrep --config=auto --error .",
     "semgrep:ci": ".venv/bin/semgrep --config=auto --error --quiet .",
     "fix-sequences": "node scripts/fix-sequences.mjs",
+    "admin-digest": "node scripts/daily-admin-digest.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -38,7 +40,7 @@
   },
   "dependencies": {
     "@opensearch-project/opensearch": "^3.5.1",
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.2",
     "@tailwindcss/typography": "^0.5.19",
     "@types/bcrypt": "^6.0.0",
     "@types/dompurify": "^3.0.5",
@@ -50,18 +52,19 @@
     "deepmerge-ts": "^7.1.5",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
-    "effect": "^3.19.8",
+    "effect": "^3.19.14",
     "empathic": "^2.0.0",
     "fast-check": "^4.3.0",
     "isomorphic-dompurify": "^2.33.0",
-    "jsonwebtoken": "^9.0.2",
-    "next": "^15.5.4",
+    "jsonwebtoken": "^9.0.3",
+    "next": "^16.1.5",
     "prisma": "^6.19.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

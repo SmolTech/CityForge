@@ -103,6 +103,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
         {
           id: 2,
@@ -119,6 +120,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 
@@ -210,6 +212,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 
@@ -309,6 +312,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 
@@ -375,6 +379,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 
@@ -445,6 +450,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 
@@ -514,6 +520,7 @@ describe("Admin Notifications", () => {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationSentAt: null,
+          registrationIpAddress: null,
         },
       ]);
 

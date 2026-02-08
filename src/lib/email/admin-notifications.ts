@@ -1,6 +1,12 @@
 import { getEmailService } from "@/lib/email";
 import { prisma } from "@/lib/db/client";
 import { logger } from "@/lib/logger";
+import {
+  sendSubmissionWebhook,
+  sendModificationWebhook,
+  sendForumReportWebhook,
+  sendCategoryRequestWebhook,
+} from "@/lib/webhooks";
 
 // Type definitions for submission and modification data
 interface SubmissionData {
@@ -100,6 +106,28 @@ export async function sendSubmissionNotification(
   submission: SubmissionData,
   submitter: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    const submissionData = {
+      id: submission.id,
+      name: submission.name,
+      created_date: submission.created_date || new Date().toISOString(),
+      ...(submission.description && { description: submission.description }),
+      ...(submission.website_url && { website_url: submission.website_url }),
+      ...(submission.phone_number && { phone_number: submission.phone_number }),
+      ...(submission.email && { email: submission.email }),
+      ...(submission.address && { address: submission.address }),
+      ...(submission.contact_name && { contact_name: submission.contact_name }),
+      ...(submission.tags_text && { tags_text: submission.tags_text }),
+    };
+    await sendSubmissionWebhook(submissionData, submitter);
+  } catch (error) {
+    logger.error("Failed to send submission webhook", {
+      submissionId: submission.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -344,6 +372,36 @@ export async function sendModificationNotification(
   submitter: { id: number; firstName: string; lastName: string; email: string },
   card: { id: number; name: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    const modificationData = {
+      id: modification.id,
+      name: modification.name,
+      created_date: modification.created_date || new Date().toISOString(),
+      ...(modification.description && {
+        description: modification.description,
+      }),
+      ...(modification.website_url && {
+        website_url: modification.website_url,
+      }),
+      ...(modification.phone_number && {
+        phone_number: modification.phone_number,
+      }),
+      ...(modification.email && { email: modification.email }),
+      ...(modification.address && { address: modification.address }),
+      ...(modification.contact_name && {
+        contact_name: modification.contact_name,
+      }),
+      ...(modification.tags_text && { tags_text: modification.tags_text }),
+    };
+    await sendModificationWebhook(modificationData, submitter, card);
+  } catch (error) {
+    logger.error("Failed to send modification webhook", {
+      modificationId: modification.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -604,6 +662,27 @@ export async function sendForumReportNotification(
   report: ForumReportData,
   reporter: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    const reportData = {
+      id: report.id,
+      reason: report.reason,
+      created_date: report.created_date || new Date().toISOString(),
+      ...(report.details && { details: report.details }),
+    };
+    await sendForumReportWebhook(
+      reportData,
+      report.thread,
+      reporter,
+      report.post || undefined
+    );
+  } catch (error) {
+    logger.error("Failed to send forum report webhook", {
+      reportId: report.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {
@@ -883,6 +962,22 @@ export async function sendCategoryRequestNotification(
   request: ForumCategoryRequestData,
   requester: { id: number; firstName: string; lastName: string; email: string }
 ): Promise<void> {
+  // Send webhook first (non-blocking)
+  try {
+    await sendCategoryRequestWebhook(
+      {
+        ...request,
+        created_date: request.created_date || new Date().toISOString(),
+      },
+      requester
+    );
+  } catch (error) {
+    logger.error("Failed to send category request webhook", {
+      requestId: request.id,
+      error,
+    });
+  }
+
   const emailService = getEmailService();
 
   if (!emailService) {

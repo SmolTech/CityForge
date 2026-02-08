@@ -243,6 +243,7 @@ describe("GET /api/admin/users", () => {
       isSupporterFlag: false,
       createdDate: new Date("2024-01-01"),
       lastLogin: new Date("2024-01-15"),
+      registrationIpAddress: null,
     });
 
     const token = createTestToken(adminUser.id);
@@ -277,8 +278,11 @@ describe("GET /api/admin/users", () => {
       role: "user",
       is_active: true,
       is_supporter_flag: false,
+      support: false,
+      email_verified: true,
       created_date: "2024-01-01T00:00:00.000Z",
       last_login: "2024-01-15T00:00:00.000Z",
+      registration_ip_address: null,
     });
   });
 

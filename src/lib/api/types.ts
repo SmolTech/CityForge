@@ -13,6 +13,7 @@ export interface User {
   email_verified: boolean;
   created_date: string;
   last_login?: string;
+  registration_ip_address?: string;
 }
 
 // Card types

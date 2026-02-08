@@ -67,7 +67,7 @@ async function parseMultipartForTests(
         };
       }
 
-      console.log(
+      logger.info(
         `[UPLOAD] Parsed file from multipart: ${filename}, type: ${validMimeType}, size: ${fileContent.length}`
       );
       return file;
@@ -232,13 +232,13 @@ async function uploadToLocal(
 
 export const POST = withAuth(async (request: NextRequest) => {
   try {
-    console.log("[UPLOAD] Handler started, checking CSRF...");
+    logger.info("[UPLOAD] Handler started, checking CSRF...");
 
     // Skip CSRF check if exempt (e.g., mobile app with Bearer token)
     if (!isCsrfExempt(request)) {
-      console.log("[UPLOAD] CSRF check required, validating token...");
+      logger.info("[UPLOAD] CSRF check required, validating token...");
       if (!validateCsrfToken(request)) {
-        console.log("[UPLOAD] CSRF token validation failed");
+        logger.info("[UPLOAD] CSRF token validation failed");
         return NextResponse.json(
           {
             error: {
@@ -249,12 +249,12 @@ export const POST = withAuth(async (request: NextRequest) => {
           { status: 403 }
         );
       }
-      console.log("[UPLOAD] CSRF token validation passed");
+      logger.info("[UPLOAD] CSRF token validation passed");
     } else {
-      console.log("[UPLOAD] CSRF check skipped (exempt request)");
+      logger.info("[UPLOAD] CSRF check skipped (exempt request)");
     }
 
-    console.log("[UPLOAD] Starting file processing...");
+    logger.info("[UPLOAD] Starting file processing...");
 
     // Custom FormData parsing for test environment compatibility
     let file: File | null = null;
@@ -273,9 +273,9 @@ export const POST = withAuth(async (request: NextRequest) => {
         const clonedRequest = request.clone();
         formData = await clonedRequest.formData();
         file = formData.get("file") as File;
-        console.log("[UPLOAD] Standard FormData parsing succeeded");
+        logger.info("[UPLOAD] Standard FormData parsing succeeded");
       } catch (error) {
-        console.log(
+        logger.info(
           "[UPLOAD] Standard FormData parsing failed, using manual parsing for tests"
         );
 
@@ -284,7 +284,7 @@ export const POST = withAuth(async (request: NextRequest) => {
           requestBody = await request.text();
           file = await parseMultipartForTests(requestBody, contentType);
         } catch (parseError) {
-          console.error("[UPLOAD] Manual parsing also failed:", parseError);
+          logger.error("[UPLOAD] Manual parsing also failed:", parseError);
           throw error; // Throw the original error
         }
       }
@@ -345,7 +345,7 @@ export const POST = withAuth(async (request: NextRequest) => {
       throw new Error(localResult.error || "Local upload failed");
     }
   } catch (error) {
-    console.error("[UPLOAD] Exception in handler:", error);
+    logger.error("[UPLOAD] Exception in handler:", error);
     return handleApiError(error, "POST /api/upload");
   }
 });
