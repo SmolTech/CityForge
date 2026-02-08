@@ -214,9 +214,9 @@ export function handleApiError(
  * }, 'GET /api/cards');
  */
 export function withErrorHandler<
-  T extends (...args: unknown[]) => Promise<NextResponse>,
+  T extends (...args: any[]) => Promise<NextResponse>,
 >(handler: T, context?: string): T {
-  return (async (...args: unknown[]) => {
+  return (async (...args: any[]) => {
     try {
       return await handler(...args);
     } catch (error) {

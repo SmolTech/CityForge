@@ -22,6 +22,7 @@ model User {
   emailVerified             Boolean?               @default(false) @map("email_verified")
   emailVerificationToken    String?                @map("email_verification_token") @db.VarChar(255)
   emailVerificationSentAt   DateTime?              @map("email_verification_sent_at") @db.Timestamp(6)
+  registrationIpAddress     String?                @map("registration_ip_address") @db.VarChar(45)
   reviewedModifications     CardModification[]     @relation("ModificationReviewer")
   cardModifications         CardModification[]     @relation("ModificationCreator")
   reviewedSubmissions       CardSubmission[]       @relation("SubmissionReviewer")
@@ -508,4 +509,67 @@ model PasswordResetToken {
   @@index([userId], map: "ix_password_reset_tokens_user_id")
   @@index([expiresAt], map: "ix_password_reset_tokens_expires_at")
   @@map("password_reset_tokens")
+}
+
+model WebhookEndpoint {
+  id             String   @id @default(cuid())
+  name           String
+  url            String
+  secret         String?
+  enabled        Boolean  @default(true)
+  events         String   // JSON array of event types
+  headers        String?  // JSON object for custom headers
+  retryPolicy    String?  // JSON object for retry configuration
+  timeoutSeconds Int      @default(30)
+  format         String   @default("mattermost") // "mattermost" | "raw"
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  deliveries WebhookDelivery[]
+
+  @@map("webhook_endpoints")
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  type        String
+  data        String   // JSON payload
+  timestamp   DateTime
+  environment String
+  sourceInfo  String   // JSON object with source metadata
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations  
+  deliveries WebhookDelivery[]
+
+  @@index([type, timestamp])
+  @@map("webhook_events")
+}
+
+model WebhookDelivery {
+  id                String   @id @default(cuid())
+  webhookEndpointId String   @map("webhook_endpoint_id")
+  eventId           String   @map("event_id")
+  eventType         String   @map("event_type")
+  status            String   // pending, delivered, failed, retrying
+  attempt           Int      @default(0)
+  maxRetries        Int      @map("max_retries")
+  nextRetryAt       DateTime? @map("next_retry_at")
+  lastAttemptAt     DateTime? @map("last_attempt_at")
+  responseStatus    Int?     @map("response_status")
+  responseHeaders   String?  @map("response_headers") // JSON
+  responseBody      String?  @map("response_body")
+  errorMessage      String?  @map("error_message")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  webhookEndpoint WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+  event           WebhookEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRetryAt])
+  @@index([webhookEndpointId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("webhook_deliveries")
 }

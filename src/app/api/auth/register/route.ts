@@ -11,6 +11,7 @@ import {
 import { businessMetrics } from "@/lib/monitoring/metrics";
 import { logger } from "@/lib/logger";
 import { handleApiError, ValidationError, ConflictError } from "@/lib/errors";
+import { getClientIP } from "@/lib/utils/ip-utils";
 
 export const POST = withAuthRateLimit(
   "register",
@@ -38,6 +39,9 @@ export const POST = withAuthRateLimit(
       // Hash password
       const passwordHash = await hashPassword(password);
 
+      // Get client IP address for registration logging
+      const registrationIP = getClientIP(request);
+
       // Create user
       const user = await prisma.user.create({
         data: {
@@ -49,6 +53,7 @@ export const POST = withAuthRateLimit(
           isActive: true,
           emailVerified: false, // New users need email verification
           createdDate: new Date(),
+          registrationIpAddress: registrationIP,
         },
         select: {
           id: true,

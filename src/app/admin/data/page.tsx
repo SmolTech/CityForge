@@ -68,6 +68,21 @@ export default function DataManagementPage() {
     }
   };
 
+  // Get CSRF token from cookies (must match server-side implementation)
+  const getCsrfToken = (): string | null => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return null;
+    }
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split("=");
+      if (name === "csrf_token") {
+        return value || null;
+      }
+    }
+    return null;
+  };
+
   const handleExport = async () => {
     setExporting(true);
     setError("");
@@ -77,12 +92,20 @@ export default function DataManagementPage() {
       const requestBody = selectAll ? {} : { include: selectedModels };
       const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
 
+      // Get CSRF token for the request
+      const csrfToken = getCsrfToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+
       const response = await fetch(`${apiBaseUrl}/api/admin/data/export`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(requestBody),
       });
 
@@ -145,9 +168,19 @@ export default function DataManagementPage() {
       }
 
       const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
+
+      // Get CSRF token for the request
+      const csrfToken = getCsrfToken();
+      const headers: Record<string, string> = {};
+
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+
       const response = await fetch(`${apiBaseUrl}/api/admin/data/import`, {
         method: "POST",
         credentials: "include",
+        headers,
         body: formData,
       });
 

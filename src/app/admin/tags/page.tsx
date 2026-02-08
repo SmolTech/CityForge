@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, AdminTag, AdminApi } from "@/lib/api";
 import { Navigation } from "@/components/shared";
+import { logger } from "@/lib/logger";
 import AdminTags from "@/components/admin/AdminTags";
 import {
   AddTagModal,
@@ -57,7 +58,7 @@ export default function AdminTagsPage() {
       setTags(response.tags);
       setLoadingError(null);
     } catch (error) {
-      console.error("Error loading tags:", error);
+      logger.error("Error loading tags:", error);
       setLoadingError("Failed to load tags");
     }
   }, [adminApi]);
@@ -92,7 +93,7 @@ export default function AdminTagsPage() {
       setShowAddModal(false);
       showSuccess(`Tag "${response.tag.name}" created successfully!`);
     } catch (error: unknown) {
-      console.error("Error creating tag:", error);
+      logger.error("Error creating tag:", error);
       const message =
         (error as Error)?.message || "Failed to create tag. Please try again.";
       showError(message);
@@ -109,7 +110,7 @@ export default function AdminTagsPage() {
       setEditingTag(null);
       showSuccess(`Tag updated to "${response.tag.name}" successfully!`);
     } catch (error: unknown) {
-      console.error("Error updating tag:", error);
+      logger.error("Error updating tag:", error);
       const message =
         (error as Error)?.message || "Failed to update tag. Please try again.";
       showError(message);
@@ -126,7 +127,7 @@ export default function AdminTagsPage() {
       setDeletingTag(null);
       showSuccess(response.message);
     } catch (error: unknown) {
-      console.error("Error deleting tag:", error);
+      logger.error("Error deleting tag:", error);
       const message =
         (error as Error)?.message || "Failed to delete tag. Please try again.";
       showError(message);

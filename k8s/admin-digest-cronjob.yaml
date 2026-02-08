@@ -1,0 +1,101 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-admin-digest
+  labels:
+    app: cityforge
+    component: admin-digest
+spec:
+  # Run daily at 8:00 AM (adjust timezone as needed)
+  schedule: "0 8 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cityforge
+            component: admin-digest
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+            - name: admin-digest
+              image: ghcr.io/smoltech/cityforge-frontend:latest
+              imagePullPolicy: Always
+              command: ["node"]
+              args: ["scripts/daily-admin-digest.mjs"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: NODE_ENV
+                  value: "production"
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                      key: username
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge.cityforge-db.credentials.postgresql.acid.zalan.do
+                      key: password
+                - name: POSTGRES_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_HOST
+                - name: POSTGRES_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_PORT
+                - name: POSTGRES_DB
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: POSTGRES_DB
+                - name: JWT_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: jwt_secret_key
+                - name: NEXT_PUBLIC_SITE_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: NEXT_PUBLIC_SITE_URL
+                - name: WEBHOOKS_ENABLED
+                  value: "true"
+                - name: MAILGUN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email-secret
+                      key: api-key
+                      optional: true
+                - name: MAILGUN_DOMAIN
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email-secret
+                      key: domain
+                      optional: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
