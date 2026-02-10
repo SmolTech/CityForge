@@ -46,7 +46,7 @@ jobs:
   # Parallel builds with enhanced optimization
   build-frontend:
     name: Build Frontend
-    runs-on: ubuntu-latest-8-cores # Use 8-core for faster builds
+    runs-on: ubuntu-latest # Use 8-core for faster builds
     needs: validate-dockerfiles
     timeout-minutes: 15
     permissions:
@@ -131,7 +131,7 @@ jobs:
 
   build-indexer:
     name: Build Indexer
-    runs-on: ubuntu-latest-4-cores # Smaller indexer needs fewer cores
+    runs-on: ubuntu-latest # Smaller indexer needs fewer cores
     needs: validate-dockerfiles
     timeout-minutes: 10
     permissions:

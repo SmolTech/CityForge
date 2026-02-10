@@ -1,6 +1,7 @@
 name: Mobile CI (Optimized)
 
 on:
+  workflow_call: # Allow being called from other workflows
   push:
     branches: [main, develop]
     paths:
@@ -18,7 +19,7 @@ env:
 jobs:
   mobile-checks:
     name: Mobile Quality Checks
-    runs-on: ubuntu-latest-4-cores # Use 4-core runner
+    runs-on: ubuntu-latest # Use 4-core runner
     timeout-minutes: 15
 
     steps:
@@ -123,7 +124,7 @@ jobs:
   # Only run builds on specific conditions to save time
   quick-build-check:
     name: Quick Build Validation
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     needs: mobile-checks
     # Only run on main branch pushes or when explicitly requested
     if: github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[build mobile]')
