@@ -1,0 +1,200 @@
+name: Mobile CI (Optimized)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci-optimized.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci-optimized.yml"
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  mobile-checks:
+    name: Mobile Quality Checks
+    runs-on: ubuntu-latest-4-cores # Use 4-core runner
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      # Enhanced mobile caching
+      - name: Cache mobile dependencies and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.expo
+            mobile/.expo
+            mobile/node_modules/.cache
+            mobile/.eslintcache
+          key: ${{ runner.os }}-mobile-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: |
+          npm ci --prefer-offline --no-audit
+          echo "✅ Mobile dependencies installed"
+
+      # Run mobile checks in parallel
+      - name: Run parallel mobile checks
+        working-directory: mobile
+        run: |
+          echo "🔄 Running TypeScript and lint checks..."
+
+          # Run checks in parallel
+          npx tsc --noEmit > typecheck.log 2>&1 &
+          TYPECHECK_PID=$!
+
+          if [ -f "package.json" ] && grep -q "lint" package.json; then
+            npm run lint > lint.log 2>&1 &
+            LINT_PID=$!
+          else
+            echo "No lint script found, skipping..." > lint.log
+            LINT_PID=0
+          fi
+
+          # Wait for completion
+          wait $TYPECHECK_PID
+          TYPECHECK_EXIT=$?
+
+          if [ $LINT_PID -ne 0 ]; then
+            wait $LINT_PID
+            LINT_EXIT=$?
+          else
+            LINT_EXIT=0
+          fi
+
+          # Show results
+          echo "📋 TypeScript Results:"
+          cat typecheck.log
+          echo "📋 Lint Results:"  
+          cat lint.log
+
+          # Check for failures
+          if [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "❌ TypeScript check failed"
+            exit 1
+          fi
+
+          if [ $LINT_EXIT -ne 0 ]; then
+            echo "❌ Lint check failed"
+            exit 1
+          fi
+
+          echo "✅ All mobile checks passed"
+
+      # Test Expo configuration
+      - name: Validate Expo configuration
+        working-directory: mobile
+        run: |
+          # Check if Expo CLI is available or install it quickly
+          if ! command -v expo &> /dev/null; then
+            npx expo --version
+          fi
+
+          # Validate app.json/app.config.js
+          if [ -f "app.json" ] || [ -f "app.config.js" ]; then
+            echo "🔍 Validating Expo configuration..."
+            npx expo config --type introspect > /dev/null
+            echo "✅ Expo configuration is valid"
+          else
+            echo "⚠️ No Expo configuration found"
+          fi
+
+  # Only run builds on specific conditions to save time
+  quick-build-check:
+    name: Quick Build Validation
+    runs-on: ubuntu-latest-4-cores
+    needs: mobile-checks
+    # Only run on main branch pushes or when explicitly requested
+    if: github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[build mobile]')
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Restore mobile cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.expo
+            mobile/.expo
+            mobile/node_modules/.cache
+          key: ${{ runner.os }}-mobile-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci --prefer-offline
+
+      # Fast build validation without actually building binaries
+      - name: Validate build configuration
+        working-directory: mobile
+        run: |
+          echo "🔍 Validating build configuration..."
+
+          # Check if we can resolve all dependencies
+          npx expo install --check
+
+          # Validate that the app can be bundled (but don't create full build)
+          if command -v expo &> /dev/null; then
+            npx expo export --platform all --output-dir dist --clear > /dev/null
+            echo "✅ App bundle validation passed"
+            rm -rf dist
+          else
+            echo "⚠️ Skipping bundle validation - expo not available"
+          fi
+
+  status-check:
+    name: Mobile CI Status
+    runs-on: ubuntu-latest
+    needs: [mobile-checks, quick-build-check]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "Mobile Checks: ${{ needs.mobile-checks.result }}"
+          echo "Build Check: ${{ needs.quick-build-check.result }}"
+
+          # Mobile checks are required
+          if [[ "${{ needs.mobile-checks.result }}" == "failure" ]]; then
+            echo "❌ Mobile checks failed"
+            exit 1
+          fi
+
+          # Build check is optional (might be skipped)
+          if [[ "${{ needs.quick-build-check.result }}" == "failure" ]]; then
+            echo "⚠️ Build validation failed, but not blocking"
+          fi
+
+          echo "✅ Mobile CI completed"
