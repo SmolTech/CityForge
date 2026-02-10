@@ -1,6 +1,7 @@
 name: Frontend CI (Optimized)
 
 on:
+  workflow_call: # Allow being called from other workflows
   push:
     branches: [main, develop]
     paths:
@@ -40,7 +41,7 @@ jobs:
   # Single comprehensive job instead of multiple parallel jobs
   quality-and-security:
     name: Quality & Security Checks
-    runs-on: ubuntu-latest-4-cores # Use 4-core runner for faster builds
+    runs-on: ubuntu-latest # Use 4-core runner for faster builds
     timeout-minutes: 20 # Prevent hanging builds
 
     services:
