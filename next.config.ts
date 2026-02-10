@@ -12,18 +12,6 @@ const nextConfig: NextConfig = {
     serverComponentsHmrCache: false, // Disable to prevent memory issues in dev
   },
 
-  // Server runtime configuration
-  serverRuntimeConfig: {
-    // API timeout configuration (used by our middleware)
-    apiTimeout: {
-      auth: 10000, // 10 seconds
-      upload: 60000, // 60 seconds
-      admin: 45000, // 45 seconds
-      search: 30000, // 30 seconds
-      default: 30000, // 30 seconds
-    },
-  },
-
   // No API proxying needed - all endpoints are now handled by Next.js API routes
   async rewrites() {
     return [
