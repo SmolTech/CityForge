@@ -27,6 +27,7 @@
     "semgrep:ci": ".venv/bin/semgrep --config=auto --error --quiet .",
     "fix-sequences": "node scripts/fix-sequences.mjs",
     "admin-digest": "node scripts/daily-admin-digest.mjs",
+    "seed-database": "node scripts/seed-database.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
