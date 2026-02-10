@@ -1,0 +1,180 @@
+name: Smart Build Dispatch
+
+# This workflow intelligently decides what to build based on changes
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend-changed: ${{ steps.changes.outputs.frontend }}
+      mobile-changed: ${{ steps.changes.outputs.mobile }}
+      docker-needed: ${{ steps.changes.outputs.docker }}
+      security-scan-needed: ${{ steps.security.outputs.needed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for change detection
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'src/**'
+              - 'public/**'
+              - 'tests/**'
+              - 'package*.json'
+              - 'tsconfig.json'
+              - 'next.config.ts'
+              - 'tailwind.config.ts'
+              - 'vitest.config.ts'
+              - 'eslint.config.mjs'
+              - 'prisma/**'
+            mobile:
+              - 'mobile/**'
+            docker:
+              - 'Dockerfile'
+              - 'docker-compose*.yml'
+              - 'indexer/Dockerfile'
+              - '.dockerignore'
+
+      - name: Determine security scan needs
+        id: security
+        run: |
+          # Run security scans on main branch or if security-related files changed
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || \
+             [[ "${{ steps.changes.outputs.frontend }}" == "true" ]] || \
+             [[ "${{ steps.changes.outputs.mobile }}" == "true" ]]; then
+            echo "needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "needed=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Call optimized workflows based on what changed
+  frontend-workflow:
+    name: Frontend CI
+    if: needs.detect-changes.outputs.frontend-changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/frontend-ci-optimized.yml
+
+  mobile-workflow:
+    name: Mobile CI
+    if: needs.detect-changes.outputs.mobile-changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/mobile-ci-optimized.yml
+
+  docker-workflow:
+    name: Docker Build
+    if: needs.detect-changes.outputs.docker-needed == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: detect-changes
+    uses: ./.github/workflows/docker-optimized.yml
+
+  # Lightweight security scan
+  security-scan:
+    name: Security Scan
+    if: needs.detect-changes.outputs.security-scan-needed == 'true'
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          trivyignores: ".trivyignore"
+
+  build-status:
+    name: Build Status Summary
+    runs-on: ubuntu-latest
+    needs:
+      [
+        detect-changes,
+        frontend-workflow,
+        mobile-workflow,
+        docker-workflow,
+        security-scan,
+      ]
+    if: always()
+
+    steps:
+      - name: Build summary
+        run: |
+          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected:" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.detect-changes.outputs.frontend-changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Mobile: ${{ needs.detect-changes.outputs.mobile-changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker: ${{ needs.detect-changes.outputs.docker-needed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Workflow Results:" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.frontend-workflow.result }}" != "skipped" ]]; then
+            echo "- Frontend CI: ${{ needs.frontend-workflow.result }} ${{ needs.frontend-workflow.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.mobile-workflow.result }}" != "skipped" ]]; then
+            echo "- Mobile CI: ${{ needs.mobile-workflow.result }} ${{ needs.mobile-workflow.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.docker-workflow.result }}" != "skipped" ]]; then
+            echo "- Docker Build: ${{ needs.docker-workflow.result }} ${{ needs.docker-workflow.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.security-scan.result }}" != "skipped" ]]; then
+            echo "- Security Scan: ${{ needs.security-scan.result }} ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Overall status check
+        run: |
+          # Check if any required workflow failed
+          frontend_ok="${{ needs.frontend-workflow.result }}"
+          mobile_ok="${{ needs.mobile-workflow.result }}"
+          docker_ok="${{ needs.docker-workflow.result }}"
+          security_ok="${{ needs.security-scan.result }}"
+
+          # Count failures (skipped jobs don't count as failures)
+          failed=false
+
+          if [[ "$frontend_ok" == "failure" ]]; then
+            echo "❌ Frontend workflow failed"
+            failed=true
+          fi
+
+          if [[ "$mobile_ok" == "failure" ]]; then
+            echo "❌ Mobile workflow failed"
+            failed=true
+          fi
+
+          if [[ "$docker_ok" == "failure" ]]; then
+            echo "❌ Docker workflow failed"
+            failed=true
+          fi
+
+          if [[ "$security_ok" == "failure" ]]; then
+            echo "❌ Security scan failed"
+            failed=true
+          fi
+
+          if [[ "$failed" == "true" ]]; then
+            echo "❌ One or more workflows failed"
+            exit 1
+          else
+            echo "✅ All workflows completed successfully"
+          fi

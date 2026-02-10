@@ -1,0 +1,269 @@
+name: Frontend CI (Optimized)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "next.config.ts"
+      - "tailwind.config.ts"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - "prisma/**"
+      - ".github/workflows/frontend-ci-optimized.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "next.config.ts"
+      - "tailwind.config.ts"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - "prisma/**"
+      - ".github/workflows/frontend-ci-optimized.yml"
+
+env:
+  NODE_VERSION: "20"
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/cityforge_test"
+
+jobs:
+  # Single comprehensive job instead of multiple parallel jobs
+  quality-and-security:
+    name: Quality & Security Checks
+    runs-on: ubuntu-latest-4-cores # Use 4-core runner for faster builds
+    timeout-minutes: 20 # Prevent hanging builds
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: cityforge_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch minimal history for faster checkout
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      # Enhanced caching strategy
+      - name: Cache dependencies and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            .next/cache
+            node_modules/.cache
+            coverage
+            .eslintcache
+          key: ${{ runner.os }}-build-${{ hashFiles('package-lock.json') }}-${{ hashFiles('prisma/schema.prisma') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-build-
+
+      - name: Install dependencies
+        run: |
+          # Use npm ci with frozen lockfile for faster, deterministic installs
+          npm ci --prefer-offline --no-audit
+          echo "✅ Dependencies installed"
+
+      - name: Generate Prisma client (cached)
+        run: |
+          # Check if Prisma client needs regeneration
+          if [ ! -d "node_modules/.prisma" ] || [ "prisma/schema.prisma" -nt "node_modules/.prisma/client/index.js" ]; then
+            echo "🔄 Regenerating Prisma client..."
+            npx prisma generate
+          else
+            echo "✅ Using cached Prisma client"
+          fi
+
+      - name: Setup test database
+        run: |
+          # Only push schema if needed (faster than full migrations)
+          npx prisma db push --skip-generate
+          echo "✅ Test database ready"
+
+      # Run checks in parallel using background processes
+      - name: Run parallel quality checks
+        run: |
+          # Start all checks in background
+          npm run typecheck > typecheck.log 2>&1 &
+          TYPECHECK_PID=$!
+
+          npm run lint --cache > lint.log 2>&1 &
+          LINT_PID=$!
+
+          npm run format:check > format.log 2>&1 &
+          FORMAT_PID=$!
+
+          # Wait for all to complete and check results
+          wait $TYPECHECK_PID
+          TYPECHECK_EXIT=$?
+
+          wait $LINT_PID  
+          LINT_EXIT=$?
+
+          wait $FORMAT_PID
+          FORMAT_EXIT=$?
+
+          # Show logs and exit with failure if any check failed
+          echo "📋 TypeScript Check Results:"
+          cat typecheck.log
+          echo "📋 ESLint Results:"
+          cat lint.log
+          echo "📋 Formatting Check Results:"
+          cat format.log
+
+          if [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "❌ TypeScript check failed"
+            exit 1
+          fi
+
+          if [ $LINT_EXIT -ne 0 ]; then
+            echo "❌ Lint check failed" 
+            exit 1
+          fi
+
+          if [ $FORMAT_EXIT -ne 0 ]; then
+            echo "❌ Format check failed"
+            exit 1
+          fi
+
+          echo "✅ All quality checks passed"
+
+      # Security and dependency checks (only critical issues fail CI)
+      - name: Security checks
+        continue-on-error: false
+        run: |
+          # Critical security test
+          npm run test:run -- src/lib/utils/log-redaction.test.ts
+
+          # Check for hardcoded secrets (simplified check)
+          if grep -r -E "(secret|key|token|password)\s*[:=]\s*['\"][a-zA-Z0-9\-._~+\/]{20,}['\"]" src/ \
+            --exclude-dir=node_modules \
+            --exclude="*.test.*" \
+            --exclude="log-redaction.ts" \
+            | grep -v -E "(REDACTED|process\.env|Enter|Backspace)" | head -5; then
+            echo "❌ Potential hardcoded secrets found"
+            exit 1
+          fi
+
+          echo "✅ Security checks passed"
+
+      # Dependency audit (warnings allowed, critical vulnerabilities fail)
+      - name: Dependency security audit
+        run: |
+          echo "🔍 Running dependency audit..."
+          npm audit --audit-level=critical
+          echo "✅ No critical vulnerabilities found"
+
+      # Tests with optimized execution
+      - name: Run tests
+        run: |
+          # Run tests in parallel with optimized reporters
+          npm run test:run -- --reporter=basic --run
+        env:
+          NODE_ENV: test
+          VITEST_MIN_THREADS: 2
+          VITEST_MAX_THREADS: 4
+
+      # Build test (only if tests pass)
+      - name: Build verification
+        run: |
+          echo "🏗️ Testing production build..."
+          npm run build
+          echo "✅ Build successful"
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: "http://localhost:5000"
+          # Skip telemetry for faster builds
+          NEXT_TELEMETRY_DISABLED: 1
+
+      # Optional: Generate coverage only on main branch
+      - name: Generate coverage report
+        if: github.ref == 'refs/heads/main'
+        run: |
+          npm run test:unit:coverage -- \
+            --coverage.thresholds.lines=10 \
+            --coverage.thresholds.functions=40 \
+            --coverage.thresholds.statements=10 \
+            --coverage.thresholds.branches=30
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage to Codecov
+        if: github.ref == 'refs/heads/main' && success()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Separate lightweight job for quick dependency checks
+  dependency-check:
+    name: Quick Dependency Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' # Only run on PRs
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Quick dependency check
+        run: |
+          # Fast check without installing dev dependencies
+          npm audit --audit-level=moderate --production --dry-run
+          echo "✅ Production dependencies check completed"
+
+  status-check:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [quality-and-security]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "Quality & Security: ${{ needs.quality-and-security.result }}"
+
+          if [[ "${{ needs.quality-and-security.result }}" == "failure" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          else
+            echo "✅ All checks passed"
+          fi
