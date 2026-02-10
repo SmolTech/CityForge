@@ -51,11 +51,9 @@ async function initializeDatabase() {
     await prisma.$connect();
     console.log("✅ Connected to database");
 
-    // Check if schema exists
-    let schemaExists = false;
+    // Check if schema exists (for logging purposes)
     try {
       await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
-      schemaExists = true;
       console.log("✅ Database schema already exists");
     } catch {
       console.log("📋 Schema not found, will be created by Prisma migrations");
