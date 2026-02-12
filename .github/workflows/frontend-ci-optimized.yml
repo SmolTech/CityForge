@@ -165,10 +165,17 @@ jobs:
           npm run test:run -- src/lib/utils/log-redaction.test.ts
 
           # Check for hardcoded secrets (simplified check)
-          if find src/ -name "*.ts" -o -name "*.tsx" | grep -v "\.test\." | xargs grep -H -E "(secret|key|token|password)\s*[:=]\s*['\"][a-zA-Z0-9._~+-]{20,}['\"]" | grep -v -E "(REDACTED|process\.env|Enter|Backspace)" | head -5; then
-            echo "❌ Potential hardcoded secrets found"
-            exit 1
+          echo "🔍 Checking for hardcoded secrets..."
+          SECRET_MATCHES=$(find src/ -name "*.ts" -o -name "*.tsx" | grep -v "\.test\." | xargs grep -l -E "(secret|key|token|password)" | head -10)
+          if [ -n "$SECRET_MATCHES" ]; then
+            echo "Files with potential secret references: $SECRET_MATCHES"
+            # Only check for actual hardcoded values (20+ char strings)
+            if find src/ -name "*.ts" -o -name "*.tsx" | grep -v "\.test\." | xargs grep -H -E "(secret|key|token|password)\s*[:=]\s*[\"'][a-zA-Z0-9._~+-]{20,}[\"']" | grep -v -E "(REDACTED|process\.env|Enter|Backspace)"; then
+              echo "❌ Potential hardcoded secrets found"
+              exit 1
+            fi
           fi
+          echo "✅ No hardcoded secrets detected"
 
           echo "✅ Security checks passed"
 
