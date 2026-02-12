@@ -165,11 +165,7 @@ jobs:
           npm run test:run -- src/lib/utils/log-redaction.test.ts
 
           # Check for hardcoded secrets (simplified check)
-          if grep -r -E "(secret|key|token|password)\s*[:=]\s*['\"][a-zA-Z0-9\-._~+\/]{20,}['\"]" src/ \
-            --exclude-dir=node_modules \
-            --exclude="*.test.*" \
-            --exclude="log-redaction.ts" \
-            | grep -v -E "(REDACTED|process\.env|Enter|Backspace)" | head -5; then
+          if find src/ -name "*.ts" -o -name "*.tsx" | grep -v "\.test\." | xargs grep -H -E "(secret|key|token|password)\s*[:=]\s*['\"][a-zA-Z0-9._~+-]{20,}['\"]" | grep -v -E "(REDACTED|process\.env|Enter|Backspace)" | head -5; then
             echo "❌ Potential hardcoded secrets found"
             exit 1
           fi
