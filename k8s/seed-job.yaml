@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cityforge-seed
+  name: cityforge-seed-demo
   namespace: cityforge
   labels:
     app: cityforge
@@ -21,6 +21,9 @@ spec:
       containers:
         - name: seed
           image: cityforge:latest
+          # Seeds optional demo data (sample cards, tags).
+          # Structural data (config, categories) is handled by db-init.mjs
+          # which runs automatically on container startup.
           command: ["node", "scripts/seed-database.mjs"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -46,34 +49,8 @@ spec:
               value: "5432"
             - name: POSTGRES_DB
               value: "cityforge"
-
-            # Admin user creation (optional)
-            - name: ADMIN_EMAIL
-              value: "admin@example.com"
-            - name: ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cityforge-admin-secret
-                  key: password
-                  optional: true
-
-            # Behavior control
-            - name: SEED_SAMPLE_DATA
-              value: "true"
             - name: NODE_ENV
               value: "production"
-
-            # Other required app environment variables
-            - name: JWT_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: cityforge-secret
-                  key: jwt-secret
-            - name: CSRF_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: cityforge-secret
-                  key: csrf-secret
 
           resources:
             requests:
@@ -82,13 +59,3 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
----
-# Optional: Admin credentials secret
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cityforge-admin-secret
-  namespace: cityforge
-type: Opaque
-stringData:
-  password: "your-secure-admin-password-here"

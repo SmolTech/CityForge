@@ -1,10 +1,25 @@
-# Database Seeding Script
+# Database Initialization & Seeding
 
-The `seed-database.mjs` script is designed for Kubernetes deployments using PostgreSQL operator secrets and config maps.
+## Overview
+
+CityForge uses a two-tier data initialization approach:
+
+1. **`db-init.mjs`** — Runs automatically on every container start. Creates all structural data needed for a fully functional system (site config, forum categories, resource categories, admin user). Idempotent and safe to run repeatedly.
+
+2. **`seed-database.mjs`** — Optional. Seeds demo/sample data (business cards, tags) for development or demonstrations. Not needed for production.
+
+## Fresh Install
+
+On a fresh install, the system is fully usable after `db-init.mjs` runs. No manual seeding is required. The following is created automatically:
+
+- **Admin user** (from `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars)
+- **Site configuration** (22 config keys with sensible defaults, customizable via admin panel)
+- **Forum categories** (General Discussion, Local Events, Business Directory, Community News, Help & Support)
+- **Resource categories** (Government Services, Healthcare, Education, etc.)
+
+Resources, business cards, tags, and all other content are created by users through the web interface.
 
 ## Environment Variables
-
-The script requires these PostgreSQL connection variables:
 
 ### Required (from PostgreSQL operator secret)
 
@@ -20,103 +35,59 @@ The script requires these PostgreSQL connection variables:
 
 - `POSTGRES_PORT` - Database port (defaults to "5432")
 - `DATABASE_URL` - If set, overrides the constructed URL
-
-### Admin User Creation
-
-- `ADMIN_EMAIL` - Email for admin user (optional)
-- `ADMIN_PASSWORD` - Password for admin user (optional)
-
-### Behavior Control
-
-- `SEED_SAMPLE_DATA` - Set to "false" to skip sample data seeding
-- `NODE_ENV` - Environment name for logging
+- `ADMIN_EMAIL` - Email for admin user
+- `ADMIN_PASSWORD` - Password for admin user
+- `SEED_SAMPLE_DATA` - Set to "false" to skip sample data in seed-database.mjs
 
 ## Usage
 
-### Run with npm script:
+### Automatic (Docker/Kubernetes)
+
+`db-init.mjs` runs automatically via `docker-entrypoint.sh` on every container start.
+
+### Manual initialization
 
 ```bash
+# Set environment variables, then:
+node scripts/db-init.mjs
+```
+
+### Optional demo data
+
+```bash
+# Seed sample business cards and tags for development
 npm run seed-database
+
+# Or skip sample data
+SEED_SAMPLE_DATA=false npm run seed-database
 ```
 
-### Run directly:
+### In Kubernetes
+
+The seed job (`k8s/seed-job.yaml`) is optional and only seeds demo data. Structural data is handled by `db-init.mjs` which runs in the container entrypoint.
 
 ```bash
-node scripts/seed-database.mjs
+kubectl apply -f k8s/seed-job.yaml  # Optional: demo data only
 ```
 
-### In Kubernetes:
+## What each script creates
 
-```yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: cityforge-seed
-spec:
-  template:
-    spec:
-      containers:
-        - name: seed
-          image: cityforge:latest
-          command: ["node", "scripts/seed-database.mjs"]
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-credentials
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-credentials
-                  key: password
-            - name: POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: cityforge-config
-                  key: postgres-host
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: cityforge-config
-                  key: postgres-db
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: ADMIN_EMAIL
-              value: "admin@example.com"
-            - name: ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: admin-credentials
-                  key: password
-      restartPolicy: OnFailure
-```
+### db-init.mjs (automatic, structural)
 
-## What it does
+| Data | Purpose |
+|------|---------|
+| Admin user | First admin account for the system |
+| Site config (22 keys) | Site title, description, colors, copyright, etc. |
+| Forum categories (5) | General Discussion, Local Events, Business Directory, Community News, Help & Support |
+| Resource categories (8) | Government, Healthcare, Education, Emergency, Utilities, Transportation, Recreation, Community |
 
-1. **Validates Environment Variables** - Ensures all required PostgreSQL connection variables are present
-2. **Constructs Database URL** - Builds `DATABASE_URL` from individual components if not already set
-3. **Runs Migrations** - Executes `prisma migrate deploy` to ensure schema is up-to-date
-4. **Initializes Core Data** - Creates:
-   - Resource categories (Government Services, Healthcare, etc.)
-   - Site configuration (title, description, etc.)
-5. **Creates Admin User** - If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are provided
-6. **Seeds Sample Data** - Unless `SEED_SAMPLE_DATA=false`, creates:
-   - Sample business tags
-   - Forum categories
-   - Sample business cards
-   - Demonstrates the complete data model
+### seed-database.mjs (optional, demo)
 
-## Safe to run multiple times
+| Data | Purpose |
+|------|---------|
+| Sample tags (6) | Restaurant, Coffee Shop, Local Business, etc. |
+| Sample business cards (4) | Mario's Pizza, Coffee Corner, etc. |
 
-The script uses `upsert` operations where possible, making it safe to run multiple times without creating duplicates.
+## Idempotent
 
-## Output
-
-The script provides detailed logging with emojis for easy reading:
-
-- ✅ Success messages
-- ❌ Error messages
-- ⚠️ Warning messages
-- 📊 Statistics
-- 🔗 Connection info (with password masked)
+Both scripts are safe to run multiple times. They use `upsert` or existence checks to avoid creating duplicates, and never overwrite admin customizations to site configuration.
