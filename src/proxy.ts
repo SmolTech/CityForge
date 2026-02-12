@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 /**
  * Request timeout configuration for different endpoint types
  */
-const MIDDLEWARE_TIMEOUTS = {
+const PROXY_TIMEOUTS = {
   auth: 10000, // 10 seconds for auth operations
   upload: 60000, // 60 seconds for file uploads
   admin: 45000, // 45 seconds for admin operations
@@ -20,30 +20,30 @@ const MIDDLEWARE_TIMEOUTS = {
  */
 function getServerTimeout(pathname: string): number {
   if (pathname.includes("/api/auth/")) {
-    return MIDDLEWARE_TIMEOUTS.auth;
+    return PROXY_TIMEOUTS.auth;
   }
   if (pathname.includes("/api/upload")) {
-    return MIDDLEWARE_TIMEOUTS.upload;
+    return PROXY_TIMEOUTS.upload;
   }
   if (pathname.includes("/api/admin/")) {
-    return MIDDLEWARE_TIMEOUTS.admin;
+    return PROXY_TIMEOUTS.admin;
   }
   if (pathname.includes("/api/search")) {
-    return MIDDLEWARE_TIMEOUTS.search;
+    return PROXY_TIMEOUTS.search;
   }
-  return MIDDLEWARE_TIMEOUTS.default;
+  return PROXY_TIMEOUTS.default;
 }
 
 /**
- * Global middleware for all requests
+ * Global proxy for all requests
  * - Tracks HTTP request metrics (timing, status codes, error rates)
  * - Handles CORS for API routes when nginx proxy is not available
  * - Enforces comprehensive security headers (CSP, HSTS, X-Frame-Options, etc.)
  * - Enforces request body size limits to prevent DoS attacks
  * - Implements server-side timeout protection to prevent resource exhaustion
  */
-export async function middleware(request: NextRequest) {
-  logger.info("[MIDDLEWARE DEBUG] Called for:", {
+export async function proxy(request: NextRequest) {
+  logger.info("[PROXY DEBUG] Called for:", {
     pathname: request.nextUrl.pathname,
     method: request.method,
   });
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
   // Debug logging for E2E tests - ALL requests, not just auth
   const isE2ETest = process.env["PLAYWRIGHT_E2E_TESTING"] === "true";
   if (isE2ETest) {
-    console.log("[MIDDLEWARE] Request:", {
+    console.log("[PROXY] Request:", {
       method: request.method,
       path: path,
       userAgent: request.headers.get("user-agent")?.substring(0, 50),
@@ -132,7 +132,7 @@ export async function middleware(request: NextRequest) {
 
     // Debug logging for E2E tests - track response
     if (isE2ETest) {
-      console.log("[MIDDLEWARE] Response:", {
+      console.log("[PROXY] Response:", {
         method: request.method,
         path: path,
         status: response.status,
@@ -193,7 +193,7 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Apply middleware to all routes for security headers, with specific CORS handling for API routes
+// Apply proxy to all routes for security headers, with specific CORS handling for API routes
 export const config = {
   matcher: [
     // Apply to all routes except static files
