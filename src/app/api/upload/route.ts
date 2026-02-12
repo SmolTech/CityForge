@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import { isCsrfExempt, validateCsrfToken } from "@/lib/auth/csrf";
 import { v4 as uuidv4 } from "uuid";
 import { v2 as cloudinary } from "cloudinary";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -122,6 +123,86 @@ function configureCloudinary(): void {
     api_secret: apiSecret,
     secure: true,
   });
+}
+
+function isS3Configured(): boolean {
+  return !!(
+    process.env["S3_ENDPOINT"] &&
+    process.env["S3_BUCKET"] &&
+    process.env["S3_ACCESS_KEY_ID"] &&
+    process.env["S3_SECRET_ACCESS_KEY"]
+  );
+}
+
+async function uploadToS3(
+  fileBuffer: ArrayBuffer,
+  filename: string
+): Promise<{
+  success: boolean;
+  url?: string;
+  key?: string;
+  error?: string;
+}> {
+  try {
+    if (!isS3Configured()) {
+      return { success: false, error: "S3 not configured" };
+    }
+
+    const endpoint = process.env["S3_ENDPOINT"]!;
+    const bucket = process.env["S3_BUCKET"]!;
+    const accessKeyId = process.env["S3_ACCESS_KEY_ID"]!;
+    const secretAccessKey = process.env["S3_SECRET_ACCESS_KEY"]!;
+    const region = process.env["S3_REGION"] || "us-east-1";
+
+    const s3Client = new S3Client({
+      region,
+      endpoint,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle: true, // Required for S3-compatible services like Linode
+    });
+
+    const secureFilename = makeFilenameSecure(filename);
+    const uniqueFilename = `${uuidv4()}_${secureFilename}`;
+    const key = `uploads/${uniqueFilename}`;
+
+    // Determine content type
+    const ext = filename.toLowerCase().split(".").pop();
+    const contentTypeMap: Record<string, string> = {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+    };
+    const contentType = contentTypeMap[ext || ""] || "application/octet-stream";
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: new Uint8Array(fileBuffer),
+      ContentType: contentType,
+      ACL: "public-read", // Make files publicly accessible
+    });
+
+    await s3Client.send(command);
+
+    // Construct public URL
+    // Linode Object Storage URL format: https://BUCKET.REGION.linodeobjects.com/KEY
+    const publicUrl = `${endpoint}/${bucket}/${key}`;
+
+    logger.info(`Successfully uploaded image to S3: ${key}`);
+    return {
+      success: true,
+      url: publicUrl,
+      key,
+    };
+  } catch (error) {
+    logger.error("Failed to upload image to S3:", error);
+    return { success: false, error: String(error) };
+  }
 }
 
 async function uploadToCloudinary(
@@ -307,7 +388,25 @@ export const POST = withAuth(async (request: NextRequest) => {
     // Convert file to ArrayBuffer
     const fileBuffer = await file.arrayBuffer();
 
-    // Try Cloudinary first if configured
+    // Try S3 first if configured
+    if (isS3Configured()) {
+      logger.info("Using S3-compatible storage for file upload");
+      const s3Result = await uploadToS3(fileBuffer, file.name);
+
+      if (s3Result.success && s3Result.url && s3Result.key) {
+        return NextResponse.json({
+          success: true,
+          url: s3Result.url,
+          key: s3Result.key,
+          storage: "s3",
+          message: "File uploaded successfully to S3",
+        });
+      } else {
+        logger.warn("S3 upload failed, trying next option");
+      }
+    }
+
+    // Try Cloudinary next if configured
     if (isCloudinaryConfigured()) {
       logger.info("Using Cloudinary for file upload");
       const cloudinaryResult = await uploadToCloudinary(fileBuffer, file.name);
