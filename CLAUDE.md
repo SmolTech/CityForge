@@ -48,7 +48,8 @@ npx prisma db push       # Push schema changes to database (development)
 npx prisma migrate dev   # Create and apply migrations (development)
 npx prisma studio        # Open Prisma Studio UI
 
-node scripts/db-init.mjs # Initialize database with schema and admin user
+node scripts/db-init.mjs # Initialize database with schema, config, categories, and admin user
+node scripts/seed-database.mjs  # Optional: seed demo data (sample cards/tags)
 ```
 
 ### Docker Development
