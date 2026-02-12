@@ -23,7 +23,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/cityforge
+  # Convert repository owner to lowercase for container registry compatibility
+  IMAGE_PREFIX: smoltech/cityforge
 
 jobs:
   # Quick validation job
