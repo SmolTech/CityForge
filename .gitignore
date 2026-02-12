@@ -59,3 +59,4 @@ next-env.d.ts
 /src/generated/prisma
 cloudflare-email-secret.yaml
 mailgun-email-secret.yaml
+k8s/s3-secret.yaml

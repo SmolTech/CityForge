@@ -74,19 +74,19 @@ kubectl apply -f k8s/seed-job.yaml  # Optional: demo data only
 
 ### db-init.mjs (automatic, structural)
 
-| Data | Purpose |
-|------|---------|
-| Admin user | First admin account for the system |
-| Site config (22 keys) | Site title, description, colors, copyright, etc. |
-| Forum categories (5) | General Discussion, Local Events, Business Directory, Community News, Help & Support |
+| Data                    | Purpose                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| Admin user              | First admin account for the system                                                             |
+| Site config (22 keys)   | Site title, description, colors, copyright, etc.                                               |
+| Forum categories (5)    | General Discussion, Local Events, Business Directory, Community News, Help & Support           |
 | Resource categories (8) | Government, Healthcare, Education, Emergency, Utilities, Transportation, Recreation, Community |
 
 ### seed-database.mjs (optional, demo)
 
-| Data | Purpose |
-|------|---------|
-| Sample tags (6) | Restaurant, Coffee Shop, Local Business, etc. |
-| Sample business cards (4) | Mario's Pizza, Coffee Corner, etc. |
+| Data                      | Purpose                                       |
+| ------------------------- | --------------------------------------------- |
+| Sample tags (6)           | Restaurant, Coffee Shop, Local Business, etc. |
+| Sample business cards (4) | Mario's Pizza, Coffee Corner, etc.            |
 
 ## Idempotent
 

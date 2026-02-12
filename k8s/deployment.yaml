@@ -6,7 +6,7 @@ metadata:
   labels:
     app: cityforge
 spec:
-  replicas: 2
+  replicas: 2 # Can scale horizontally with S3 storage (no shared filesystem needed)
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -175,9 +175,40 @@ spec:
             # Webhooks configuration
             - name: WEBHOOKS_ENABLED
               value: "true"
-            # Upload folder configuration
+            # S3-compatible object storage (Linode Object Storage)
+            - name: S3_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  key: s3_endpoint
+                  name: cityforge-s3-credentials
+                  optional: true
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  key: s3_bucket
+                  name: cityforge-s3-credentials
+                  optional: true
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  key: s3_access_key_id
+                  name: cityforge-s3-credentials
+                  optional: true
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: s3_secret_access_key
+                  name: cityforge-s3-credentials
+                  optional: true
+            - name: S3_REGION
+              valueFrom:
+                secretKeyRef:
+                  key: s3_region
+                  name: cityforge-s3-credentials
+                  optional: true
+            # Upload folder configuration (fallback if S3/Cloudinary not available)
             - name: UPLOAD_FOLDER
-              value: "/app/uploads"
+              value: "/tmp/uploads"
             # Cloudinary configuration (optional - for image hosting)
             - name: CLOUDINARY_CLOUD_NAME
               valueFrom:
@@ -236,9 +267,6 @@ spec:
                   key: EMAIL_FROM_NAME
                   name: mailgun-email
                   optional: true
-          volumeMounts:
-            - name: uploads-storage
-              mountPath: /app/uploads
           livenessProbe:
             httpGet:
               path: /api/health
@@ -259,7 +287,3 @@ spec:
             limits:
               memory: "1.5Gi" # Increased from 1Gi for safety margin
               cpu: "1200m" # Increased from 1000m for API processing
-      volumes:
-        - name: uploads-storage
-          persistentVolumeClaim:
-            claimName: cityforge-uploads-pvc

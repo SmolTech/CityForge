@@ -99,14 +99,12 @@ async function ensureResourceCategories(prisma) {
     { name: "Community Services", displayOrder: 8 },
   ];
 
-  let created = 0;
   for (const category of categories) {
-    const result = await prisma.resourceCategory.upsert({
+    await prisma.resourceCategory.upsert({
       where: { name: category.name },
       update: {},
       create: category,
     });
-    if (result) created++;
   }
   console.log(`   ✅ ${categories.length} resource categories ensured`);
 }
