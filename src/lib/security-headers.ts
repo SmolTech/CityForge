@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
@@ -306,9 +307,7 @@ export function isSecureContext(request: NextRequest): boolean {
  * Generate a cryptographically secure nonce for CSP
  */
 export function generateCSPNonce(): string {
-  // In a real application, you would generate this server-side
-  // For now, we'll use a simple timestamp-based approach
-  return Buffer.from(`nonce-${Date.now()}-${Math.random()}`).toString("base64");
+  return randomBytes(16).toString("base64");
 }
 
 /**
