@@ -206,7 +206,6 @@ export default function AdminUsersPage() {
                   email: formData.get("email") as string,
                   role: formData.get("role") as "user" | "admin",
                   is_active: formData.get("is_active") === "true",
-                  support: formData.get("support") === "on",
                 });
               }}
             >
@@ -272,17 +271,6 @@ export default function AdminUsersPage() {
                     <option value="true">Active</option>
                     <option value="false">Inactive</option>
                   </select>
-                </div>
-                <div>
-                  <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <input
-                      type="checkbox"
-                      name="support"
-                      defaultChecked={editingUser.support}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-                    />
-                    <span>Support Access (can view all support tickets)</span>
-                  </label>
                 </div>
               </div>
               <div className="mt-6 flex justify-end space-x-3">

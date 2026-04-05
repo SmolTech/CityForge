@@ -58,11 +58,9 @@ export function createTestToken(user: {
   email: string;
   firstName: string;
   lastName: string;
-  role: "admin" | "supporter" | "user";
+  role: "admin" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
-  isSupporterFlag?: boolean;
-  support?: boolean;
 }): string {
   return generateAccessToken({
     id: user.id,
@@ -72,8 +70,6 @@ export function createTestToken(user: {
     role: user.role,
     isActive: user.isActive ?? true,
     emailVerified: user.emailVerified ?? true,
-    isSupporterFlag: user.isSupporterFlag ?? false,
-    support: user.support ?? false,
   });
 }
 
@@ -87,10 +83,9 @@ export function createAuthenticatedRequest(
     email: string;
     firstName: string;
     lastName: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive?: boolean;
     emailVerified?: boolean;
-    isSupporterFlag?: boolean;
   },
   options: {
     method?: string;
@@ -151,7 +146,7 @@ export function createTestUser(
     email: string;
     firstName: string;
     lastName: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive: boolean;
     emailVerified: boolean;
   }> = {}
@@ -361,10 +356,9 @@ export async function createAuthenticatedRequestWithFormData(
     email: string;
     firstName: string;
     lastName: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive?: boolean;
     emailVerified?: boolean;
-    isSupporterFlag?: boolean;
   },
   options: {
     method?: string;
@@ -415,10 +409,9 @@ export function createCookieAuthenticatedRequest(
     email: string;
     firstName: string;
     lastName: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive?: boolean;
     emailVerified?: boolean;
-    isSupporterFlag?: boolean;
   },
   options: {
     method?: string;

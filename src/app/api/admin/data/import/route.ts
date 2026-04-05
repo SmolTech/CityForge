@@ -101,8 +101,6 @@ export const POST = withCsrfProtection(
           "HelpWantedPost",
           "HelpWantedComment",
           "HelpWantedReport",
-          "SupportTicket",
-          "SupportTicketMessage",
           "IndexingJob",
           "TokenBlacklist",
           "alembic_version",
@@ -207,14 +205,6 @@ export const POST = withCsrfProtection(
                   case "HelpWantedReport":
                     deleteCount = await tx.helpWantedReport.count();
                     await tx.helpWantedReport.deleteMany();
-                    break;
-                  case "SupportTicket":
-                    deleteCount = await tx.supportTicket.count();
-                    await tx.supportTicket.deleteMany();
-                    break;
-                  case "SupportTicketMessage":
-                    deleteCount = await tx.supportTicketMessage.count();
-                    await tx.supportTicketMessage.deleteMany();
                     break;
                   case "IndexingJob":
                     deleteCount = await tx.indexingJob.count();
@@ -381,18 +371,6 @@ export const POST = withCsrfProtection(
                     });
                     addedCount = cleanRecords.length;
                     break;
-                  case "SupportTicket":
-                    await tx.supportTicket.createMany({
-                      data: cleanRecords as never[],
-                    });
-                    addedCount = cleanRecords.length;
-                    break;
-                  case "SupportTicketMessage":
-                    await tx.supportTicketMessage.createMany({
-                      data: cleanRecords as never[],
-                    });
-                    addedCount = cleanRecords.length;
-                    break;
                   case "IndexingJob":
                     await tx.indexingJob.createMany({
                       data: cleanRecords as never[],
@@ -463,8 +441,6 @@ export const POST = withCsrfProtection(
             "HelpWantedPost",
             "HelpWantedComment",
             "HelpWantedReport",
-            "SupportTicket",
-            "SupportTicketMessage",
             "IndexingJob",
             "TokenBlacklist",
             "alembic_version",

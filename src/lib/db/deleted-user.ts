@@ -177,24 +177,6 @@ export async function reassignUserContent(
       data: { reviewedBy: toUserId },
     });
 
-    // Reassign support tickets
-    await tx.supportTicket.updateMany({
-      where: { createdBy: fromUserId },
-      data: { createdBy: toUserId },
-    });
-
-    // Reassign ticket assignments
-    await tx.supportTicket.updateMany({
-      where: { assignedTo: fromUserId },
-      data: { assignedTo: toUserId },
-    });
-
-    // Reassign support ticket messages
-    await tx.supportTicketMessage.updateMany({
-      where: { createdBy: fromUserId },
-      data: { createdBy: toUserId },
-    });
-
     // Delete token blacklist entries (no need to reassign)
     await tx.tokenBlacklist.deleteMany({
       where: { userId: fromUserId },

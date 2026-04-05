@@ -36,8 +36,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const token = generateAccessToken(user);
@@ -58,8 +56,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "admin",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const token = generateAccessToken(user);
@@ -83,8 +79,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const beforeGeneration = Math.floor(Date.now() / 1000);
@@ -112,8 +106,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const token1 = generateAccessToken(user);
@@ -139,8 +131,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       expect(() => generateAccessToken(user)).toThrow(
@@ -159,8 +149,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const token = generateAccessToken(user);
@@ -180,8 +168,6 @@ describe("JWT Utilities", () => {
         isActive: true,
         role: "user",
         emailVerified: true,
-        isSupporterFlag: false,
-        support: false,
       };
 
       const token = generateAccessToken(user);

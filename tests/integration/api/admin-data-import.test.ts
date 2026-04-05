@@ -24,7 +24,6 @@ vi.mock("@/lib/auth/middleware", () => ({
           role: testAuthMode === "non-admin" ? "user" : "admin",
           isActive: true,
           emailVerified: true,
-          isSupporterFlag: false,
         };
       }
 
@@ -291,16 +290,6 @@ describe("/api/admin/data/import", () => {
         createMany: vi.fn(),
       },
       helpWantedReport: {
-        count: vi.fn().mockResolvedValue(0),
-        deleteMany: vi.fn(),
-        createMany: vi.fn(),
-      },
-      supportTicket: {
-        count: vi.fn().mockResolvedValue(0),
-        deleteMany: vi.fn(),
-        createMany: vi.fn(),
-      },
-      supportTicketMessage: {
         count: vi.fn().mockResolvedValue(0),
         deleteMany: vi.fn(),
         createMany: vi.fn(),

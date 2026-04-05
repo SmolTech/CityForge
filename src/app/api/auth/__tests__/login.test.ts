@@ -257,38 +257,6 @@ describe("POST /api/auth/login", () => {
     expect(response.status).toBe(200);
     expect(data.user.role).toBe("admin");
     expect(data.user.is_admin).toBe(true);
-    expect(data.user.is_supporter).toBe(true);
-  });
-
-  it("should return correct user role flags for supporter", async () => {
-    const mockUser = createMockUser({
-      role: "supporter",
-    });
-
-    (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockUser
-    );
-    (prisma.user.update as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockUser
-    );
-    vi.mocked(verifyPassword).mockResolvedValue(true);
-
-    const request = createMockRequest({
-      method: "POST",
-      url: "http://localhost:3000/api/auth/login",
-      body: {
-        email: "supporter@example.com",
-        password: "password",
-      },
-    });
-
-    const response = await POST(request);
-    const data = await parseJsonResponse(response);
-
-    expect(response.status).toBe(200);
-    expect(data.user.role).toBe("supporter");
-    expect(data.user.is_admin).toBe(false);
-    expect(data.user.is_supporter).toBe(true);
   });
 
   it("should set httpOnly cookie in response", async () => {

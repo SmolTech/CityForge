@@ -275,7 +275,7 @@ describe("Authentication API Routes", () => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role as "admin" | "supporter" | "user",
+          role: user.role as "admin" | "user",
           isActive: user.isActive ?? true,
           emailVerified: user.emailVerified ?? false,
         },
@@ -315,7 +315,7 @@ describe("Authentication API Routes", () => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role as "admin" | "supporter" | "user",
+          role: user.role as "admin" | "user",
           isActive: user.isActive ?? true,
           emailVerified: user.emailVerified ?? false,
         },
@@ -334,9 +334,6 @@ describe("Authentication API Routes", () => {
         expect(data.user.username).toBe("Current User");
         expect(data.user.role).toBe(user.role);
         expect(data.user.is_admin).toBe(user.role === "admin");
-        expect(data.user.is_supporter).toBe(
-          user.role === "supporter" || user.role === "admin"
-        );
         expect(data.user.is_active).toBe(user.isActive ?? true);
         expect(data.user.email_verified).toBe(user.emailVerified ?? false);
       });

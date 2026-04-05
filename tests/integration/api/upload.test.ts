@@ -106,7 +106,7 @@ describe("POST /api/upload", () => {
       email: dbUser.email,
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
-      role: dbUser.role as "admin" | "supporter" | "user",
+      role: dbUser.role as "admin" | "user",
       isActive: dbUser.isActive ?? true,
       emailVerified: dbUser.emailVerified ?? true,
     };

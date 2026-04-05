@@ -30,8 +30,6 @@ export const POST = withCsrfProtection(
                 emailVerified: true,
                 createdDate: true,
                 lastLogin: true,
-                support: true,
-                isSupporterFlag: true,
 
                 // Explicitly exclude sensitive fields:
                 // - passwordHash (security risk - could enable offline brute force)
@@ -175,88 +173,6 @@ export const POST = withCsrfProtection(
                     firstName: true,
                     lastName: true,
                     role: true,
-                  },
-                },
-              },
-            }),
-          SupportTicket: () =>
-            prisma.supportTicket.findMany({
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                category: true,
-                status: true,
-                priority: true,
-                isAnonymous: true,
-                createdDate: true,
-                updatedDate: true,
-                resolvedDate: true,
-                closedDate: true,
-                messages: {
-                  select: {
-                    id: true,
-                    content: true,
-                    isInternalNote: true,
-                    createdDate: true,
-                    updatedDate: true,
-                    // SECURITY: Include only safe user fields for message creators
-                    creator: {
-                      select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        role: true,
-                      },
-                    },
-                  },
-                },
-                // SECURITY: Include only safe user fields, exclude sensitive data
-                assignedSupporter: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                  },
-                },
-                creator: {
-                  select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                  },
-                },
-              },
-            }),
-          SupportTicketMessage: () =>
-            prisma.supportTicketMessage.findMany({
-              select: {
-                id: true,
-                content: true,
-                isInternalNote: true,
-                createdDate: true,
-                updatedDate: true,
-                // SECURITY: Include only safe user fields, exclude sensitive data
-                creator: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                  },
-                },
-                ticket: {
-                  select: {
-                    id: true,
-                    title: true,
-                    category: true,
-                    status: true,
-                    priority: true,
-                    createdDate: true,
                   },
                 },
               },

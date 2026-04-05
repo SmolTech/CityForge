@@ -50,8 +50,6 @@ export const GET = withAuth(
             lastName: true,
             role: true,
             isActive: true,
-            isSupporterFlag: true,
-            support: true,
             emailVerified: true,
             createdDate: true,
             lastLogin: true,
@@ -70,11 +68,9 @@ export const GET = withAuth(
         email: user.email,
         first_name: user.firstName,
         last_name: user.lastName,
-        username: `${user.firstName} ${user.lastName}`, // Computed like Flask backend
+        username: `${user.firstName} ${user.lastName}`,
         role: user.role,
         is_active: user.isActive,
-        is_supporter_flag: user.isSupporterFlag,
-        support: user.support,
         email_verified: user.emailVerified,
         created_date: user.createdDate,
         last_login: user.lastLogin,
@@ -228,14 +224,6 @@ export const DELETE = withAuth(
         });
 
         await tx.helpWantedComment.deleteMany({
-          where: { createdBy: { in: userIds } },
-        });
-
-        await tx.supportTicket.deleteMany({
-          where: { createdBy: { in: userIds } },
-        });
-
-        await tx.supportTicketMessage.deleteMany({
           where: { createdBy: { in: userIds } },
         });
 

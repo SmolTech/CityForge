@@ -11,8 +11,6 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     username: `${user.firstName} ${user.lastName}`.trim(),
     role: user.role,
     is_admin: user.role === "admin",
-    is_supporter: user.role === "supporter" || user.role === "admin",
-    is_supporter_flag: false, // Not implemented in this schema yet
     is_active: user.isActive,
     email_verified: user.emailVerified,
     created_date: new Date().toISOString(), // Would need to fetch from DB for actual created date

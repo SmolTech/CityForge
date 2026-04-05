@@ -95,7 +95,6 @@ vi.mock("@/lib/auth/middleware", () => ({
               lastName: "User",
               isActive: true,
               emailVerified: true,
-              isSupporterFlag: false,
             }
           : {
               id: 2,
@@ -105,7 +104,6 @@ vi.mock("@/lib/auth/middleware", () => ({
               lastName: "User",
               isActive: true,
               emailVerified: true,
-              isSupporterFlag: false,
             };
 
       return handler(request, { user }, ...args);

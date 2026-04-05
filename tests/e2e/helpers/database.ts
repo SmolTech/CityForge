@@ -62,11 +62,6 @@ export async function cleanDatabase() {
       "password_reset_tokens"
     );
     await safeDelete(
-      () => db.supportTicketMessage.deleteMany({}),
-      "support_ticket_messages"
-    );
-    await safeDelete(() => db.supportTicket.deleteMany({}), "support_tickets");
-    await safeDelete(
       () => db.helpWantedReport.deleteMany({}),
       "help_wanted_reports"
     );
@@ -140,7 +135,7 @@ export async function createTestUser(userData: {
   firstName: string;
   lastName: string;
   password: string;
-  role?: "admin" | "supporter" | "user";
+  role?: "admin" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
 }) {

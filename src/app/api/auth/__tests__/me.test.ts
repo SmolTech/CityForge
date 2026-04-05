@@ -71,7 +71,6 @@ describe("GET /api/auth/me", () => {
     expect(data.user.username).toBe("Test User");
     expect(data.user.role).toBe("user");
     expect(data.user.is_admin).toBe(false);
-    expect(data.user.is_supporter).toBe(false);
     expect(data.user.is_active).toBe(true);
     expect(data.user.email_verified).toBe(true);
   });
@@ -103,37 +102,6 @@ describe("GET /api/auth/me", () => {
     expect(response.status).toBe(200);
     expect(data.user.role).toBe("admin");
     expect(data.user.is_admin).toBe(true);
-    expect(data.user.is_supporter).toBe(true);
-  });
-
-  it("should return correct flags for supporter user", async () => {
-    const mockUser = createMockUser({
-      id: 1,
-      role: "supporter",
-    });
-
-    const token = createTestToken(mockUser.id);
-
-    (
-      prisma.tokenBlacklist.findUnique as ReturnType<typeof vi.fn>
-    ).mockResolvedValue(null);
-    (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockUser
-    );
-
-    const request = createMockRequest({
-      method: "GET",
-      url: "http://localhost:3000/api/auth/me",
-      token,
-    });
-
-    const response = await GET(request);
-    const data = await parseJsonResponse(response);
-
-    expect(response.status).toBe(200);
-    expect(data.user.role).toBe("supporter");
-    expect(data.user.is_admin).toBe(false);
-    expect(data.user.is_supporter).toBe(true);
   });
 
   it("should return 401 when no token provided", async () => {

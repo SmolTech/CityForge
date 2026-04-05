@@ -41,8 +41,6 @@ export const PUT = withCsrfProtection(
           last_name,
           role,
           is_active,
-          is_supporter_flag,
-          support,
         } = body;
 
         // Check if user exists
@@ -88,17 +86,12 @@ export const PUT = withCsrfProtection(
           lastName?: string;
           role?: string;
           isActive?: boolean;
-          isSupporterFlag?: boolean;
-          support?: boolean;
         } = {};
         if (email !== undefined) updateData.email = email;
         if (first_name !== undefined) updateData.firstName = first_name;
         if (last_name !== undefined) updateData.lastName = last_name;
         if (role !== undefined) updateData.role = role;
         if (is_active !== undefined) updateData.isActive = is_active;
-        if (is_supporter_flag !== undefined)
-          updateData.isSupporterFlag = is_supporter_flag;
-        if (support !== undefined) updateData.support = support;
 
         // Update user
         const updatedUser = await prisma.user.update({
@@ -111,8 +104,6 @@ export const PUT = withCsrfProtection(
             lastName: true,
             role: true,
             isActive: true,
-            isSupporterFlag: true,
-            support: true,
             createdDate: true,
             lastLogin: true,
           },
@@ -127,8 +118,6 @@ export const PUT = withCsrfProtection(
           username: `${updatedUser.firstName} ${updatedUser.lastName}`,
           role: updatedUser.role,
           is_active: updatedUser.isActive,
-          is_supporter_flag: updatedUser.isSupporterFlag,
-          support: updatedUser.support,
           created_date: updatedUser.createdDate,
           last_login: updatedUser.lastLogin,
         });

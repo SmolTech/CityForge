@@ -15,10 +15,8 @@ model User {
   lastName                  String                 @map("last_name") @db.VarChar(50)
   role                      String                 @db.VarChar(20)
   isActive                  Boolean?               @map("is_active")
-  support                   Boolean                @default(false)
   createdDate               DateTime?              @map("created_date") @db.Timestamp(6)
   lastLogin                 DateTime?              @map("last_login") @db.Timestamp(6)
-  isSupporterFlag           Boolean                @default(false) @map("is_supporter_flag")
   emailVerified             Boolean?               @default(false) @map("email_verified")
   emailVerificationToken    String?                @map("email_verification_token") @db.VarChar(255)
   emailVerificationSentAt   DateTime?              @map("email_verification_sent_at") @db.Timestamp(6)
@@ -43,9 +41,6 @@ model User {
   reviewedHelpWantedReports HelpWantedReport[]     @relation("HelpWantedReviewer")
   reportedReviews           Review[]               @relation("ReviewReporter")
   reviews                   Review[]               @relation("ReviewCreator")
-  supportTicketMessages     SupportTicketMessage[]
-  assignedTickets           SupportTicket[]        @relation("TicketAssignee")
-  supportTickets            SupportTicket[]        @relation("TicketCreator")
   revokedTokens             TokenBlacklist[]
   passwordResetTokens       PasswordResetToken[]
 
@@ -406,48 +401,6 @@ model HelpWantedReport {
   @@map("help_wanted_reports")
 }
 
-model SupportTicket {
-  id                Int                    @id @default(autoincrement())
-  title             String                 @db.VarChar(255)
-  description       String
-  category          String                 @db.VarChar(50)
-  status            String                 @db.VarChar(20)
-  priority          String                 @db.VarChar(20)
-  isAnonymous       Boolean                @map("is_anonymous")
-  createdBy         Int                    @map("created_by")
-  assignedTo        Int?                   @map("assigned_to")
-  createdDate       DateTime?              @map("created_date") @db.Timestamptz(6)
-  updatedDate       DateTime?              @updatedAt @map("updated_date") @db.Timestamptz(6)
-  resolvedDate      DateTime?              @map("resolved_date") @db.Timestamptz(6)
-  closedDate        DateTime?              @map("closed_date") @db.Timestamptz(6)
-  messages          SupportTicketMessage[]
-  assignedSupporter User?                  @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  creator           User                   @relation("TicketCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([category], map: "ix_support_tickets_category")
-  @@index([createdDate], map: "ix_support_tickets_created_date")
-  @@index([status], map: "ix_support_tickets_status")
-  @@index([title], map: "ix_support_tickets_title")
-  @@index([createdBy], map: "ix_support_tickets_created_by")
-  @@index([assignedTo], map: "ix_support_tickets_assigned_to")
-  @@map("support_tickets")
-}
-
-model SupportTicketMessage {
-  id             Int           @id @default(autoincrement())
-  ticketId       Int           @map("ticket_id")
-  content        String
-  isInternalNote Boolean       @map("is_internal_note")
-  createdBy      Int           @map("created_by")
-  createdDate    DateTime?     @map("created_date") @db.Timestamptz(6)
-  updatedDate    DateTime?     @updatedAt @map("updated_date") @db.Timestamptz(6)
-  creator        User          @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([ticketId], map: "ix_support_ticket_messages_ticket_id")
-  @@index([createdBy], map: "ix_support_ticket_messages_created_by")
-  @@map("support_ticket_messages")
-}
 
 model IndexingJob {
   id           Int       @id @default(autoincrement())
