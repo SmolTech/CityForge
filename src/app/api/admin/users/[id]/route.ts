@@ -35,13 +35,7 @@ export const PUT = withCsrfProtection(
         }
 
         const body = await request.json();
-        const {
-          email,
-          first_name,
-          last_name,
-          role,
-          is_active,
-        } = body;
+        const { email, first_name, last_name, role, is_active } = body;
 
         // Check if user exists
         const existingUser = await prisma.user.findUnique({

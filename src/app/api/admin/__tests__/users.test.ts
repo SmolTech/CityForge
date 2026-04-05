@@ -276,7 +276,7 @@ describe("GET /api/admin/users", () => {
       username: "John Doe",
       role: "user",
       is_active: true,
-            email_verified: true,
+      email_verified: true,
       created_date: "2024-01-01T00:00:00.000Z",
       last_login: "2024-01-15T00:00:00.000Z",
       registration_ip_address: null,
