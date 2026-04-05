@@ -134,10 +134,9 @@ export function createMockUser(
     passwordHash: string;
     firstName: string;
     lastName: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive: boolean;
     emailVerified: boolean;
-    isSupporterFlag: boolean;
     support: boolean;
     createdDate: Date;
     lastLogin: Date;
@@ -153,8 +152,6 @@ export function createMockUser(
     role: "user" as const,
     isActive: true,
     emailVerified: true,
-    isSupporterFlag: false,
-    support: false,
     createdDate: new Date(),
     lastLogin: new Date(),
     registrationIpAddress: null,

@@ -10,7 +10,6 @@ import { ResourcesApi } from "./resources";
 import { ReviewsApi } from "./reviews";
 import { HelpWantedApi } from "./help-wanted";
 import { ForumsApi } from "./forums";
-import { SupportTicketsApi } from "./support-tickets";
 
 /**
  * Combined API client that includes all API functionality
@@ -24,7 +23,6 @@ class CombinedApiClient extends ApiClient {
   private reviewsApi: ReviewsApi;
   private helpWantedApi: HelpWantedApi;
   private forumsApi: ForumsApi;
-  private supportTicketsApi: SupportTicketsApi;
 
   // Auth methods
   register!: AuthApi["register"];
@@ -143,15 +141,6 @@ class CombinedApiClient extends ApiClient {
   adminGetForumReports!: ForumsApi["adminGetForumReports"];
   adminResolveForumReport!: ForumsApi["adminResolveForumReport"];
 
-  // Support Ticket methods
-  getTickets!: SupportTicketsApi["getTickets"];
-  getTicket!: SupportTicketsApi["getTicket"];
-  createTicket!: SupportTicketsApi["createTicket"];
-  updateTicket!: SupportTicketsApi["updateTicket"];
-  deleteTicket!: SupportTicketsApi["deleteTicket"];
-  addTicketMessage!: SupportTicketsApi["addMessage"];
-  getTicketStats!: SupportTicketsApi["getStats"];
-
   constructor() {
     super();
 
@@ -163,7 +152,6 @@ class CombinedApiClient extends ApiClient {
     this.reviewsApi = new ReviewsApi();
     this.helpWantedApi = new HelpWantedApi();
     this.forumsApi = new ForumsApi();
-    this.supportTicketsApi = new SupportTicketsApi();
 
     // Bind auth methods
     this.register = this.authApi.register.bind(this.authApi);
@@ -386,29 +374,6 @@ class CombinedApiClient extends ApiClient {
     this.adminResolveForumReport = this.forumsApi.adminResolveForumReport.bind(
       this.forumsApi
     );
-
-    // Bind support ticket methods
-    this.getTickets = this.supportTicketsApi.getTickets.bind(
-      this.supportTicketsApi
-    );
-    this.getTicket = this.supportTicketsApi.getTicket.bind(
-      this.supportTicketsApi
-    );
-    this.createTicket = this.supportTicketsApi.createTicket.bind(
-      this.supportTicketsApi
-    );
-    this.updateTicket = this.supportTicketsApi.updateTicket.bind(
-      this.supportTicketsApi
-    );
-    this.deleteTicket = this.supportTicketsApi.deleteTicket.bind(
-      this.supportTicketsApi
-    );
-    this.addTicketMessage = this.supportTicketsApi.addMessage.bind(
-      this.supportTicketsApi
-    );
-    this.getTicketStats = this.supportTicketsApi.getStats.bind(
-      this.supportTicketsApi
-    );
   }
 }
 
@@ -423,4 +388,3 @@ export { ResourcesApi } from "./resources";
 export { ReviewsApi } from "./reviews";
 export { HelpWantedApi } from "./help-wanted";
 export { ForumsApi } from "./forums";
-export { SupportTicketsApi } from "./support-tickets";

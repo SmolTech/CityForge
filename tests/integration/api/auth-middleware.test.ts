@@ -45,8 +45,6 @@ describe("withOptionalAuth Security Fix Tests", () => {
       role: "user",
       isActive: true,
       emailVerified: true,
-      isSupporterFlag: false,
-      support: false,
     };
 
     // Create a test handler

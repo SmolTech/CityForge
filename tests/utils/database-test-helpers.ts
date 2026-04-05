@@ -61,7 +61,7 @@ export async function createTestUserInDb(data: {
   firstName: string;
   lastName: string;
   password: string;
-  role?: "admin" | "supporter" | "user";
+  role?: "admin" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
 }) {
@@ -252,7 +252,7 @@ export async function createUniqueTestUser(
     firstName: string;
     lastName: string;
     password: string;
-    role: "admin" | "supporter" | "user";
+    role: "admin" | "user";
     isActive: boolean;
     emailVerified: boolean;
   }> = {}
@@ -310,23 +310,21 @@ export function toApiUser(dbUser: {
   email: string;
   firstName: string;
   lastName: string;
-  role: "admin" | "supporter" | "user";
+  role: "admin" | "user";
   isActive?: boolean;
   emailVerified?: boolean;
-  isSupporterFlag?: boolean;
 } {
   return {
     id: dbUser.id,
     email: dbUser.email,
     firstName: dbUser.firstName,
     lastName: dbUser.lastName,
-    role: dbUser.role as "admin" | "supporter" | "user",
+    role: dbUser.role as "admin" | "user",
     ...(dbUser.isActive !== null && { isActive: Boolean(dbUser.isActive) }),
     ...(dbUser.emailVerified !== null && {
       emailVerified: Boolean(dbUser.emailVerified),
     }),
     // Add isSupporterFlag based on role
-    ...(dbUser.role === "supporter" && { isSupporterFlag: true }),
   };
 }
 

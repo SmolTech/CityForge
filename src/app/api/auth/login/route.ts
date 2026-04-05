@@ -37,8 +37,6 @@ export const POST = withAuthRateLimit(
           role: true,
           isActive: true,
           emailVerified: true,
-          isSupporterFlag: true,
-          support: true,
           createdDate: true,
           lastLogin: true,
         },
@@ -70,11 +68,9 @@ export const POST = withAuthRateLimit(
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role as "admin" | "supporter" | "user",
+        role: user.role as "admin" | "user",
         isActive: user.isActive ?? true,
         emailVerified: user.emailVerified ?? false,
-        isSupporterFlag: user.isSupporterFlag ?? false,
-        support: user.support ?? false,
       });
 
       // Convert user to the format expected by frontend
@@ -86,8 +82,6 @@ export const POST = withAuthRateLimit(
         username: `${user.firstName} ${user.lastName}`.trim(),
         role: user.role,
         is_admin: user.role === "admin",
-        is_supporter: user.role === "supporter" || user.role === "admin",
-        is_supporter_flag: user.isSupporterFlag ?? false, // Use actual value from database
         is_active: user.isActive,
         email_verified: user.emailVerified,
         created_date:

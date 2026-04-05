@@ -86,7 +86,6 @@ describe("POST /api/auth/register", () => {
     expect(data.user.last_name).toBe("User");
     expect(data.user.role).toBe("user");
     expect(data.user.is_admin).toBe(false);
-    expect(data.user.is_supporter).toBe(false);
     expect(data.user.is_active).toBe(true);
     expect(data.access_token).toBeDefined();
     expect(data.message).toContain("verify your account");
@@ -373,7 +372,6 @@ describe("POST /api/auth/register", () => {
     expect(response.status).toBe(201);
     expect(data.user.role).toBe("user");
     expect(data.user.is_admin).toBe(false);
-    expect(data.user.is_supporter).toBe(false);
 
     // Verify database call
     expect(prisma.user.create).toHaveBeenCalledWith({
