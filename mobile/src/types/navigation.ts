@@ -6,7 +6,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   CardDetail: { id: number };
-  BusinessDetail: { slug: string };
+  BusinessDetail: { id: number; slug?: string };
   BusinessForm:
     | { mode: "submit"; card?: undefined }
     | { mode: "edit"; card: Card };

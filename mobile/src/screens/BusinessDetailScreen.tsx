@@ -31,7 +31,7 @@ export default function BusinessDetailScreen() {
   const route = useRoute<BusinessDetailRouteProp>();
   const navigation = useNavigation<BusinessDetailNavigationProp>();
   const { colors } = useTheme();
-  const { slug } = route.params;
+  const { id, slug } = route.params;
 
   const [card, setCard] = useState<Card | null>(null);
   const [reviewsData, setReviewsData] = useState<CardReviewsResponse | null>(
@@ -252,7 +252,7 @@ export default function BusinessDetailScreen() {
     setError(null);
 
     try {
-      const cardData = await apiClient.getCardBySlug(slug);
+      const cardData = await apiClient.getCardBySlug(id, slug);
       setCard(cardData);
       await loadReviews(cardData.id);
     } catch (err) {
@@ -263,7 +263,7 @@ export default function BusinessDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [loadReviews, slug]);
+  }, [id, loadReviews, slug]);
 
   useEffect(() => {
     loadCardDetails();
