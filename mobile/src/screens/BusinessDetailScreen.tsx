@@ -5,6 +5,7 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  TextInput,
   Linking,
   ActivityIndicator,
   Alert,
@@ -13,7 +14,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { apiClient } from "../api/client";
-import type { Card } from "../types/api";
+import type { Card, CardReviewsResponse, Review } from "../types/api";
 import type { RootStackParamList } from "../types/navigation";
 import { logger } from "../utils/logger";
 import ErrorScreen from "../components/ErrorScreen";
@@ -33,7 +34,15 @@ export default function BusinessDetailScreen() {
   const { slug } = route.params;
 
   const [card, setCard] = useState<Card | null>(null);
+  const [reviewsData, setReviewsData] = useState<CardReviewsResponse | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const styles = useThemedStyles((colors) => ({
@@ -127,6 +136,90 @@ export default function BusinessDetailScreen() {
       color: colors.textSecondary,
       marginTop: 12,
     } as const,
+    actionButton: {
+      backgroundColor: colors.primary,
+      padding: 14,
+      borderRadius: 8,
+      alignItems: "center" as const,
+      marginBottom: 12,
+    } as const,
+    actionButtonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "600" as const,
+    } as const,
+    reviewSummary: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+    } as const,
+    reviewSummaryText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 4,
+    } as const,
+    starsRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 2,
+    } as const,
+    starText: {
+      fontSize: 24,
+      color: colors.warning,
+    } as const,
+    starMuted: {
+      color: colors.textMuted,
+    } as const,
+    reviewCard: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+    } as const,
+    reviewTitle: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.text,
+      marginTop: 8,
+      marginBottom: 4,
+    } as const,
+    reviewComment: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    } as const,
+    reviewMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+    } as const,
+    emptyReviews: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginBottom: 12,
+    } as const,
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      fontSize: 16,
+      color: colors.text,
+    } as const,
+    textArea: {
+      minHeight: 88,
+      textAlignVertical: "top" as const,
+    } as const,
+    disabledButton: {
+      backgroundColor: colors.textMuted,
+    } as const,
   }));
 
   const headerImageStyle = {
@@ -142,6 +235,18 @@ export default function BusinessDetailScreen() {
     backgroundColor: colors.surface,
   };
 
+  const loadReviews = useCallback(async (cardId: number) => {
+    setReviewsLoading(true);
+    try {
+      const data = await apiClient.getCardReviews(cardId, { limit: 10 });
+      setReviewsData(data);
+    } catch (err) {
+      logger.error("Error loading reviews:", err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
   const loadCardDetails = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -149,6 +254,7 @@ export default function BusinessDetailScreen() {
     try {
       const cardData = await apiClient.getCardBySlug(slug);
       setCard(cardData);
+      await loadReviews(cardData.id);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load business details";
@@ -157,7 +263,7 @@ export default function BusinessDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [slug]);
+  }, [loadReviews, slug]);
 
   useEffect(() => {
     loadCardDetails();
@@ -200,6 +306,66 @@ export default function BusinessDetailScreen() {
         Alert.alert("Error", "Cannot open this link");
       }
     });
+  };
+
+  const renderStars = (rating: number, interactive = false) => (
+    <View style={styles.starsRow}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <TouchableOpacity
+          key={star}
+          onPress={() => interactive && setReviewRating(star)}
+          disabled={!interactive || isSubmittingReview}
+        >
+          <Text
+            style={[
+              styles.starText,
+              star > rating && styles.starMuted,
+            ]}
+          >
+            ★
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const getReviewerName = (review: Review) => {
+    if (!review.user) {
+      return "Community member";
+    }
+    return `${review.user.first_name} ${review.user.last_name}`;
+  };
+
+  const handleSubmitReview = async () => {
+    if (!card) {
+      return;
+    }
+
+    if (reviewRating < 1) {
+      Alert.alert("Rating Required", "Please choose a rating before submitting.");
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      await apiClient.createCardReview(card.id, {
+        rating: reviewRating,
+        title: reviewTitle.trim() || undefined,
+        comment: reviewComment.trim() || undefined,
+      });
+      setReviewRating(0);
+      setReviewTitle("");
+      setReviewComment("");
+      await loadReviews(card.id);
+      Alert.alert("Review Submitted", "Thanks for sharing your feedback.");
+    } catch (err) {
+      Alert.alert(
+        "Review Failed",
+        err instanceof Error ? err.message : "Please try again."
+      );
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   if (isLoading) {
@@ -369,6 +535,90 @@ export default function BusinessDetailScreen() {
             )}
           </View>
         )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contribute</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              navigation.navigate("BusinessForm", { mode: "edit", card })
+            }
+          >
+            <Text style={styles.actionButtonText}>Suggest an Edit</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Reviews</Text>
+          <View style={styles.reviewSummary}>
+            {renderStars(Math.round(reviewsData?.summary.average_rating ?? 0))}
+            <Text style={styles.reviewSummaryText}>
+              {reviewsData?.summary.total_reviews
+                ? `${reviewsData.summary.average_rating.toFixed(1)} average from ${
+                    reviewsData.summary.total_reviews
+                  } reviews`
+                : "No reviews yet"}
+            </Text>
+          </View>
+
+          {reviewsLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : reviewsData?.reviews.length ? (
+            reviewsData.reviews.map((review) => (
+              <View key={review.id} style={styles.reviewCard}>
+                {renderStars(review.rating)}
+                {review.title ? (
+                  <Text style={styles.reviewTitle}>{review.title}</Text>
+                ) : null}
+                {review.comment ? (
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                ) : null}
+                <Text style={styles.reviewMeta}>
+                  {getReviewerName(review)} -{" "}
+                  {new Date(review.created_date).toLocaleDateString()}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyReviews}>
+              Be the first person to review this business.
+            </Text>
+          )}
+
+          <Text style={styles.sectionTitle}>Write a Review</Text>
+          {renderStars(reviewRating, true)}
+          <TextInput
+            style={styles.input}
+            value={reviewTitle}
+            onChangeText={setReviewTitle}
+            placeholder="Review title (optional)"
+            placeholderTextColor={colors.textMuted}
+            editable={!isSubmittingReview}
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={reviewComment}
+            onChangeText={setReviewComment}
+            placeholder="Share details about your experience (optional)"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            editable={!isSubmittingReview}
+          />
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              isSubmittingReview && styles.disabledButton,
+            ]}
+            onPress={handleSubmitReview}
+            disabled={isSubmittingReview}
+          >
+            {isSubmittingReview ? (
+              <ActivityIndicator color={colors.surface} />
+            ) : (
+              <Text style={styles.actionButtonText}>Submit Review</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );

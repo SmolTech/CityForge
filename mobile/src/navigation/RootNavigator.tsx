@@ -10,6 +10,8 @@ import RegisterScreen from "../screens/RegisterScreen";
 import InstanceManagerScreen from "../screens/InstanceManagerScreen";
 import AddInstanceScreen from "../screens/AddInstanceScreen";
 import BusinessDetailScreen from "../screens/BusinessDetailScreen";
+import BusinessFormScreen from "../screens/BusinessFormScreen";
+import MySubmissionsScreen from "../screens/MySubmissionsScreen";
 import LoadingScreen from "../components/LoadingScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -34,6 +36,16 @@ export default function RootNavigator() {
             name="BusinessDetail"
             component={BusinessDetailScreen}
             options={{ headerShown: true, title: "Business Details" }}
+          />
+          <Stack.Screen
+            name="BusinessForm"
+            component={BusinessFormScreen}
+            options={{ headerShown: true, title: "Business Submission" }}
+          />
+          <Stack.Screen
+            name="MySubmissions"
+            component={MySubmissionsScreen}
+            options={{ headerShown: true, title: "My Submissions" }}
           />
           <Stack.Screen
             name="InstanceManager"

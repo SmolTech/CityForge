@@ -44,29 +44,77 @@ export interface CardSubmission {
   description: string;
   address?: string;
   phone?: string;
+  phone_number?: string;
   email?: string;
   website?: string;
+  website_url?: string;
   status: "pending" | "approved" | "rejected";
   submitted_by?: User;
   created_date: string;
 }
 
-export interface ResourceCategory {
-  id: number;
+export interface BusinessSubmissionInput {
   name: string;
   description?: string;
-  icon?: string;
-  order: number;
+  websiteUrl?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  contactName?: string;
+  imageUrl?: string;
+  tagsText?: string;
 }
+
+export interface Review {
+  id: number;
+  rating: number;
+  title?: string | null;
+  comment?: string | null;
+  created_date: string;
+  updated_date: string;
+  user?: {
+    first_name: string;
+    last_name: string;
+  } | null;
+  card?: {
+    name: string;
+  } | null;
+}
+
+export interface CardReviewsResponse {
+  reviews: Review[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total_count: number;
+    has_more: boolean;
+  };
+  summary: {
+    average_rating: number;
+    total_reviews: number;
+    rating_distribution: Record<string, number>;
+  };
+}
+
+export interface ReviewInput {
+  rating: number;
+  title?: string;
+  comment?: string;
+}
+
+export type ResourceCategory = string;
 
 export interface ResourceItem {
   id: number;
   title: string;
   description?: string;
   url?: string;
-  category_id: number;
-  category?: ResourceCategory;
-  order: number;
+  category: ResourceCategory;
+  category_id?: number;
+  display_order?: number;
+  phone?: string;
+  address?: string;
+  icon?: string;
 }
 
 export interface QuickAccessItem {

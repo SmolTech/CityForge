@@ -1,4 +1,5 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
+import type { Card } from "./api";
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
@@ -6,6 +7,10 @@ export type RootStackParamList = {
   Register: undefined;
   CardDetail: { id: number };
   BusinessDetail: { slug: string };
+  BusinessForm:
+    | { mode: "submit"; card?: undefined }
+    | { mode: "edit"; card: Card };
+  MySubmissions: undefined;
   InstanceManager: undefined;
   AddInstance: undefined;
 };

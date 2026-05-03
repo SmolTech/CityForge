@@ -98,6 +98,18 @@ export default function BusinessScreen() {
     loadingFooter: {
       paddingVertical: 16,
     } as const,
+    submitButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      alignItems: "center",
+    } as const,
+    submitButtonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: "600" as const,
+    } as const,
   }));
 
   const cardImageStyle = {
@@ -209,6 +221,14 @@ export default function BusinessScreen() {
         renderItem={renderCard}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => navigation.navigate("BusinessForm", { mode: "submit" })}
+          >
+            <Text style={styles.submitButtonText}>Submit a Business</Text>
+          </TouchableOpacity>
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshControl.refreshing}

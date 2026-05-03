@@ -11,6 +11,10 @@ import type {
   Card,
   Tag,
   CardSubmission,
+  BusinessSubmissionInput,
+  CardReviewsResponse,
+  Review,
+  ReviewInput,
   ResourceCategory,
   ResourceItem,
   QuickAccessItem,
@@ -278,18 +282,50 @@ class ApiClient {
   }
 
   // Submissions APIs
-  async submitCard(data: Partial<Card>): Promise<CardSubmission> {
+  async submitCard(data: BusinessSubmissionInput): Promise<CardSubmission> {
     return this.request<CardSubmission>("/api/submissions", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
+  async getMySubmissions(): Promise<CardSubmission[]> {
+    return this.request<CardSubmission[]>("/api/submissions");
+  }
+
   async suggestEdit(
     cardId: number,
-    data: Partial<Card>
-  ): Promise<{ message: string }> {
+    data: BusinessSubmissionInput
+  ): Promise<CardSubmission> {
     return this.request(`/api/cards/${cardId}/suggest-edit`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getCardReviews(
+    cardId: number,
+    params?: { limit?: number; offset?: number }
+  ): Promise<CardReviewsResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) {
+      queryParams.append("limit", params.limit.toString());
+    }
+    if (params?.offset) {
+      queryParams.append("offset", params.offset.toString());
+    }
+
+    const query = queryParams.toString();
+    return this.request<CardReviewsResponse>(
+      `/api/cards/${cardId}/reviews${query ? `?${query}` : ""}`
+    );
+  }
+
+  async createCardReview(
+    cardId: number,
+    data: ReviewInput
+  ): Promise<Review> {
+    return this.request<Review>(`/api/cards/${cardId}/reviews`, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -307,9 +343,9 @@ class ApiClient {
     return this.request<ResourceCategory[]>("/api/resources/categories");
   }
 
-  async getResourceItems(categoryId?: number): Promise<ResourceItem[]> {
-    const endpoint = categoryId
-      ? `/api/resources/items?category_id=${categoryId}`
+  async getResourceItems(category?: string): Promise<ResourceItem[]> {
+    const endpoint = category
+      ? `/api/resources/items?category=${encodeURIComponent(category)}`
       : "/api/resources/items";
     return this.request<ResourceItem[]>(endpoint);
   }

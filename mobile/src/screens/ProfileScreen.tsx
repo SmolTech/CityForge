@@ -278,12 +278,23 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>My Activity</Text>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("MySubmissions")}
+        >
           <Text style={styles.menuItemText}>My Submissions</Text>
           <Text style={styles.menuItemArrow}>→</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() =>
+            Alert.alert(
+              "Suggested Edits",
+              "Open a business detail page and choose Suggest an Edit to submit changes."
+            )
+          }
+        >
           <Text style={styles.menuItemText}>Suggested Edits</Text>
           <Text style={styles.menuItemArrow}>→</Text>
         </TouchableOpacity>
