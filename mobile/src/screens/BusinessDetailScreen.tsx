@@ -269,42 +269,61 @@ export default function BusinessDetailScreen() {
     loadCardDetails();
   }, [loadCardDetails]);
 
+  const ensureHttpUrl = (value: string) =>
+    /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  const getSocialUrl = (
+    service: "facebook" | "instagram" | "twitter",
+    value: string
+  ) => {
+    const trimmedValue = value.trim();
+    if (/^https?:\/\//i.test(trimmedValue)) {
+      return trimmedValue;
+    }
+    if (trimmedValue.includes(".")) {
+      return ensureHttpUrl(trimmedValue);
+    }
+
+    const handle = trimmedValue.replace(/^@/, "");
+    const host = service === "twitter" ? "twitter.com" : `${service}.com`;
+    return `https://${host}/${encodeURIComponent(handle)}`;
+  };
+
   const handleContactPress = (type: string, value: string) => {
     let url = "";
+    const trimmedValue = value.trim();
 
     switch (type) {
+      case "address":
+        url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          trimmedValue
+        )}`;
+        break;
       case "phone":
-        url = `tel:${value}`;
+        url = `tel:${trimmedValue.replace(/[^\d+]/g, "")}`;
         break;
       case "email":
-        url = `mailto:${value}`;
+        url = `mailto:${trimmedValue}`;
         break;
       case "website":
-        url = value.startsWith("http") ? value : `https://${value}`;
+        url = ensureHttpUrl(trimmedValue);
         break;
       case "facebook":
-        url = value.startsWith("http")
-          ? value
-          : `https://facebook.com/${value}`;
+        url = getSocialUrl("facebook", trimmedValue);
         break;
       case "instagram":
-        url = value.startsWith("http")
-          ? value
-          : `https://instagram.com/${value}`;
+        url = getSocialUrl("instagram", trimmedValue);
         break;
       case "twitter":
-        url = value.startsWith("http") ? value : `https://twitter.com/${value}`;
+        url = getSocialUrl("twitter", trimmedValue);
         break;
       default:
         return;
     }
 
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        Alert.alert("Error", "Cannot open this link");
-      }
+    Linking.openURL(url).catch((err) => {
+      logger.error("Error opening business detail link:", err);
+      Alert.alert("Error", "Cannot open this link");
     });
   };
 

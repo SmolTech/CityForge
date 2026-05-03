@@ -40,16 +40,20 @@ export default function ResourcesScreen() {
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      flexGrow: 0,
+      flexShrink: 0,
+      maxHeight: 58,
     } as const,
     categoryListContent: {
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: 10,
       gap: 8,
+      alignItems: "center",
     } as const,
     categoryTab: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 18,
       backgroundColor: colors.backgroundTertiary,
       marginRight: 8,
       borderWidth: 1,
@@ -94,6 +98,55 @@ export default function ResourcesScreen() {
       color: colors.textSecondary,
       lineHeight: 20,
       marginBottom: 8,
+    } as const,
+    itemMetaRow: {
+      marginTop: 4,
+      marginBottom: 8,
+    } as const,
+    itemMetaLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: "600" as const,
+      marginBottom: 2,
+      textTransform: "uppercase" as const,
+      letterSpacing: 0.4,
+    } as const,
+    itemMetaText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    } as const,
+    itemMetaLink: {
+      fontSize: 14,
+      color: colors.primary,
+      lineHeight: 20,
+      fontWeight: "500" as const,
+    } as const,
+    actionRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 8,
+    } as const,
+    actionButton: {
+      backgroundColor: colors.backgroundTertiary,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    } as const,
+    actionButtonPrimary: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    } as const,
+    actionButtonText: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: "600" as const,
+    } as const,
+    actionButtonTextPrimary: {
+      color: colors.surface,
     } as const,
     itemUrl: {
       fontSize: 14,
@@ -173,12 +226,33 @@ export default function ResourcesScreen() {
     loadItems(category);
   };
 
-  const handleItemPress = (url?: string) => {
-    if (url) {
-      Linking.openURL(url).catch((err) =>
-        logger.error("Error opening URL:", err)
-      );
+  const openExternalUrl = (url: string) => {
+    Linking.openURL(url).catch((err) => logger.error("Error opening URL:", err));
+  };
+
+  const openWebsite = (url?: string) => {
+    if (!url) {
+      return;
     }
+    openExternalUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+  };
+
+  const openPhone = (phone?: string) => {
+    if (!phone) {
+      return;
+    }
+    openExternalUrl(`tel:${phone.replace(/[^\d+]/g, "")}`);
+  };
+
+  const openAddress = (address?: string) => {
+    if (!address) {
+      return;
+    }
+    openExternalUrl(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        address
+      )}`
+    );
   };
 
   const renderCategory = ({ item }: { item: ResourceCategory }) => (
@@ -201,17 +275,64 @@ export default function ResourcesScreen() {
   );
 
   const renderItem = ({ item }: { item: ResourceItem }) => (
-    <TouchableOpacity
-      style={styles.item}
-      onPress={() => handleItemPress(item.url)}
-      disabled={!item.url}
-    >
+    <View style={styles.item}>
       <Text style={styles.itemTitle}>{item.title}</Text>
       {item.description && (
         <Text style={styles.itemDescription}>{item.description}</Text>
       )}
-      {item.url && <Text style={styles.itemUrl}>View Resource →</Text>}
-    </TouchableOpacity>
+      {item.phone ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Phone</Text>
+          <TouchableOpacity onPress={() => openPhone(item.phone)}>
+            <Text style={styles.itemMetaLink}>{item.phone}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {item.address ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Address</Text>
+          <TouchableOpacity onPress={() => openAddress(item.address)}>
+            <Text style={styles.itemMetaLink}>{item.address}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {item.url ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Website</Text>
+          <Text style={styles.itemUrl}>{item.url}</Text>
+        </View>
+      ) : null}
+      <View style={styles.actionRow}>
+        {item.url ? (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonPrimary]}
+            onPress={() => openWebsite(item.url)}
+          >
+            <Text
+              style={[styles.actionButtonText, styles.actionButtonTextPrimary]}
+            >
+              Website
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {item.phone ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openPhone(item.phone)}
+          >
+            <Text style={styles.actionButtonText}>Call</Text>
+          </TouchableOpacity>
+        ) : null}
+        {item.address ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openAddress(item.address)}
+          >
+            <Text style={styles.actionButtonText}>Map</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
   );
 
   if (isLoading) {
