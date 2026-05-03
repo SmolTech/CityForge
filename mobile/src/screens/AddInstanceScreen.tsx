@@ -11,6 +11,12 @@ import {
 } from "react-native";
 import { useInstance } from "../contexts/InstanceContext";
 import { logger } from "../utils/logger";
+import {
+  getDefaultInstanceName,
+  getInstanceId,
+  isValidApiUrl,
+  normalizeApiUrl,
+} from "../utils/instanceUrl";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -22,28 +28,14 @@ export default function AddInstanceScreen({ navigation }: Props) {
   const [apiUrl, setApiUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateUrl = (url: string): boolean => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.protocol === "http:" || urlObj.protocol === "https:";
-    } catch {
-      return false;
-    }
-  };
-
   const handleAddInstance = async () => {
     // Validation
-    if (!name.trim()) {
-      Alert.alert("Error", "Please enter a name for this instance");
-      return;
-    }
-
     if (!apiUrl.trim()) {
       Alert.alert("Error", "Please enter the API URL");
       return;
     }
 
-    if (!validateUrl(apiUrl)) {
+    if (!isValidApiUrl(apiUrl)) {
       Alert.alert(
         "Error",
         "Please enter a valid URL (e.g., https://worcester.community)"
@@ -54,23 +46,16 @@ export default function AddInstanceScreen({ navigation }: Props) {
     setIsLoading(true);
 
     try {
-      // Create URL object to test the basic validity
-      new URL(apiUrl);
-
       // For now, we'll skip the actual connection test and just validate the URL format
       // The connection will be tested when the user actually tries to use the instance
 
-      // Generate a unique ID from the URL (remove protocol and special chars)
-      const instanceId = apiUrl
-        .replace(/^https?:\/\//, "")
-        .replace(/[^a-z0-9-]/gi, "-")
-        .toLowerCase();
+      const normalizedApiUrl = normalizeApiUrl(apiUrl);
 
       // Add the instance
       await addInstance({
-        id: instanceId,
-        name: name.trim(),
-        apiUrl: apiUrl.trim(),
+        id: getInstanceId(normalizedApiUrl),
+        name: name.trim() || getDefaultInstanceName(normalizedApiUrl),
+        apiUrl: normalizedApiUrl,
         token: null,
         user: null,
       });
@@ -102,7 +87,7 @@ export default function AddInstanceScreen({ navigation }: Props) {
         </Text>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Instance Name</Text>
+          <Text style={styles.label}>Instance Name (optional)</Text>
           <TextInput
             style={styles.input}
             placeholder="Worcester Community"
@@ -126,7 +111,8 @@ export default function AddInstanceScreen({ navigation }: Props) {
           />
 
           <Text style={styles.hint}>
-            Enter the base URL of the CityForge instance (including https://)
+            Enter the base URL of the CityForge instance. If you omit the
+            protocol, https:// will be used.
           </Text>
 
           <TouchableOpacity

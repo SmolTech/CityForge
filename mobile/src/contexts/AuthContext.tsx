@@ -8,14 +8,17 @@ import React, {
 import { apiClient } from "../api/client";
 import { logger } from "../utils/logger";
 import type { LoginRequest, RegisterRequest } from "../types/api";
-import type { User } from "../types/instance";
+import type { Instance, User } from "../types/instance";
 import { useInstance } from "./InstanceContext";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (
+    credentials: LoginRequest,
+    targetInstance?: Pick<Instance, "id" | "apiUrl">
+  ) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -24,7 +27,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { activeInstance, updateToken, updateUser } = useInstance();
+  const { activeInstance, switchInstance, updateToken, updateUser } =
+    useInstance();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -73,19 +77,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (credentials: LoginRequest) => {
-    if (!activeInstance) {
+  const login = async (
+    credentials: LoginRequest,
+    targetInstance?: Pick<Instance, "id" | "apiUrl">
+  ) => {
+    const instance = targetInstance ?? activeInstance;
+
+    if (!instance) {
       throw new Error("No active instance selected");
     }
 
     setIsLoading(true);
     try {
+      apiClient.setBaseUrl(instance.apiUrl);
+      if (targetInstance && activeInstance?.id !== instance.id) {
+        await switchInstance(instance.id);
+      }
+
       const response = await apiClient.login(credentials);
       setUser(response.user);
 
       // Store token and user in active instance
-      await updateToken(activeInstance.id, response.access_token);
-      await updateUser(activeInstance.id, response.user);
+      await updateToken(instance.id, response.access_token);
+      await updateUser(instance.id, response.user);
     } finally {
       setIsLoading(false);
     }
