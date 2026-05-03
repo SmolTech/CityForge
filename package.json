@@ -62,13 +62,13 @@
     "fast-check": "^4.3.0",
     "isomorphic-dompurify": "^2.33.0",
     "jsonwebtoken": "^9.0.3",
-    "next": "^16.1.5",
+    "next": "^9.3.3",
     "prisma": "^6.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -76,7 +76,7 @@
     "@mswjs/http-middleware": "^0.10.3",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
-    "@testcontainers/postgresql": "^11.8.1",
+    "@testcontainers/postgresql": "^10.21.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -100,7 +100,7 @@
     "node-mocks-http": "^1.17.2",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
-    "testcontainers": "^11.8.1",
+    "testcontainers": "^10.21.0",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }
