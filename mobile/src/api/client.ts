@@ -30,6 +30,35 @@ import type {
 const DEFAULT_API_URL =
   process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
 
+interface CardsApiResponse {
+  cards: RawCard[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+type RawCard = Omit<Card, "tags"> & {
+  website_url?: string;
+  phone_number?: string;
+  address_override_url?: string;
+  contact_name?: string;
+  tags?: string[] | Tag[];
+  share_url?: string;
+  average_rating?: number | null;
+  review_count?: number;
+};
+
+function normalizeCard(card: RawCard): Card {
+  return {
+    ...card,
+    website: card.website ?? card.website_url,
+    phone: card.phone ?? card.phone_number,
+    tags: (card.tags ?? []).map((tag, index) =>
+      typeof tag === "string" ? { id: index, name: tag } : tag
+    ),
+  };
+}
+
 class ApiClient {
   private baseUrl: string = DEFAULT_API_URL;
 
@@ -250,30 +279,41 @@ class ApiClient {
   }): Promise<PaginatedResponse<Card>> {
     const queryParams = new URLSearchParams();
     if (params?.tag) {
-      queryParams.append("tag", params.tag);
+      queryParams.append("tags", params.tag);
     }
     if (params?.search) {
       queryParams.append("search", params.search);
     }
-    if (params?.page) {
-      queryParams.append("page", params.page.toString());
-    }
-    if (params?.per_page) {
-      queryParams.append("per_page", params.per_page.toString());
-    }
+    const page = params?.page ?? 1;
+    const perPage = params?.per_page ?? 20;
+    queryParams.append("limit", perPage.toString());
+    queryParams.append("offset", ((page - 1) * perPage).toString());
+    queryParams.append("share_urls", "true");
+    queryParams.append("ratings", "true");
 
     const query = queryParams.toString();
-    return this.request<PaginatedResponse<Card>>(
+    const response = await this.request<CardsApiResponse>(
       `/api/cards${query ? `?${query}` : ""}`
     );
+
+    return {
+      items: response.cards.map(normalizeCard),
+      total: response.total,
+      page,
+      per_page: response.limit,
+      pages: Math.ceil(response.total / response.limit),
+    };
   }
 
   async getCard(id: number): Promise<Card> {
-    return this.request<Card>(`/api/cards/${id}`);
+    const card = await this.request<RawCard>(`/api/cards/${id}`);
+    return normalizeCard(card);
   }
 
-  async getCardBySlug(slug: string): Promise<Card> {
-    return this.request<Card>(`/api/business/${slug}`);
+  async getCardBySlug(id: number, slug?: string): Promise<Card> {
+    const path = slug ? `${id}/${slug}` : id.toString();
+    const card = await this.request<RawCard>(`/api/business/${path}`);
+    return normalizeCard(card);
   }
 
   // Tags APIs

@@ -98,6 +98,16 @@ export default function BusinessScreen() {
     loadingFooter: {
       paddingVertical: 16,
     } as const,
+    emptyContainer: {
+      padding: 32,
+      alignItems: "center",
+    } as const,
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: 16,
+      textAlign: "center",
+      lineHeight: 22,
+    } as const,
     submitButton: {
       backgroundColor: colors.primary,
       borderRadius: 12,
@@ -166,7 +176,9 @@ export default function BusinessScreen() {
   const renderCard = ({ item }: { item: Card }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("BusinessDetail", { slug: item.slug })}
+      onPress={() =>
+        navigation.navigate("BusinessDetail", { id: item.id, slug: item.slug })
+      }
     >
       <View style={styles.cardContent}>
         {item.image_url && (
@@ -245,6 +257,13 @@ export default function BusinessScreen() {
               style={styles.loadingFooter}
             />
           ) : null
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No approved businesses are available yet.
+            </Text>
+          </View>
         }
       />
     </View>
