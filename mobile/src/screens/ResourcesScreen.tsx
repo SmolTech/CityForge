@@ -20,7 +20,8 @@ export default function ResourcesScreen() {
   const { colors } = useTheme();
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
   const [items, setItems] = useState<ResourceItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<ResourceCategory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,8 +123,8 @@ export default function ResourcesScreen() {
       if (categoriesData.length > 0) {
         const firstCategory = categoriesData[0];
         if (firstCategory) {
-          setSelectedCategory(firstCategory.id);
-          await loadItems(firstCategory.id);
+          setSelectedCategory(firstCategory);
+          await loadItems(firstCategory);
         }
       }
     } catch (err) {
@@ -151,25 +152,25 @@ export default function ResourcesScreen() {
     if (categories.length > 0 && selectedCategory === null) {
       const firstCategory = categories[0];
       if (firstCategory) {
-        setSelectedCategory(firstCategory.id);
-        loadItems(firstCategory.id);
+        setSelectedCategory(firstCategory);
+        loadItems(firstCategory);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories]);
 
-  const loadItems = async (categoryId: number) => {
+  const loadItems = async (category: ResourceCategory) => {
     try {
-      const itemsData = await apiClient.getResourceItems(categoryId);
+      const itemsData = await apiClient.getResourceItems(category);
       setItems(itemsData);
     } catch (err) {
       logger.error("Error loading items:", err);
     }
   };
 
-  const handleCategorySelect = (categoryId: number) => {
-    setSelectedCategory(categoryId);
-    loadItems(categoryId);
+  const handleCategorySelect = (category: ResourceCategory) => {
+    setSelectedCategory(category);
+    loadItems(category);
   };
 
   const handleItemPress = (url?: string) => {
@@ -184,17 +185,17 @@ export default function ResourcesScreen() {
     <TouchableOpacity
       style={[
         styles.categoryTab,
-        selectedCategory === item.id && styles.categoryTabActive,
+        selectedCategory === item && styles.categoryTabActive,
       ]}
-      onPress={() => handleCategorySelect(item.id)}
+      onPress={() => handleCategorySelect(item)}
     >
       <Text
         style={[
           styles.categoryText,
-          selectedCategory === item.id && styles.categoryTextActive,
+          selectedCategory === item && styles.categoryTextActive,
         ]}
       >
-        {item.name}
+        {item}
       </Text>
     </TouchableOpacity>
   );
@@ -237,7 +238,7 @@ export default function ResourcesScreen() {
         horizontal
         data={categories}
         renderItem={renderCategory}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item}
         style={styles.categoryList}
         contentContainerStyle={styles.categoryListContent}
         showsHorizontalScrollIndicator={false}
