@@ -15,7 +15,9 @@ class UserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         # Called from createsuperuser / data import; AUTH_PASSWORD_VALIDATORS
         # are not applied for these admin-driven flows by design.
-        user.set_password(password)  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+        user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+            password
+        )
         user.save(using=self._db)
         return user
 
@@ -86,9 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class PasswordResetToken(models.Model):
-    user = models.ForeignKey(
-        User, related_name="password_reset_tokens", on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, related_name="password_reset_tokens", on_delete=models.CASCADE)
     token = models.CharField(max_length=255, unique=True)
     expires_at = models.DateTimeField()
     used = models.BooleanField(default=False)
@@ -115,8 +115,11 @@ class TokenBlacklist(models.Model):
     jti = models.CharField(max_length=36, unique=True)
     token_type = models.CharField(max_length=10)
     user = models.ForeignKey(
-        User, related_name="revoked_tokens", on_delete=models.SET_NULL,
-        blank=True, null=True,
+        User,
+        related_name="revoked_tokens",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
     )
     revoked_at = models.DateTimeField()
     expires_at = models.DateTimeField()

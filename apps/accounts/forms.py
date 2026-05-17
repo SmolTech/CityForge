@@ -10,10 +10,14 @@ User = get_user_model()
 
 class RegisterForm(forms.ModelForm):
     password1 = forms.CharField(
-        label="Password", widget=forms.PasswordInput, strip=False,
+        label="Password",
+        widget=forms.PasswordInput,
+        strip=False,
     )
     password2 = forms.CharField(
-        label="Confirm password", widget=forms.PasswordInput, strip=False,
+        label="Confirm password",
+        widget=forms.PasswordInput,
+        strip=False,
     )
 
     class Meta:
@@ -42,7 +46,10 @@ class RegisterForm(forms.ModelForm):
     def save(self, commit: bool = True) -> User:
         user = super().save(commit=False)
         # Password validated above via validate_password() in clean().
-        user.set_password(self.cleaned_data["password1"])  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+        password = self.cleaned_data["password1"]
+        user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+            password
+        )
         if commit:
             user.save()
         return user
@@ -59,10 +66,14 @@ class ForgotPasswordForm(forms.Form):
 
 class ResetPasswordForm(forms.Form):
     password1 = forms.CharField(
-        label="New password", widget=forms.PasswordInput, strip=False,
+        label="New password",
+        widget=forms.PasswordInput,
+        strip=False,
     )
     password2 = forms.CharField(
-        label="Confirm new password", widget=forms.PasswordInput, strip=False,
+        label="Confirm new password",
+        widget=forms.PasswordInput,
+        strip=False,
     )
 
     def clean(self):

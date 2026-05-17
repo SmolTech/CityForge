@@ -20,9 +20,7 @@ class Command(BaseCommand):
         database = options["database"]
         connection = connections[database]
         models = [
-            model
-            for model in apps.get_models()
-            if router.allow_migrate_model(database, model)
+            model for model in apps.get_models() if router.allow_migrate_model(database, model)
         ]
         statements = connection.ops.sequence_reset_sql(no_style(), models)
 

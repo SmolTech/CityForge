@@ -11,7 +11,7 @@ COPY backend/requirements.txt ./backend/
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r backend/requirements.txt
 
-# Indexer dependencies stage  
+# Indexer dependencies stage
 FROM backend-deps AS indexer-deps
 COPY indexer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \

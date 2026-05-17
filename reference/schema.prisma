@@ -493,7 +493,7 @@ model WebhookEvent {
   sourceInfo  String   // JSON object with source metadata
   createdAt   DateTime @default(now()) @map("created_at")
 
-  // Relations  
+  // Relations
   deliveries WebhookDelivery[]
 
   @@index([type, timestamp])
