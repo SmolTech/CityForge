@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from django.contrib.auth.hashers import make_password
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.dateparse import parse_datetime
@@ -224,6 +225,8 @@ class Command(BaseCommand):
                     raise _Rollback
         except _Rollback:
             pass
+        else:
+            call_command("sync_sequences", verbosity=opts["verbosity"])
 
         self.stdout.write(self.style.SUCCESS("Import complete."))
 
