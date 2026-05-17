@@ -237,6 +237,9 @@ class Command(BaseCommand):
             d = normalize_row(r, FK_RENAMES["User"])
             pk = d.pop("id")
             email = (d.get("email") or "").lower().strip()
+            role = d.get("role") or User.Role.USER
+            if role not in {choice.value for choice in User.Role}:
+                role = User.Role.USER
             password = (
                 legacy_password_hash(d.pop("password_hash", None))
                 or self._legacy_passwords_by_id.get(pk)
@@ -252,10 +255,10 @@ class Command(BaseCommand):
                     "email": d.get("email"),
                     "first_name": d.get("first_name") or "",
                     "last_name": d.get("last_name") or "",
-                    "role": d.get("role") or "user",
+                    "role": role,
                     "is_active": d.get("is_active", True),
-                    "is_staff": d.get("role") in ("admin", "support"),
-                    "is_superuser": d.get("role") == "admin",
+                    "is_staff": role in {User.Role.ADMIN, User.Role.SUPPORT},
+                    "is_superuser": role == User.Role.ADMIN,
                     "email_verified": d.get("email_verified", False),
                     "email_verification_token": d.get("email_verification_token"),
                     "email_verification_sent_at": d.get("email_verification_sent_at"),

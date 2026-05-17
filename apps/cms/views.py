@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -84,6 +84,12 @@ def users_list(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["POST"])
 def user_toggle_active(request: HttpRequest, pk: int) -> HttpResponse:
     user = get_object_or_404(User, pk=pk)
+    if user.pk == request.user.pk:
+        messages.error(request, "You cannot deactivate your own account.")
+        return redirect("cms:users_list")
+    if user.is_active and _is_last_active_admin(user):
+        messages.error(request, "You cannot deactivate the last active admin.")
+        return redirect("cms:users_list")
     user.is_active = not user.is_active
     user.save(update_fields=["is_active"])
     messages.success(request, f"{user.email} {'activated' if user.is_active else 'deactivated'}.")
@@ -98,11 +104,29 @@ def user_set_role(request: HttpRequest, pk: int) -> HttpResponse:
     if role not in {r.value for r in User.Role}:
         messages.error(request, "Invalid role.")
         return redirect("cms:users_list")
+    if user.pk == request.user.pk and role != User.Role.ADMIN:
+        messages.error(request, "You cannot remove your own admin role.")
+        return redirect("cms:users_list")
+    if role != User.Role.ADMIN and _is_last_active_admin(user):
+        messages.error(request, "You cannot remove the last active admin.")
+        return redirect("cms:users_list")
     user.role = role
     user.is_staff = role in {User.Role.ADMIN, User.Role.SUPPORT}
-    user.save(update_fields=["role", "is_staff"])
+    user.is_superuser = role == User.Role.ADMIN
+    user.save(update_fields=["role", "is_staff", "is_superuser"])
     messages.success(request, f"Role for {user.email} updated to {role}.")
     return redirect("cms:users_list")
+
+
+def _is_last_active_admin(user: User) -> bool:
+    if not user.is_active or not (user.is_admin or user.is_superuser):
+        return False
+    return (
+        User.objects.filter(is_active=True)
+        .filter(Q(role=User.Role.ADMIN) | Q(is_superuser=True))
+        .count()
+        <= 1
+    )
 
 
 # ------------ Cards -----------
