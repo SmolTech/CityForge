@@ -11,6 +11,7 @@
       <li><a href="{% url 'cms:reviews_list' %}" class="{% if 'review' in request.resolver_match.url_name %}active{% endif %}">Reviews</a></li>
       {% if user.is_admin or user.is_superuser %}
         <li><a href="{% url 'cms:users_list' %}" class="{% if 'user' in request.resolver_match.url_name %}active{% endif %}">Users</a></li>
+        <li><a href="{% url 'cms:site_settings' %}" class="{% if request.resolver_match.url_name == 'site_settings' %}active{% endif %}">Site settings</a></li>
       {% endif %}
     </ul>
   </aside>
