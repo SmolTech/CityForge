@@ -75,6 +75,8 @@ This brings up `postgres`, `opensearch`, the Django `web` service (gunicorn on
 port 8000), and the `indexer` worker. The entrypoint runs migrations,
 collectstatic, and optionally creates a superuser from
 `DJANGO_SUPERUSER_EMAIL`/`DJANGO_SUPERUSER_PASSWORD`.
+Uploaded business submission images are stored under `MEDIA_ROOT` (`/app/uploads`
+in Compose) and persisted by the `web_uploads` volume.
 
 The compose defaults are for local development. For any shared or production-like
 deployment, set a unique `DJANGO_SECRET_KEY`, explicit `DJANGO_ALLOWED_HOSTS`,

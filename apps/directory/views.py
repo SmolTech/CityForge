@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+from uuid import uuid4
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -158,18 +162,28 @@ def submit_review(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def card_submit(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        form = CardSubmissionForm(request.POST)
+        form = CardSubmissionForm(request.POST, request.FILES)
         if form.is_valid():
             sub: CardSubmission = form.save(commit=False)
             sub.submitter = request.user
             sub.status = CardSubmissionStatus.PENDING
             sub.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
+            if form.cleaned_data.get("image"):
+                sub.image_url = _save_business_image(form.cleaned_data["image"])
             sub.save()
             messages.success(request, "Submission received — it will be reviewed by an admin.")
             return redirect("directory:home")
     else:
         form = CardSubmissionForm()
     return render(request, "directory/card_submit.html", {"form": form})
+
+
+def _save_business_image(image) -> str:
+    suffix = Path(image.name).suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
+        suffix = ".jpg"
+    name = default_storage.save(f"business-submissions/{uuid4().hex}{suffix}", image)
+    return f"{settings.MEDIA_URL}{name}"
 
 
 def my_submissions(request: HttpRequest) -> HttpResponse:

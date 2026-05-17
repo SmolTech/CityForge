@@ -5,7 +5,7 @@
   <h1>Submit a business</h1>
   <p class="muted">Submissions are reviewed by an admin before they appear in the directory.</p>
   {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
-  <form method="post" novalidate>
+  <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {% for field in form %}
       <div class="form-field">
