@@ -20,3 +20,6 @@ class IndexingJob(models.Model):
             models.Index(fields=["resource_id"]),
             models.Index(fields=["status"]),
         ]
+
+    def __str__(self) -> str:
+        return f"Resource {self.resource_id}: {self.status}"

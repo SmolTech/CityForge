@@ -102,6 +102,9 @@ class PasswordResetToken(models.Model):
             models.Index(fields=["expires_at"]),
         ]
 
+    def __str__(self) -> str:
+        return f"Password reset token for {self.user}"
+
     def is_valid(self) -> bool:
         return not self.used and self.expires_at > timezone.now()
 
@@ -124,3 +127,6 @@ class TokenBlacklist(models.Model):
             models.Index(fields=["user"]),
             models.Index(fields=["expires_at"]),
         ]
+
+    def __str__(self) -> str:
+        return f"{self.token_type}:{self.jti}"

@@ -23,6 +23,9 @@ class HelpWantedPost(models.Model):
         db_table = "help_wanted_posts"
         ordering = ["-created_date"]
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class HelpWantedComment(models.Model):
     post = models.ForeignKey(
@@ -41,6 +44,9 @@ class HelpWantedComment(models.Model):
 
     class Meta:
         db_table = "help_wanted_comments"
+
+    def __str__(self) -> str:
+        return f"Comment on {self.post}"
 
 
 class HelpWantedReport(models.Model):
@@ -63,3 +69,6 @@ class HelpWantedReport(models.Model):
 
     class Meta:
         db_table = "help_wanted_reports"
+
+    def __str__(self) -> str:
+        return f"Report for {self.post}"

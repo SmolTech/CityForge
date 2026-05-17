@@ -9,16 +9,16 @@ This version works without the Flask backend by:
 """
 
 import argparse
+import logging
 import os
-import json
-import requests
 import time
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
+
+import requests
 from bs4 import BeautifulSoup
 from opensearchpy import OpenSearch
-import logging
 
 # Database imports (optional - for progress tracking)
 try:

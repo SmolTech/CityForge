@@ -25,6 +25,9 @@ class WebhookEndpoint(models.Model):
     class Meta:
         db_table = "webhook_endpoints"
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class WebhookEvent(models.Model):
     id = models.CharField(primary_key=True, max_length=32, default=_cuid, editable=False)
@@ -38,6 +41,9 @@ class WebhookEvent(models.Model):
     class Meta:
         db_table = "webhook_events"
         indexes = [models.Index(fields=["type", "timestamp"])]
+
+    def __str__(self) -> str:
+        return self.type
 
 
 class WebhookDelivery(models.Model):
@@ -68,3 +74,6 @@ class WebhookDelivery(models.Model):
             models.Index(fields=["webhook_endpoint", "created_at"]),
             models.Index(fields=["event_type", "created_at"]),
         ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type} -> {self.webhook_endpoint}"

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 

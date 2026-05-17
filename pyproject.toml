@@ -40,7 +40,8 @@ extend-exclude = ["migrations", ".venv", "reference"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "DJ"]
-ignore = ["E501"]
+# Legacy Prisma imports preserve nullable string columns from the source schema.
+ignore = ["E501", "DJ001"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "cityforge.settings"
