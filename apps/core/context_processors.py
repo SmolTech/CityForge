@@ -1,4 +1,5 @@
 """Site-wide template context."""
+
 from django.conf import settings
 
 

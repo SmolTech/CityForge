@@ -36,10 +36,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         ).count(),
         "reported_reviews": Review.objects.filter(reported=True, hidden=False).count(),
     }
-    recent_submissions = (
-        CardSubmission.objects.select_related("submitter")
-        .order_by("-created_date")[:5]
-    )
+    recent_submissions = CardSubmission.objects.select_related("submitter").order_by(
+        "-created_date"
+    )[:5]
     return render(
         request,
         "cms/dashboard.html",
@@ -158,9 +157,7 @@ def submissions_list(request: HttpRequest) -> HttpResponse:
 
 @staff_required
 def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    sub = get_object_or_404(
-        CardSubmission.objects.select_related("submitter"), pk=pk
-    )
+    sub = get_object_or_404(CardSubmission.objects.select_related("submitter"), pk=pk)
     return render(request, "cms/submission_detail.html", {"submission": sub})
 
 

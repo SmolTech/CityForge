@@ -5,6 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -16,11 +17,13 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/semgrep/semgrep
-    rev: v1.90.0
+  - repo: local
     hooks:
-      - id: semgrep
+      - id: semgrep-local
         name: semgrep (python & django)
+        entry: .venv/bin/semgrep
+        language: system
+        pass_filenames: false
         args:
           - --config=p/python
           - --config=p/django

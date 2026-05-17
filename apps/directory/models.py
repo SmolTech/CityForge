@@ -34,7 +34,8 @@ class Card(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="created_cards",
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="created_by",
     )
     approved = models.BooleanField(default=False)
@@ -42,7 +43,8 @@ class Card(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="approved_cards",
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="approved_by",
     )
     approved_date = models.DateTimeField(blank=True, null=True)
@@ -69,9 +71,7 @@ class Card(models.Model):
         return slugify(self.name)
 
     def average_rating(self) -> float | None:
-        ratings = list(
-            self.reviews.filter(hidden=False).values_list("rating", flat=True)
-        )
+        ratings = list(self.reviews.filter(hidden=False).values_list("rating", flat=True))
         if not ratings:
             return None
         return sum(ratings) / len(ratings)
@@ -126,12 +126,16 @@ class CardSubmission(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="reviewed_submissions",
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="reviewed_by",
     )
     review_notes = models.TextField(blank=True, null=True)
     card = models.ForeignKey(
-        Card, on_delete=models.SET_NULL, blank=True, null=True,
+        Card,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         related_name="submissions",
     )
     created_date = models.DateTimeField(default=timezone.now)
@@ -159,7 +163,8 @@ class CardModification(models.Model):
     tags_text = models.TextField(blank=True, null=True)
 
     status = models.CharField(
-        max_length=20, choices=CardSubmissionStatus.choices,
+        max_length=20,
+        choices=CardSubmissionStatus.choices,
         default=CardSubmissionStatus.PENDING,
     )
     submitter = models.ForeignKey(
@@ -172,7 +177,8 @@ class CardModification(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="reviewed_modifications",
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="reviewed_by",
     )
     review_notes = models.TextField(blank=True, null=True)
@@ -200,7 +206,8 @@ class Review(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="reported_reviews",
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="reported_by",
     )
     reported_date = models.DateTimeField(blank=True, null=True)

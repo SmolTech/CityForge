@@ -9,7 +9,9 @@ def staff_required(view_func):
     @login_required
     def _wrapped(request, *args, **kwargs):
         user = request.user
-        if not (user.is_staff or getattr(user, "is_admin", False) or getattr(user, "is_support", False)):
+        if not (
+            user.is_staff or getattr(user, "is_admin", False) or getattr(user, "is_support", False)
+        ):
             return HttpResponseForbidden("You do not have access to this area.")
         return view_func(request, *args, **kwargs)
 

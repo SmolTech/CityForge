@@ -117,7 +117,10 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
         if form.is_valid():
             user = prt.user
             # ResetPasswordForm.clean() invokes validate_password() before this.
-            user.set_password(form.cleaned_data["password1"])  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+            password = form.cleaned_data["password1"]
+            user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+                password
+            )
             user.save(update_fields=["password"])
             prt.used = True
             prt.used_at = timezone.now()
@@ -155,9 +158,7 @@ def resend_verification(request: HttpRequest) -> HttpResponse:
     else:
         user.email_verification_token = secrets.token_urlsafe(32)
         user.email_verification_sent_at = timezone.now()
-        user.save(
-            update_fields=["email_verification_token", "email_verification_sent_at"]
-        )
+        user.save(update_fields=["email_verification_token", "email_verification_sent_at"])
         _send_verification_email(request, user)
         messages.success(request, "Verification email re-sent.")
     return redirect("directory:home")
@@ -180,12 +181,8 @@ def _send_verification_email(request: HttpRequest, user: User) -> None:
     )
 
 
-def _send_password_reset_email(
-    request: HttpRequest, user: User, prt: PasswordResetToken
-) -> None:
-    link = request.build_absolute_uri(
-        reverse("accounts:reset_password", args=[prt.token])
-    )
+def _send_password_reset_email(request: HttpRequest, user: User, prt: PasswordResetToken) -> None:
+    link = request.build_absolute_uri(reverse("accounts:reset_password", args=[prt.token]))
     body = render_to_string(
         "emails/password_reset.txt",
         {

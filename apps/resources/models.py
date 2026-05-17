@@ -42,7 +42,8 @@ class ResourceItem(models.Model):
     category_obj = models.ForeignKey(
         ResourceCategory,
         on_delete=models.SET_NULL,
-        blank=True, null=True,
+        blank=True,
+        null=True,
         db_column="category_id",
         related_name="resource_items",
     )
