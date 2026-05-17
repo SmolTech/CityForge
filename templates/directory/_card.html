@@ -1,7 +1,7 @@
 {% load directory_extras %}
 <article class="card {% if card.featured %}featured{% endif %}">
   <h3>
-    <a href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}">{{ card.name }}</a>
+    <a class="stretched-link" href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}">{{ card.name }}</a>
   </h3>
   {% if card.featured %}<small class="badge badge-pending">Featured</small>{% endif %}
   {% if card.contact_name %}<div class="meta">{{ card.contact_name }}</div>{% endif %}
@@ -16,7 +16,7 @@
   {% endif %}
   <div class="tags">
     {% for tag in card.tags.all %}
-      <span class="tag-chip">{{ tag.name }}</span>
+      <a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>
     {% endfor %}
   </div>
 </article>
