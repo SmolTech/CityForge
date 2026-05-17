@@ -64,10 +64,8 @@ spec:
           resources:
             requests:
               memory: "1Gi"
-              cpu: "50m"
             limits:
               memory: "2Gi"
-              cpu: "5000m"
           volumeMounts:
             - name: opensearch-data
               mountPath: /usr/share/opensearch/data

@@ -27,7 +27,7 @@ spec:
             fsGroup: 1000
           containers:
             - name: admin-digest
-              image: ghcr.io/smoltech/cityforge-frontend:latest
+              image: ghcr.io/smoltech/cityforge
               imagePullPolicy: Always
               command: ["node"]
               args: ["scripts/daily-admin-digest.mjs"]
@@ -94,8 +94,6 @@ spec:
                       optional: true
               resources:
                 requests:
-                  cpu: 100m
                   memory: 256Mi
                 limits:
-                  cpu: 500m
                   memory: 512Mi
