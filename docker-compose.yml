@@ -75,8 +75,9 @@ services:
   indexer:
     build:
       context: .
-      dockerfile: indexer/Dockerfile
+      dockerfile: Dockerfile
     container_name: cityforge-indexer
+    entrypoint: ["python", "indexer/indexer.py"]
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200

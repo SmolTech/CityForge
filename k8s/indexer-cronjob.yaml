@@ -19,8 +19,9 @@ spec:
             fsGroup: 1001
           containers:
             - name: indexer
-              image: ghcr.io/smoltech/cityforge-indexer
+              image: ghcr.io/smoltech/cityforge
               imagePullPolicy: Always
+              command: ["python", "indexer/indexer.py"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: false
@@ -62,7 +63,6 @@ spec:
                     configMapKeyRef:
                       name: cityforge-config
                       key: POSTGRES_DB
-                # Updated to use Next.js API endpoint instead of Flask backend
                 - name: BACKEND_URL
                   value: "http://cityforge-service/api"
               resources:
