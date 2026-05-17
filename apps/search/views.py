@@ -14,6 +14,9 @@ def _client():
     if OpenSearch is None:
         return None
     scheme = "https" if settings.OPENSEARCH_USE_HTTPS else "http"
+    http_auth = None
+    if settings.OPENSEARCH_USERNAME:
+        http_auth = (settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD)
     return OpenSearch(
         hosts=[
             {
@@ -22,6 +25,7 @@ def _client():
                 "scheme": scheme,
             }
         ],
+        http_auth=http_auth,
         use_ssl=settings.OPENSEARCH_USE_HTTPS,
         verify_certs=not settings.DEBUG,
         ssl_show_warn=False,
@@ -30,8 +34,8 @@ def _client():
 
 def search(request: HttpRequest) -> HttpResponse:
     query = (request.GET.get("q") or "").strip()
-    page_num = max(int(request.GET.get("page") or 1), 1)
-    page_size = min(max(int(request.GET.get("size") or 20), 1), 100)
+    page_num = _safe_int(request.GET.get("page"), default=1, minimum=1, maximum=10000)
+    page_size = _safe_int(request.GET.get("size"), default=20, minimum=1, maximum=100)
 
     if not query:
         return render(request, "search/search.html", {"query": "", "results": None})
@@ -106,3 +110,11 @@ def search(request: HttpRequest) -> HttpResponse:
             "error": error,
         },
     )
+
+
+def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value or default)
+    except (TypeError, ValueError):
+        return default
+    return min(max(parsed, minimum), maximum)

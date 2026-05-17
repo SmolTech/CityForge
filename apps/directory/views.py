@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
@@ -70,6 +70,38 @@ def home(request: HttpRequest) -> HttpResponse:
         "total": paginator.count,
     }
     return render(request, "directory/home.html", ctx)
+
+
+def api_cards(request: HttpRequest) -> JsonResponse:
+    limit = _safe_int(request.GET.get("limit"), default=1000, minimum=1, maximum=5000)
+    cards = (
+        Card.objects.filter(approved=True)
+        .order_by("id")
+        .values(
+            "id",
+            "name",
+            "description",
+            "website_url",
+            "phone_number",
+            "email",
+            "address",
+            "address_override_url",
+            "contact_name",
+            "featured",
+            "image_url",
+            "created_date",
+            "updated_date",
+        )[:limit]
+    )
+    return JsonResponse({"cards": list(cards)})
+
+
+def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value or default)
+    except (TypeError, ValueError):
+        return default
+    return min(max(parsed, minimum), maximum)
 
 
 def card_detail(request: HttpRequest, pk: int, slug: str | None = None) -> HttpResponse:

@@ -76,6 +76,10 @@ port 8000), and the `indexer` worker. The entrypoint runs migrations,
 collectstatic, and optionally creates a superuser from
 `DJANGO_SUPERUSER_EMAIL`/`DJANGO_SUPERUSER_PASSWORD`.
 
+The compose defaults are for local development. For any shared or production-like
+deployment, set a unique `DJANGO_SECRET_KEY`, explicit `DJANGO_ALLOWED_HOSTS`,
+and a strong `DJANGO_SUPERUSER_PASSWORD` via `.env`.
+
 ## Importing legacy data
 
 ```bash
@@ -83,8 +87,9 @@ python manage.py import_prisma_export path/to/export.json
 # Optional: --dry-run, --only User,Card,Tag
 ```
 
-Passwords are not migrated — imported users have an unusable password and must
-use the password-reset flow.
+Legacy bcrypt passwords are preserved when the export includes a password hash
+(including nested user payloads). Users without a legacy hash get an unusable
+password and must use the password-reset flow.
 
 ## Environment variables
 

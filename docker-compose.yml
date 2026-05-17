@@ -41,18 +41,21 @@ services:
       dockerfile: Dockerfile
     container_name: cityforge-web
     environment:
-      DJANGO_SECRET_KEY: change-this-in-production
-      DJANGO_DEBUG: "False"
-      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-local-compose-change-me}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,cityforge-web}
       SECURE_SSL_REDIRECT: "False"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/community_db
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: "9200"
+      OPENSEARCH_USE_HTTPS: "False"
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-}
       OPENSEARCH_NAMESPACE: default
       SITE_NAME: CityForge
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
-      DJANGO_SUPERUSER_EMAIL: admin@example.com
-      DJANGO_SUPERUSER_PASSWORD: ChangeThisPassword123!
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-}
     volumes:
       - web_uploads:/app/uploads
     ports:
@@ -76,6 +79,9 @@ services:
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
+      OPENSEARCH_USE_HTTPS: "False"
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-}
       BACKEND_URL: http://web:8000
       NAMESPACE: default
       POSTGRES_USER: postgres

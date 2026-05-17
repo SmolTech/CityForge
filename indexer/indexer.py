@@ -40,7 +40,13 @@ class ResourceIndexer:
     def __init__(self, use_tracking=True):
         self.opensearch_host = os.getenv("OPENSEARCH_HOST", "opensearch-service")
         self.opensearch_port = int(os.getenv("OPENSEARCH_PORT", "9200"))
+        self.opensearch_use_https = os.getenv("OPENSEARCH_USE_HTTPS", "false").lower() == "true"
         self.namespace = os.getenv("NAMESPACE", "default")
+        opensearch_username = os.getenv("OPENSEARCH_USERNAME", "")
+        opensearch_password = os.getenv("OPENSEARCH_PASSWORD", "")
+        http_auth = None
+        if opensearch_username:
+            http_auth = (opensearch_username, opensearch_password)
 
         # Use Next.js API endpoint instead of Flask backend
         # Use Next.js API endpoint - check BACKEND_URL first, then API_URL for backward compatibility
@@ -52,10 +58,16 @@ class ResourceIndexer:
 
         # Initialize OpenSearch client
         self.client = OpenSearch(
-            hosts=[{"host": self.opensearch_host, "port": self.opensearch_port}],
-            http_auth=None,
-            use_ssl=False,
-            verify_certs=False,
+            hosts=[
+                {
+                    "host": self.opensearch_host,
+                    "port": self.opensearch_port,
+                    "scheme": "https" if self.opensearch_use_https else "http",
+                }
+            ],
+            http_auth=http_auth,
+            use_ssl=self.opensearch_use_https,
+            verify_certs=self.opensearch_use_https,
             connection_class=None,
         )
 

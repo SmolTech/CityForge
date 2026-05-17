@@ -40,7 +40,7 @@
         {% for tag in tags %}
           <label class="tag-chip {% if tag.name in selected_tags %}active{% endif %}">
             <input type="checkbox" name="tag" value="{{ tag.name }}"
-                   style="display:none"
+                   class="visually-hidden"
                    {% if tag.name in selected_tags %}checked{% endif %}
                    onchange="this.form.submit()">
             {{ tag.name }}
