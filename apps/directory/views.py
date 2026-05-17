@@ -21,7 +21,7 @@ def _split_tags(text: str) -> list[str]:
 def home(request: HttpRequest) -> HttpResponse:
     search = (request.GET.get("q") or "").strip()
     selected_tags = request.GET.getlist("tag")
-    tag_mode = (request.GET.get("tag_mode") or "and").lower()
+    tag_mode = (request.GET.get("tag_mode") or "or").lower()
     featured_only = request.GET.get("featured") == "1"
 
     qs = Card.objects.filter(approved=True)
