@@ -133,9 +133,7 @@ def card_submit(request: HttpRequest) -> HttpResponse:
             sub.status = CardSubmissionStatus.PENDING
             sub.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
             sub.save()
-            messages.success(
-                request, "Submission received — it will be reviewed by an admin."
-            )
+            messages.success(request, "Submission received — it will be reviewed by an admin.")
             return redirect("directory:home")
     else:
         form = CardSubmissionForm()
@@ -145,8 +143,5 @@ def card_submit(request: HttpRequest) -> HttpResponse:
 def my_submissions(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("accounts:login")
-    subs = (
-        CardSubmission.objects.filter(submitter=request.user)
-        .order_by("-created_date")
-    )
+    subs = CardSubmission.objects.filter(submitter=request.user).order_by("-created_date")
     return render(request, "directory/my_submissions.html", {"submissions": subs})

@@ -13,8 +13,10 @@ class HelpWantedPost(models.Model):
     contact_preference = models.CharField(max_length=50, blank=True, null=True)
     report_count = models.IntegerField(default=0)
     creator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        db_column="created_by", related_name="help_wanted_posts",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="created_by",
+        related_name="help_wanted_posts",
     )
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(auto_now=True)
@@ -29,15 +31,23 @@ class HelpWantedPost(models.Model):
 
 class HelpWantedComment(models.Model):
     post = models.ForeignKey(
-        HelpWantedPost, on_delete=models.CASCADE, related_name="comments",
+        HelpWantedPost,
+        on_delete=models.CASCADE,
+        related_name="comments",
     )
     content = models.TextField()
     parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, blank=True, null=True, related_name="replies",
+        "self",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="replies",
     )
     creator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        db_column="created_by", related_name="help_wanted_comments",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="created_by",
+        related_name="help_wanted_comments",
     )
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(auto_now=True)
@@ -55,12 +65,17 @@ class HelpWantedReport(models.Model):
     details = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, default="pending")
     reporter = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        db_column="reported_by", related_name="help_wanted_reports",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="reported_by",
+        related_name="help_wanted_reports",
     )
     reviewer = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        blank=True, null=True, db_column="reviewed_by",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        db_column="reviewed_by",
         related_name="reviewed_help_wanted_reports",
     )
     created_date = models.DateTimeField(default=timezone.now)

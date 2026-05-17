@@ -92,7 +92,7 @@ def collect_legacy_password_hashes(data: Any) -> tuple[dict[int, str], dict[str,
                 by_email.setdefault(email.lower().strip(), password)
 
         for item in value.values():
-            if isinstance(item, (dict, list)):
+            if isinstance(item, dict | list):
                 visit(item)
 
     visit(data)
@@ -132,7 +132,7 @@ def normalize_row(row: dict[str, Any], renames: dict[str, str]) -> dict[str, Any
         # or ``tags: [...]``) alongside the scalar FK columns (``createdBy``,
         # ``card_tags``). Those nested objects cannot be assigned to Django model
         # fields, so drop anything that isn't a scalar.
-        if isinstance(v, (dict, list)):
+        if isinstance(v, dict | list):
             continue
         if k in renames:
             out[renames[k]] = v
@@ -307,7 +307,9 @@ class Command(BaseCommand):
             d["created_date"] = to_dt(d.get("created_date"))
             d["reviewed_date"] = to_dt(d.get("reviewed_date"))
             pk = d.pop("id")
-            CardSubmission.objects.update_or_create(pk=pk, defaults=filter_to_fields(CardSubmission, d))
+            CardSubmission.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(CardSubmission, d)
+            )
         return len(rows)
 
     def _import_card_modifications(self, rows):
@@ -316,7 +318,9 @@ class Command(BaseCommand):
             d["created_date"] = to_dt(d.get("created_date"))
             d["reviewed_date"] = to_dt(d.get("reviewed_date"))
             pk = d.pop("id")
-            CardModification.objects.update_or_create(pk=pk, defaults=filter_to_fields(CardModification, d))
+            CardModification.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(CardModification, d)
+            )
         return len(rows)
 
     def _import_reviews(self, rows):
@@ -333,7 +337,9 @@ class Command(BaseCommand):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            ResourceCategory.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceCategory, d))
+            ResourceCategory.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(ResourceCategory, d)
+            )
         return len(rows)
 
     def _import_resource_items(self, rows):
@@ -347,21 +353,27 @@ class Command(BaseCommand):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            QuickAccessItem.objects.update_or_create(pk=pk, defaults=filter_to_fields(QuickAccessItem, d))
+            QuickAccessItem.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(QuickAccessItem, d)
+            )
         return len(rows)
 
     def _import_resource_config(self, rows):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            ResourceConfig.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceConfig, d))
+            ResourceConfig.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(ResourceConfig, d)
+            )
         return len(rows)
 
     def _import_forum_categories(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
-            ForumCategory.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumCategory, d))
+            ForumCategory.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(ForumCategory, d)
+            )
         return len(rows)
 
     def _import_forum_threads(self, rows):
@@ -389,14 +401,18 @@ class Command(BaseCommand):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
-            HelpWantedPost.objects.update_or_create(pk=pk, defaults=filter_to_fields(HelpWantedPost, d))
+            HelpWantedPost.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(HelpWantedPost, d)
+            )
         return len(rows)
 
     def _import_help_comments(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id", "postId": "post_id"})
             pk = d.pop("id")
-            HelpWantedComment.objects.update_or_create(pk=pk, defaults=filter_to_fields(HelpWantedComment, d))
+            HelpWantedComment.objects.update_or_create(
+                pk=pk, defaults=filter_to_fields(HelpWantedComment, d)
+            )
         return len(rows)
 
     def _import_indexing(self, rows):

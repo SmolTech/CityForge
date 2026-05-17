@@ -49,10 +49,14 @@ class WebhookEvent(models.Model):
 class WebhookDelivery(models.Model):
     id = models.CharField(primary_key=True, max_length=32, default=_cuid, editable=False)
     webhook_endpoint = models.ForeignKey(
-        WebhookEndpoint, on_delete=models.CASCADE, related_name="deliveries",
+        WebhookEndpoint,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
     )
     event = models.ForeignKey(
-        WebhookEvent, on_delete=models.CASCADE, related_name="deliveries",
+        WebhookEvent,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
     )
     event_type = models.CharField(max_length=100)
     status = models.CharField(max_length=20)
