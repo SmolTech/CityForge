@@ -109,9 +109,29 @@ def model_fields(model) -> set[str]:
     return names
 
 
+def _concrete_field_map(model) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for f in model._meta.get_fields():
+        if getattr(f, "concrete", False) and not f.many_to_many:
+            out[f.name] = f
+            if hasattr(f, "attname"):
+                out[f.attname] = f
+    return out
+
+
 def filter_to_fields(model, d: dict[str, Any]) -> dict[str, Any]:
-    allowed = model_fields(model)
-    return {k: v for k, v in d.items() if k in allowed}
+    fields = _concrete_field_map(model)
+    out: dict[str, Any] = {}
+    for k, v in d.items():
+        f = fields.get(k)
+        if f is None:
+            continue
+        # If the value is None but the column is NOT NULL and has a default,
+        # omit it so the model default applies instead of forcing a NULL write.
+        if v is None and not f.null and f.has_default():
+            continue
+        out[k] = v
+    return out
 
 
 class Command(BaseCommand):
@@ -218,9 +238,14 @@ class Command(BaseCommand):
     def _import_cards(self, rows):
         for r in rows:
             d = normalize_row(r, FK_RENAMES["Card"])
-            d["created_date"] = to_dt(d.get("created_date"))
             d["updated_date"] = to_dt(d.get("updated_date"))
             d["approved_date"] = to_dt(d.get("approved_date"))
+            d["created_date"] = (
+                to_dt(d.get("created_date"))
+                or d["updated_date"]
+                or d["approved_date"]
+                or datetime.now()
+            )
             pk = d.pop("id")
             Card.objects.update_or_create(pk=pk, defaults=filter_to_fields(Card, d))
         return len(rows)
