@@ -19,6 +19,11 @@
       {% else %}
         <p class="muted">No description has been added yet.</p>
       {% endif %}
+      {% if card.tags.all %}
+        <div class="tags business-tags">
+          {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
+        </div>
+      {% endif %}
     </div>
 
     <aside class="business-contact-card">
@@ -29,11 +34,6 @@
         {% if card.email %}<li><span>✉</span><div><a href="mailto:{{ card.email }}">{{ card.email }}</a></div></li>{% endif %}
         {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<li><span>🌐</span><div><a href="{{ safe_url }}" rel="noopener">{{ card.website_url }}</a></div></li>{% endif %}{% endwith %}{% endif %}
       </ul>
-      {% if card.tags.all %}
-        <div class="tags">
-          {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
-        </div>
-      {% endif %}
     </aside>
   </div>
 </article>
