@@ -89,6 +89,9 @@ class CardTag(models.Model):
         unique_together = (("card", "tag"),)
         indexes = [models.Index(fields=["tag"])]
 
+    def __str__(self) -> str:
+        return f"{self.card} -> {self.tag}"
+
 
 class CardSubmissionStatus(models.TextChoices):
     PENDING = "pending", "Pending"
@@ -138,6 +141,9 @@ class CardSubmission(models.Model):
         db_table = "card_submissions"
         ordering = ["-created_date"]
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class CardModification(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="modifications")
@@ -177,6 +183,9 @@ class CardModification(models.Model):
         db_table = "card_modifications"
         ordering = ["-created_date"]
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class Review(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="reviews")
@@ -210,3 +219,6 @@ class Review(models.Model):
             models.Index(fields=["created_date"]),
         ]
         ordering = ["-created_date"]
+
+    def __str__(self) -> str:
+        return f"{self.card} review by {self.user}"
