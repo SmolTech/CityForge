@@ -28,6 +28,7 @@ pytest-django = ">=4.8"
 ruff = ">=0.5"
 semgrep = ">=1.70"
 pre-commit = ">=3.7"
+pytest-cov = "^7.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
@@ -46,4 +47,7 @@ ignore = ["E501", "DJ001"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "cityforge.settings"
 python_files = ["test_*.py", "tests.py", "*_tests.py"]
-addopts = "-ra"
+addopts = "--cov=apps --cov=cityforge --cov-report=term-missing --cov-fail-under=90 -ra"
+markers = [
+    "e2e: critical end-to-end user journeys",
+]
