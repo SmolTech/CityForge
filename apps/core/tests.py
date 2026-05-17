@@ -1,1 +1,340 @@
-# Create your tests here.
+from __future__ import annotations
+
+import importlib
+import json
+from io import StringIO
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from unittest.mock import patch
+
+from django.db.utils import OperationalError
+from django.template import Context
+from django.test import RequestFactory, TestCase
+
+from apps.accounts.models import TokenBlacklist, User
+from apps.classifieds.models import HelpWantedComment, HelpWantedPost
+from apps.core.context_processors import site
+from apps.core.management.commands.import_prisma_export import (
+    Command,
+    collect_legacy_password_hashes,
+    filter_to_fields,
+    legacy_password_hash,
+    normalize_row,
+    snake,
+    to_dt,
+)
+from apps.core.site_config import get_site_config, set_site_config
+from apps.directory.models import Card, CardModification, CardSubmission, CardTag, Review, Tag
+from apps.directory.templatetags.directory_extras import (
+    business_address_url,
+    highlight_safe,
+    phone_href,
+    query_replace,
+    safe_external_url,
+)
+from apps.forums.models import ForumCategory, ForumPost, ForumThread
+from apps.indexing.models import IndexingJob
+from apps.resources.models import QuickAccessItem, ResourceCategory, ResourceConfig, ResourceItem
+
+
+class SiteConfigTests(TestCase):
+    def test_get_site_config_uses_database_values(self) -> None:
+        set_site_config("Configured Name", "Configured Tagline")
+        config = get_site_config()
+        self.assertEqual(config["SITE_NAME"], "Configured Name")
+        self.assertEqual(config["SITE_TAGLINE"], "Configured Tagline")
+
+    def test_get_site_config_falls_back_when_db_unavailable(self) -> None:
+        with patch(
+            "apps.resources.models.ResourceConfig.objects.filter", side_effect=OperationalError
+        ):
+            config = get_site_config()
+        self.assertIn("SITE_NAME", config)
+        self.assertIn("SITE_TAGLINE", config)
+
+    def test_context_processor_uses_site_config(self) -> None:
+        request = RequestFactory().get("/")
+        values = site(request)
+        self.assertIn("SITE_NAME", values)
+        self.assertIn("SITE_TAGLINE", values)
+
+
+class TemplateTagTests(TestCase):
+    def test_query_replace_updates_and_removes_values(self) -> None:
+        request = RequestFactory().get("/?q=test&page=2")
+        encoded = query_replace(Context({"request": request}), page=3, q=None, tag="x")
+        self.assertIn("page=3", encoded)
+        self.assertIn("tag=x", encoded)
+        self.assertNotIn("q=", encoded)
+
+    def test_safe_url_and_address_helpers(self) -> None:
+        self.assertEqual(safe_external_url("javascript:alert(1)"), "")
+        self.assertEqual(safe_external_url("https://example.com"), "https://example.com")
+        self.assertIn("google.com/maps/search", business_address_url("123 Main St"))
+        self.assertEqual(
+            business_address_url("123 Main", "https://override.test"), "https://override.test"
+        )
+
+    def test_phone_and_highlight_helpers(self) -> None:
+        self.assertEqual(phone_href("+1 (555) 123-4567"), "tel:+15551234567")
+        self.assertEqual(phone_href("abc"), "")
+        highlighted = highlight_safe("<em>City</em> & <script>")
+        self.assertIn("<em>City</em>", highlighted)
+        self.assertIn("&lt;script&gt;", highlighted)
+
+
+class PrismaImportHelperTests(TestCase):
+    def setUp(self) -> None:
+        self.admin = User.objects.create_superuser("admin@example.com", "AdminPass!123")
+        self.user = User.objects.create_user(
+            "member@example.com",
+            "MemberPass!123",
+            first_name="Member",
+            last_name="User",
+        )
+
+    def test_transform_helpers(self) -> None:
+        self.assertEqual(snake("createdDate"), "created_date")
+        self.assertIsNotNone(to_dt("2025-01-01T00:00:00Z"))
+        self.assertIsNone(to_dt(None))
+        bcrypt_hash = "$2b$12$" + ("a" * 53)
+        self.assertTrue(legacy_password_hash(bcrypt_hash).startswith("bcrypt$"))
+
+        by_id, by_email = collect_legacy_password_hashes(
+            {"items": [{"id": 10, "email": "U@E.COM", "passwordHash": bcrypt_hash}]}
+        )
+        self.assertIn(10, by_id)
+        self.assertIn("u@e.com", by_email)
+
+        normalized = normalize_row(
+            {"createdBy": 1, "name": "A", "nested": {"x": 1}, "tags": [1, 2]},
+            {"createdBy": "creator_id"},
+        )
+        self.assertEqual(normalized["creator_id"], 1)
+        self.assertNotIn("nested", normalized)
+        self.assertNotIn("tags", normalized)
+
+        filtered = filter_to_fields(Card, {"name": "A", "made_up": 1})
+        self.assertEqual(filtered, {"name": "A"})
+
+    def test_import_command_dry_run_rolls_back(self) -> None:
+        payload = {
+            "User": [
+                {
+                    "id": 50,
+                    "email": "rollback@example.com",
+                    "firstName": "Rollback",
+                    "lastName": "User",
+                    "role": "user",
+                }
+            ]
+        }
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+            tmp.write(json.dumps(payload))
+            tmp_path = Path(tmp.name)
+        try:
+            out = StringIO()
+            cmd = Command(stdout=out)
+            cmd.handle(path=str(tmp_path), dry_run=True, only="", verbosity=0)
+            self.assertFalse(User.objects.filter(email="rollback@example.com").exists())
+            self.assertIn("Import complete.", out.getvalue())
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_import_command_calls_sync_sequences_when_not_dry_run(self) -> None:
+        payload = {"User": [{"id": 51, "email": "persist@example.com", "firstName": "Persist"}]}
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+            tmp.write(json.dumps(payload))
+            tmp_path = Path(tmp.name)
+        try:
+            cmd = Command(stdout=StringIO())
+            with patch(
+                "apps.core.management.commands.import_prisma_export.call_command"
+            ) as mocked_call:
+                cmd.handle(path=str(tmp_path), dry_run=False, only="", verbosity=1)
+            mocked_call.assert_called_once_with("sync_sequences", verbosity=1)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_per_model_importers_create_records(self) -> None:
+        cmd = Command(stdout=StringIO())
+        cmd._legacy_passwords_by_id = {}
+        cmd._legacy_passwords_by_email = {}
+
+        cmd._import_users(
+            [
+                {
+                    "id": 100,
+                    "email": "legacy@example.com",
+                    "firstName": "Legacy",
+                    "lastName": "User",
+                    "role": "admin",
+                    "createdDate": "2025-01-01T00:00:00Z",
+                }
+            ]
+        )
+        cmd._import_tags([{"id": 200, "name": "plumber", "createdDate": "2025-01-01T00:00:00Z"}])
+        cmd._import_cards(
+            [
+                {
+                    "id": 300,
+                    "name": "Legacy Card",
+                    "createdBy": 100,
+                    "createdDate": "2025-01-01T00:00:00Z",
+                    "updatedDate": "2025-01-01T00:00:00Z",
+                }
+            ]
+        )
+        cmd._import_card_tags([{"cardId": 300, "tagId": 200}])
+        cmd._import_card_submissions(
+            [
+                {
+                    "id": 400,
+                    "name": "Submission",
+                    "submittedBy": 100,
+                    "status": "pending",
+                    "createdDate": "2025-01-01T00:00:00Z",
+                }
+            ]
+        )
+        cmd._import_card_modifications(
+            [
+                {
+                    "id": 410,
+                    "cardId": 300,
+                    "name": "Modification",
+                    "submittedBy": 100,
+                    "status": "pending",
+                    "createdDate": "2025-01-01T00:00:00Z",
+                }
+            ]
+        )
+        cmd._import_reviews(
+            [
+                {
+                    "id": 420,
+                    "cardId": 300,
+                    "userId": 100,
+                    "rating": 5,
+                    "createdDate": "2025-01-01T00:00:00Z",
+                    "updatedDate": "2025-01-01T00:00:00Z",
+                }
+            ]
+        )
+        cmd._import_resource_categories([{"id": 500, "name": "Health"}])
+        cmd._import_resource_items(
+            [
+                {
+                    "id": 510,
+                    "title": "Clinic",
+                    "url": "https://clinic.example",
+                    "description": "Care",
+                    "category": "Health",
+                    "icon": "hospital",
+                    "categoryId": 500,
+                }
+            ]
+        )
+        cmd._import_quick_access(
+            [
+                {
+                    "id": 520,
+                    "identifier": "hotline",
+                    "title": "Hotline",
+                    "subtitle": "24/7",
+                    "phone": "5551234",
+                    "color": "red",
+                    "icon": "phone",
+                }
+            ]
+        )
+        cmd._import_resource_config([{"id": 530, "key": "site_name", "value": "CityForge"}])
+        cmd._import_forum_categories(
+            [{"id": 600, "name": "General", "slug": "general", "createdBy": 100}]
+        )
+        cmd._import_forum_threads(
+            [
+                {
+                    "id": 610,
+                    "title": "Welcome",
+                    "slug": "welcome",
+                    "categoryId": 600,
+                    "createdBy": 100,
+                }
+            ]
+        )
+        cmd._import_forum_posts(
+            [{"id": 620, "threadId": 610, "content": "Hello", "createdBy": 100}]
+        )
+        cmd._import_help_posts(
+            [
+                {
+                    "id": 700,
+                    "title": "Need painter",
+                    "description": "Wall painting",
+                    "category": "home",
+                    "createdBy": 100,
+                }
+            ]
+        )
+        cmd._import_help_comments(
+            [{"id": 710, "postId": 700, "content": "I can help", "createdBy": 100}]
+        )
+        cmd._import_indexing([{"id": 800, "resourceId": 510, "status": "queued"}])
+        cmd._import_token_blacklist(
+            [
+                {
+                    "id": 900,
+                    "jti": "blk1",
+                    "tokenType": "access",
+                    "userId": 100,
+                    "revokedAt": "2025-01-01T00:00:00Z",
+                    "expiresAt": "2025-01-02T00:00:00Z",
+                },
+                {
+                    "jti": "blk2",
+                    "tokenType": "refresh",
+                    "userId": 100,
+                    "revokedAt": "2025-01-01T00:00:00Z",
+                    "expiresAt": "2025-01-02T00:00:00Z",
+                },
+            ]
+        )
+
+        self.assertTrue(User.objects.filter(pk=100).exists())
+        self.assertTrue(Tag.objects.filter(pk=200).exists())
+        self.assertTrue(Card.objects.filter(pk=300).exists())
+        self.assertTrue(CardTag.objects.filter(card_id=300, tag_id=200).exists())
+        self.assertTrue(CardSubmission.objects.filter(pk=400).exists())
+        self.assertTrue(CardModification.objects.filter(pk=410).exists())
+        self.assertTrue(Review.objects.filter(pk=420).exists())
+        self.assertTrue(ResourceCategory.objects.filter(pk=500).exists())
+        self.assertTrue(ResourceItem.objects.filter(pk=510).exists())
+        self.assertTrue(QuickAccessItem.objects.filter(pk=520).exists())
+        self.assertTrue(ResourceConfig.objects.filter(pk=530).exists())
+        self.assertTrue(ForumCategory.objects.filter(pk=600).exists())
+        self.assertTrue(ForumThread.objects.filter(pk=610).exists())
+        self.assertTrue(ForumPost.objects.filter(pk=620).exists())
+        self.assertTrue(HelpWantedPost.objects.filter(pk=700).exists())
+        self.assertTrue(HelpWantedComment.objects.filter(pk=710).exists())
+        self.assertTrue(IndexingJob.objects.filter(pk=800).exists())
+        self.assertEqual(TokenBlacklist.objects.count(), 2)
+
+    def test_sync_sequences_command_runs(self) -> None:
+        out = StringIO()
+        from django.core.management import call_command
+
+        call_command("sync_sequences", stdout=out)
+        self.assertTrue(
+            "Synchronized" in out.getvalue() or "No sequences to synchronize." in out.getvalue()
+        )
+
+
+class BootstrapModuleTests(TestCase):
+    def test_imports_asgi_wsgi_and_urls(self) -> None:
+        asgi_module = importlib.import_module("cityforge.asgi")
+        wsgi_module = importlib.import_module("cityforge.wsgi")
+        urls_module = importlib.import_module("cityforge.urls")
+        self.assertIsNotNone(asgi_module.application)
+        self.assertIsNotNone(wsgi_module.application)
+        self.assertTrue(any(str(p.pattern) == "api/cards" for p in urls_module.urlpatterns))
