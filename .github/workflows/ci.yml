@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, django]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root --with dev
+      - name: Ruff
+        run: poetry run ruff check .
+      - name: Ruff format check
+        run: poetry run ruff format --check .
+
+  test:
+    name: Tests & migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cityforge_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-not-used-in-prod
+      DJANGO_DEBUG: "True"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cityforge_test
+      OPENSEARCH_HOST: localhost
+      OPENSEARCH_PORT: "9200"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root --with dev
+      - name: Django check
+        run: poetry run python manage.py check
+      - name: Migrations are up to date
+        run: poetry run python manage.py makemigrations --check --dry-run
+      - name: Apply migrations
+        run: poetry run python manage.py migrate --noinput
+      - name: Pytest
+        run: poetry run pytest
+
+  semgrep:
+    name: Semgrep security scan
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci --config=p/python --config=p/django --config=p/security-audit
+        env:
+          SEMGREP_RULES: p/python p/django p/security-audit
