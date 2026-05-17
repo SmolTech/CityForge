@@ -15,8 +15,8 @@
   {% if card.description %}<p>{{ card.description|linebreaksbr }}</p>{% endif %}
 
   <ul style="list-style:none;padding:0">
-    {% if card.address %}<li>📍 {{ card.address }}</li>{% endif %}
-    {% if card.phone_number %}<li>☎ {{ card.phone_number }}</li>{% endif %}
+    {% if card.address %}{% with address_url=card.address|business_address_url:card.address_override_url %}<li>📍 {% if address_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ address_url }}" rel="noopener">{{ card.address }}</a>{% else %}{{ card.address }}{% endif %}</li>{% endwith %}{% endif %}
+    {% if card.phone_number %}{% with tel_url=card.phone_number|phone_href %}<li>☎ {% if tel_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ tel_url }}">{{ card.phone_number }}</a>{% else %}{{ card.phone_number }}{% endif %}</li>{% endwith %}{% endif %}
     {% if card.email %}<li>✉ <a href="mailto:{{ card.email }}">{{ card.email }}</a></li>{% endif %}
     {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<li>🌐 <a href="{{ safe_url }}" rel="noopener">{{ card.website_url }}</a></li>{% endif %}{% endwith %}{% endif %}
   </ul>
