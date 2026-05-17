@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ card.name }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<article class="card-detail">
+  <h1>{{ card.name }}</h1>
+  <div class="detail-meta">
+    {% if card.contact_name %}<span>{{ card.contact_name }}</span>{% endif %}
+    {% if avg_rating %}<span>★ {{ avg_rating|floatformat:1 }} ({{ review_count }} review{{ review_count|pluralize }})</span>{% endif %}
+    {% if card.featured %}<span class="badge badge-pending">Featured</span>{% endif %}
+  </div>
+
+  {% if card.image_url %}<img src="{{ card.image_url }}" alt="" style="max-width:100%;border-radius:8px;margin-bottom:14px">{% endif %}
+
+  {% if card.description %}<p>{{ card.description|linebreaksbr }}</p>{% endif %}
+
+  <ul style="list-style:none;padding:0">
+    {% if card.address %}<li>📍 {{ card.address }}</li>{% endif %}
+    {% if card.phone_number %}<li>☎ {{ card.phone_number }}</li>{% endif %}
+    {% if card.email %}<li>✉ <a href="mailto:{{ card.email }}">{{ card.email }}</a></li>{% endif %}
+    {% if card.website_url %}<li>🌐 <a href="{{ card.website_url }}" rel="noopener">{{ card.website_url }}</a></li>{% endif %}
+  </ul>
+
+  {% if card.tags.all %}
+    <div class="tags" style="margin-top:12px">
+      {% for tag in card.tags.all %}<span class="tag-chip">{{ tag.name }}</span>{% endfor %}
+    </div>
+  {% endif %}
+</article>
+
+<section class="card-detail">
+  <h2>Reviews</h2>
+  {% if reviews %}
+    {% for r in reviews %}
+      <div style="border-top:1px solid var(--border);padding:12px 0">
+        <strong>{{ r.user.first_name }} {{ r.user.last_name|slice:":1" }}.</strong>
+        <span class="rating">★ {{ r.rating }}</span>
+        <span class="meta" style="color:var(--muted)">· {{ r.created_date|date:"M j, Y" }}</span>
+        {% if r.title %}<div><strong>{{ r.title }}</strong></div>{% endif %}
+        {% if r.comment %}<p>{{ r.comment|linebreaksbr }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No reviews yet.</p>
+  {% endif %}
+
+  {% if can_review %}
+    <h3>Leave a review</h3>
+    <form method="post" action="{% url 'directory:submit_review' pk=card.pk %}">
+      {% csrf_token %}
+      {% for field in review_form %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }} {{ field.errors }}
+        </div>
+      {% endfor %}
+      <div class="form-actions">
+        <button type="submit" class="btn">Post review</button>
+      </div>
+    </form>
+  {% elif not user.is_authenticated %}
+    <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to leave a review.</p>
+  {% endif %}
+</section>
+{% endblock %}

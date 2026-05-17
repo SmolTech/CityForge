@@ -1,0 +1,27 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Tags · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Tags</h1>
+<table class="data">
+  <thead><tr><th>Name</th><th># Cards</th><th></th></tr></thead>
+  <tbody>
+    {% for t in tags %}
+      <tr>
+        <td>{{ t.name }}</td>
+        <td>{{ t.used }}</td>
+        <td>
+          {% if t.used == 0 %}
+            <form method="post" action="{% url 'cms:tag_delete' pk=t.pk %}" style="display:inline"
+                  onsubmit="return confirm('Delete tag?');">
+              {% csrf_token %}
+              <button type="submit" class="link-button" style="color:var(--danger)">Delete</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3">No tags.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

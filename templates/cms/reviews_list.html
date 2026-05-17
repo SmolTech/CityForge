@@ -1,0 +1,43 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Reviews · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Reviews</h1>
+<p>
+  <a href="?reported=1" {% if only_reported %}class="active"{% endif %}>Reported only</a> ·
+  <a href="?">All reviews</a>
+</p>
+<table class="data">
+  <thead><tr><th>Business</th><th>User</th><th>Rating</th><th>Comment</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for r in page_obj %}
+      <tr>
+        <td><a href="{% url 'directory:card_detail' pk=r.card.pk slug=r.card.slug %}">{{ r.card.name }}</a></td>
+        <td>{{ r.user.email }}</td>
+        <td>★ {{ r.rating }}</td>
+        <td>{{ r.comment|default:""|truncatechars:100 }}</td>
+        <td>
+          {% if r.hidden %}<span class="badge badge-rejected">Hidden</span>
+          {% elif r.reported %}<span class="badge badge-pending">Reported</span>
+          {% else %}<span class="badge badge-approved">Visible</span>{% endif %}
+        </td>
+        <td>
+          <form method="post" action="{% url 'cms:review_toggle_hidden' pk=r.pk %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="link-button">{% if r.hidden %}Show{% else %}Hide{% endif %}</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">No reviews.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?{% if only_reported %}reported=1&{% endif %}page={{ page_obj.previous_page_number }}">‹ Prev</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?{% if only_reported %}reported=1&{% endif %}page={{ page_obj.next_page_number }}">Next ›</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Submissions · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Submissions</h1>
+<form method="get" class="form-field" style="margin-bottom:16px">
+  <label>Status</label>
+  <select name="status" onchange="this.form.submit()">
+    {% for value, label in statuses %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<table class="data">
+  <thead><tr><th>Business</th><th>Submitter</th><th>Submitted</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for s in page_obj %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.submitter.email }}</td>
+        <td>{{ s.created_date|date:"M j, Y" }}</td>
+        <td><a href="{% url 'cms:submission_detail' pk=s.pk %}">Review</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No submissions in this state.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?status={{ status }}&page={{ page_obj.previous_page_number }}">‹ Prev</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?status={{ status }}&page={{ page_obj.next_page_number }}">Next ›</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

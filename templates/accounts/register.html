@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Register · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Create your account</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+    <div class="form-actions">
+      <button type="submit" class="btn">Register</button>
+      <a href="{% url 'accounts:login' %}">Have an account? Log in</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

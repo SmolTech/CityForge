@@ -1,0 +1,45 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Submission · {{ submission.name }}{% endblock %}
+{% block cms_content %}
+<a href="{% url 'cms:submissions_list' %}">← Back to submissions</a>
+<h1>{{ submission.name }}</h1>
+<p>
+  <span class="badge badge-{{ submission.status }}">{{ submission.get_status_display }}</span>
+  · submitted by {{ submission.submitter.email }} on {{ submission.created_date|date:"M j, Y H:i" }}
+</p>
+
+<dl>
+  <dt>Description</dt><dd>{{ submission.description|default:"—"|linebreaksbr }}</dd>
+  <dt>Website</dt><dd>{{ submission.website_url|default:"—" }}</dd>
+  <dt>Phone</dt><dd>{{ submission.phone_number|default:"—" }}</dd>
+  <dt>Email</dt><dd>{{ submission.email|default:"—" }}</dd>
+  <dt>Address</dt><dd>{{ submission.address|default:"—" }}</dd>
+  <dt>Contact</dt><dd>{{ submission.contact_name|default:"—" }}</dd>
+  <dt>Tags</dt><dd>{{ submission.tags_text|default:"—" }}</dd>
+  <dt>Image URL</dt><dd>{{ submission.image_url|default:"—" }}</dd>
+</dl>
+
+{% if submission.status == 'pending' %}
+  <div style="display:flex;gap:24px;margin-top:24px">
+    <form method="post" action="{% url 'cms:submission_approve' pk=submission.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Approval notes (optional)</label>
+        <textarea name="review_notes" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn">Approve & publish</button>
+    </form>
+    <form method="post" action="{% url 'cms:submission_reject' pk=submission.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Rejection reason</label>
+        <textarea name="review_notes" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">Reject</button>
+    </form>
+  </div>
+{% else %}
+  <p class="muted">Reviewed on {{ submission.reviewed_date|date:"M j, Y H:i" }} by {{ submission.reviewer.email|default:"—" }}.</p>
+  {% if submission.review_notes %}<p><strong>Notes:</strong> {{ submission.review_notes }}</p>{% endif %}
+{% endif %}
+{% endblock %}

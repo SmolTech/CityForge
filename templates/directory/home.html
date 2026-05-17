@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load directory_extras %}
+
+{% block title %}{{ SITE_NAME }} · Local directory{% endblock %}
+
+{% block content %}
+<section style="margin-top:24px">
+  <h1 style="margin-bottom:4px">{{ SITE_NAME }}</h1>
+  <p style="margin-top:0;color:var(--muted)">{{ SITE_TAGLINE }}</p>
+</section>
+
+<form method="get" class="search-bar">
+  <input type="search" name="q" value="{{ search }}" placeholder="Search businesses, addresses, contacts…">
+  <button type="submit" class="btn">Search</button>
+  {% for t in selected_tags %}<input type="hidden" name="tag" value="{{ t }}">{% endfor %}
+  {% if featured_only %}<input type="hidden" name="featured" value="1">{% endif %}
+</form>
+
+<div class="layout-2col">
+  <aside class="sidebar">
+    <h3>Filters</h3>
+    <form method="get">
+      {% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+      <div class="form-field">
+        <label>
+          <input type="checkbox" name="featured" value="1" {% if featured_only %}checked{% endif %}
+                 onchange="this.form.submit()">
+          Featured only
+        </label>
+      </div>
+      <div class="form-field">
+        <label>Tag match</label>
+        <select name="tag_mode" onchange="this.form.submit()">
+          <option value="and" {% if tag_mode == 'and' %}selected{% endif %}>Match all selected</option>
+          <option value="or" {% if tag_mode == 'or' %}selected{% endif %}>Match any selected</option>
+        </select>
+      </div>
+      <h3 style="margin-top:18px">Tags</h3>
+      <div class="tag-cloud">
+        {% for tag in tags %}
+          <label class="tag-chip {% if tag.name in selected_tags %}active{% endif %}">
+            <input type="checkbox" name="tag" value="{{ tag.name }}"
+                   style="display:none"
+                   {% if tag.name in selected_tags %}checked{% endif %}
+                   onchange="this.form.submit()">
+            {{ tag.name }}
+          </label>
+        {% endfor %}
+        {% if not tags %}<p class="muted">No tags yet.</p>{% endif %}
+      </div>
+      {% if selected_tags or featured_only or search %}
+        <p style="margin-top:14px">
+          <a href="{% url 'directory:home' %}">Clear filters</a>
+        </p>
+      {% endif %}
+    </form>
+  </aside>
+
+  <section>
+    <p style="margin:0 0 12px;color:var(--muted)">{{ total }} business{{ total|pluralize:"es" }} found</p>
+    <div class="card-grid">
+      {% for card in cards %}
+        {% include "directory/_card.html" with card=card %}
+      {% empty %}
+        <p>No businesses matched your filters.</p>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?{% query_replace page=page_obj.previous_page_number %}">‹ Prev</a>
+        {% endif %}
+        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?{% query_replace page=page_obj.next_page_number %}">Next ›</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
