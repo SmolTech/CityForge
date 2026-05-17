@@ -3,6 +3,7 @@
 {% block content %}
 <div class="auth-card">
   <h1>Create your account</h1>
+  {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
   <form method="post" novalidate>
     {% csrf_token %}
     {% for field in form %}

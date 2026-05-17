@@ -13,7 +13,9 @@ class UserManager(BaseUserManager):
             raise ValueError("Email is required")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        # Called from createsuperuser / data import; AUTH_PASSWORD_VALIDATORS
+        # are not applied for these admin-driven flows by design.
+        user.set_password(password)  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
         user.save(using=self._db)
         return user
 

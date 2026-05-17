@@ -41,7 +41,8 @@ class RegisterForm(forms.ModelForm):
 
     def save(self, commit: bool = True) -> User:
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        # Password validated above via validate_password() in clean().
+        user.set_password(self.cleaned_data["password1"])  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
         if commit:
             user.save()
         return user

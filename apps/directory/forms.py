@@ -31,6 +31,8 @@ class CardSubmissionForm(forms.ModelForm):
 
 
 class CardModerationForm(forms.ModelForm):
+    tags_text = forms.CharField(required=False, label="Tags (comma-separated)")
+
     class Meta:
         model = Card
         fields = (

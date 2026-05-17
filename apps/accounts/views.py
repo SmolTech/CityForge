@@ -116,7 +116,8 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
         form = ResetPasswordForm(request.POST)
         if form.is_valid():
             user = prt.user
-            user.set_password(form.cleaned_data["password1"])
+            # ResetPasswordForm.clean() invokes validate_password() before this.
+            user.set_password(form.cleaned_data["password1"])  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
             user.save(update_fields=["password"])
             prt.used = True
             prt.used_at = timezone.now()

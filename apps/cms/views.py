@@ -105,20 +105,18 @@ def card_edit(request: HttpRequest, pk: int) -> HttpResponse:
                 card.approver = request.user
                 card.approved_date = timezone.now()
             card.save()
-            tags_text = request.POST.get("tags_text", "")
-            _replace_card_tags(card, _split_tags(tags_text))
+            _replace_card_tags(card, _split_tags(form.cleaned_data.get("tags_text", "")))
             messages.success(request, "Card updated.")
             return redirect("cms:cards_list")
     else:
-        form = CardModerationForm(instance=card)
+        form = CardModerationForm(
+            instance=card,
+            initial={"tags_text": ", ".join(t.name for t in card.tags.all())},
+        )
     return render(
         request,
         "cms/card_edit.html",
-        {
-            "card": card,
-            "form": form,
-            "tags_text": ", ".join(t.name for t in card.tags.all()),
-        },
+        {"card": card, "form": form},
     )
 
 
