@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load directory_extras %}
 {% block title %}Search · {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <h1>Search resources</h1>
@@ -17,17 +18,17 @@
   {% for r in results %}
     <article class="search-result">
       <h3>
-        {% if r.url %}<a href="{{ r.url }}" rel="noopener">{{ r.title|default:r.url }}</a>
+        {% if r.url %}{% with safe_url=r.url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">{{ r.title|default:r.url }}</a>{% else %}{{ r.title|default:r.url }}{% endif %}{% endwith %}
         {% else %}{{ r.title }}{% endif %}
       </h3>
       {% if r.url %}<div class="url">{{ r.url }}</div>{% endif %}
       {% if r.highlight.description %}
-        <p>{% for h in r.highlight.description %}{{ h|safe }}{% endfor %}</p>
+        <p>{% for h in r.highlight.description %}{{ h|highlight_safe }}{% endfor %}</p>
       {% elif r.description %}
         <p>{{ r.description|truncatechars:240 }}</p>
       {% endif %}
       {% if r.highlight.content %}
-        <p>{% for h in r.highlight.content %}{{ h|safe }} {% endfor %}</p>
+        <p>{% for h in r.highlight.content %}{{ h|highlight_safe }} {% endfor %}</p>
       {% elif r.excerpt %}
         <p class="muted">{{ r.excerpt|truncatechars:240 }}</p>
       {% endif %}

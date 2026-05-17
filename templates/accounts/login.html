@@ -4,6 +4,7 @@
 <div class="auth-card">
   <h1>Welcome back</h1>
   <p class="muted">Log in to manage submissions and reviews.</p>
+  {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
   <form method="post" novalidate>
     {% csrf_token %}
     {% for field in form %}

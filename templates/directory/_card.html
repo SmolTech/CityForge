@@ -9,7 +9,7 @@
   <div class="meta">
     {% if card.address %}📍 {{ card.address }}<br>{% endif %}
     {% if card.phone_number %}☎ {{ card.phone_number }}<br>{% endif %}
-    {% if card.website_url %}<a href="{{ card.website_url }}" rel="noopener">Website</a>{% endif %}
+    {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">Website</a>{% endif %}{% endwith %}{% endif %}
   </div>
   {% if card.avg_rating %}
     <div class="rating">★ {{ card.avg_rating|floatformat:1 }} ({{ card.num_reviews }})</div>
