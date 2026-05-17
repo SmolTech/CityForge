@@ -35,6 +35,26 @@ a:hover { text-decoration: underline; }
 .primary-nav { display: flex; gap: 16px; align-items: center; }
 .primary-nav a { color: var(--text); }
 .user-chip { background: var(--bg); padding: 4px 10px; border-radius: 999px; font-size: .9rem; }
+.account-menu { position: relative; }
+.account-menu summary { cursor: pointer; list-style: none; }
+.account-menu summary::-webkit-details-marker { display: none; }
+.account-menu summary::after { content: "▾"; margin-left: 6px; color: var(--muted); }
+.account-menu[open] summary::after { content: "▴"; }
+.account-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 180px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 12px 28px rgb(0 0 0 / 12%);
+  padding: 8px; z-index: 20;
+}
+.account-menu-panel a,
+.account-menu-panel .link-button {
+  display: block; width: 100%; padding: 8px 10px; border-radius: var(--radius);
+  color: var(--text); text-align: left;
+}
+.account-menu-panel a:hover,
+.account-menu-panel .link-button:hover {
+  background: var(--bg); text-decoration: none;
+}
 
 .inline-form { display: inline; }
 .link-button {

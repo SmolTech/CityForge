@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("settings/", views.site_settings, name="site_settings"),
     path("users/", views.users_list, name="users_list"),
     path("users/<int:pk>/toggle-active/", views.user_toggle_active, name="user_toggle_active"),
     path("users/<int:pk>/set-role/", views.user_set_role, name="user_set_role"),

@@ -1,10 +1,7 @@
 """Site-wide template context."""
 
-from django.conf import settings
+from .site_config import get_site_config
 
 
 def site(request):
-    return {
-        "SITE_NAME": settings.SITE_NAME,
-        "SITE_TAGLINE": settings.SITE_TAGLINE,
-    }
+    return get_site_config()

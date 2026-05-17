@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
+from apps.cms.forms import SiteSettingsForm
+from apps.core.site_config import get_site_config, set_site_config
 from apps.directory.forms import CardModerationForm
 from apps.directory.models import (
     Card,
@@ -44,6 +46,27 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "cms/dashboard.html",
         {"stats": stats, "recent_submissions": recent_submissions},
     )
+
+
+@admin_required
+def site_settings(request: HttpRequest) -> HttpResponse:
+    config = get_site_config()
+    initial = {
+        "site_name": config["SITE_NAME"],
+        "site_tagline": config["SITE_TAGLINE"],
+    }
+    if request.method == "POST":
+        form = SiteSettingsForm(request.POST)
+        if form.is_valid():
+            set_site_config(
+                form.cleaned_data["site_name"],
+                form.cleaned_data["site_tagline"],
+            )
+            messages.success(request, "Site settings updated.")
+            return redirect("cms:site_settings")
+    else:
+        form = SiteSettingsForm(initial=initial)
+    return render(request, "cms/site_settings.html", {"form": form})
 
 
 # ------------ Users -----------
