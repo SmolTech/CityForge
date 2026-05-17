@@ -86,11 +86,32 @@ FK_RENAMES: dict[str, dict[str, str]] = {
 def normalize_row(row: dict[str, Any], renames: dict[str, str]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for k, v in row.items():
+        # Prisma exports include nested relation payloads (e.g. ``creator: {...}``
+        # or ``tags: [...]``) alongside the scalar FK columns (``createdBy``,
+        # ``card_tags``). Those nested objects cannot be assigned to Django model
+        # fields, so drop anything that isn't a scalar.
+        if isinstance(v, (dict, list)):
+            continue
         if k in renames:
             out[renames[k]] = v
         else:
             out[snake(k)] = v
     return out
+
+
+def model_fields(model) -> set[str]:
+    names: set[str] = set()
+    for f in model._meta.get_fields():
+        if hasattr(f, "attname"):
+            names.add(f.attname)
+        if hasattr(f, "name"):
+            names.add(f.name)
+    return names
+
+
+def filter_to_fields(model, d: dict[str, Any]) -> dict[str, Any]:
+    allowed = model_fields(model)
+    return {k: v for k, v in d.items() if k in allowed}
 
 
 class Command(BaseCommand):
@@ -200,10 +221,8 @@ class Command(BaseCommand):
             d["created_date"] = to_dt(d.get("created_date"))
             d["updated_date"] = to_dt(d.get("updated_date"))
             d["approved_date"] = to_dt(d.get("approved_date"))
-            d.pop("tags", None)
-            d.pop("card_tags", None)
             pk = d.pop("id")
-            Card.objects.update_or_create(pk=pk, defaults=d)
+            Card.objects.update_or_create(pk=pk, defaults=filter_to_fields(Card, d))
         return len(rows)
 
     def _import_card_tags(self, rows):
@@ -220,7 +239,7 @@ class Command(BaseCommand):
             d["created_date"] = to_dt(d.get("created_date"))
             d["reviewed_date"] = to_dt(d.get("reviewed_date"))
             pk = d.pop("id")
-            CardSubmission.objects.update_or_create(pk=pk, defaults=d)
+            CardSubmission.objects.update_or_create(pk=pk, defaults=filter_to_fields(CardSubmission, d))
         return len(rows)
 
     def _import_card_modifications(self, rows):
@@ -229,7 +248,7 @@ class Command(BaseCommand):
             d["created_date"] = to_dt(d.get("created_date"))
             d["reviewed_date"] = to_dt(d.get("reviewed_date"))
             pk = d.pop("id")
-            CardModification.objects.update_or_create(pk=pk, defaults=d)
+            CardModification.objects.update_or_create(pk=pk, defaults=filter_to_fields(CardModification, d))
         return len(rows)
 
     def _import_reviews(self, rows):
@@ -239,49 +258,49 @@ class Command(BaseCommand):
             d["updated_date"] = to_dt(d.get("updated_date"))
             d["reported_date"] = to_dt(d.get("reported_date"))
             pk = d.pop("id")
-            Review.objects.update_or_create(pk=pk, defaults=d)
+            Review.objects.update_or_create(pk=pk, defaults=filter_to_fields(Review, d))
         return len(rows)
 
     def _import_resource_categories(self, rows):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            ResourceCategory.objects.update_or_create(pk=pk, defaults=d)
+            ResourceCategory.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceCategory, d))
         return len(rows)
 
     def _import_resource_items(self, rows):
         for r in rows:
             d = normalize_row(r, {"categoryId": "category_id"})
             pk = d.pop("id")
-            ResourceItem.objects.update_or_create(pk=pk, defaults=d)
+            ResourceItem.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceItem, d))
         return len(rows)
 
     def _import_quick_access(self, rows):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            QuickAccessItem.objects.update_or_create(pk=pk, defaults=d)
+            QuickAccessItem.objects.update_or_create(pk=pk, defaults=filter_to_fields(QuickAccessItem, d))
         return len(rows)
 
     def _import_resource_config(self, rows):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            ResourceConfig.objects.update_or_create(pk=pk, defaults=d)
+            ResourceConfig.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceConfig, d))
         return len(rows)
 
     def _import_forum_categories(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
-            ForumCategory.objects.update_or_create(pk=pk, defaults=d)
+            ForumCategory.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumCategory, d))
         return len(rows)
 
     def _import_forum_threads(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id", "categoryId": "category_id"})
             pk = d.pop("id")
-            ForumThread.objects.update_or_create(pk=pk, defaults=d)
+            ForumThread.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumThread, d))
         return len(rows)
 
     def _import_forum_posts(self, rows):
@@ -295,34 +314,35 @@ class Command(BaseCommand):
                 },
             )
             pk = d.pop("id")
-            ForumPost.objects.update_or_create(pk=pk, defaults=d)
+            ForumPost.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumPost, d))
         return len(rows)
 
     def _import_help_posts(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
-            HelpWantedPost.objects.update_or_create(pk=pk, defaults=d)
+            HelpWantedPost.objects.update_or_create(pk=pk, defaults=filter_to_fields(HelpWantedPost, d))
         return len(rows)
 
     def _import_help_comments(self, rows):
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id", "postId": "post_id"})
             pk = d.pop("id")
-            HelpWantedComment.objects.update_or_create(pk=pk, defaults=d)
+            HelpWantedComment.objects.update_or_create(pk=pk, defaults=filter_to_fields(HelpWantedComment, d))
         return len(rows)
 
     def _import_indexing(self, rows):
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
-            IndexingJob.objects.update_or_create(pk=pk, defaults=d)
+            IndexingJob.objects.update_or_create(pk=pk, defaults=filter_to_fields(IndexingJob, d))
         return len(rows)
 
     def _import_token_blacklist(self, rows):
         for r in rows:
             d = normalize_row(r, {"userId": "user_id"})
             pk = d.pop("id", None)
+            d = filter_to_fields(TokenBlacklist, d)
             if pk:
                 TokenBlacklist.objects.update_or_create(pk=pk, defaults=d)
             else:

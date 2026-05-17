@@ -69,3 +69,4 @@ db.sqlite3-journal
 /uploads/
 /media/
 .env
+cityforge_export_*.json
