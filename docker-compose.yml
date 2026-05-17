@@ -55,7 +55,6 @@ services:
       DJANGO_SUPERUSER_PASSWORD: ChangeThisPassword123!
     volumes:
       - web_uploads:/app/uploads
-      - web_static:/app/staticfiles
     ports:
       - "8000:8000"
     depends_on:
@@ -95,4 +94,3 @@ volumes:
   postgres_data:
   opensearch_data:
   web_uploads:
-  web_static:
