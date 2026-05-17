@@ -7,8 +7,8 @@
   {% if card.contact_name %}<div class="meta">{{ card.contact_name }}</div>{% endif %}
   {% if card.description %}<p class="desc">{{ card.description|truncatechars:140 }}</p>{% endif %}
   <div class="meta">
-    {% if card.address %}📍 {{ card.address }}<br>{% endif %}
-    {% if card.phone_number %}☎ {{ card.phone_number }}<br>{% endif %}
+    {% if card.address %}{% with address_url=card.address|business_address_url:card.address_override_url %}{% if address_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ address_url }}" rel="noopener">📍 {{ card.address }}</a>{% else %}📍 {{ card.address }}{% endif %}{% endwith %}<br>{% endif %}
+    {% if card.phone_number %}{% with tel_url=card.phone_number|phone_href %}{% if tel_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ tel_url }}">☎ {{ card.phone_number }}</a>{% else %}☎ {{ card.phone_number }}{% endif %}{% endwith %}<br>{% endif %}
     {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">Website</a>{% endif %}{% endwith %}{% endif %}
   </div>
   {% if card.avg_rating %}
