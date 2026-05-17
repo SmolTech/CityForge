@@ -6,6 +6,7 @@
   <a href="?reported=1" {% if only_reported %}class="active"{% endif %}>Reported only</a> ·
   <a href="?">All reviews</a>
 </p>
+<div class="table-wrap">
 <table class="data">
   <thead><tr><th>Business</th><th>User</th><th>Rating</th><th>Comment</th><th>Status</th><th></th></tr></thead>
   <tbody>
@@ -32,6 +33,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 
 {% if page_obj.has_other_pages %}
   <div class="pagination">

@@ -38,11 +38,11 @@
     <p>No results found.</p>
   {% endfor %}
 
-  {% if total_pages > 1 %}
-    <div class="pagination">
-      {% if has_prev %}<a href="?q={{ query }}&page={{ page|add:'-1' }}">‹ Prev</a>{% endif %}
+      {% if total_pages > 1 %}
+        <div class="pagination">
+      {% if has_prev %}<a href="?{% query_replace page=page|add:'-1' %}">‹ Prev</a>{% endif %}
       <span class="current">Page {{ page }} of {{ total_pages }}</span>
-      {% if has_next %}<a href="?q={{ query }}&page={{ page|add:'1' }}">Next ›</a>{% endif %}
+      {% if has_next %}<a href="?{% query_replace page=page|add:'1' %}">Next ›</a>{% endif %}
     </div>
   {% endif %}
 {% endif %}

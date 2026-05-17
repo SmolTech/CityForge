@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 
 urlpatterns = [
+    path("api/cards", include(("apps.directory.urls_api", "directory_api"))),
     path("", include(("apps.directory.urls", "directory"), namespace="directory")),
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("search/", include(("apps.search.urls", "search"), namespace="search")),

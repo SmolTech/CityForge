@@ -11,6 +11,7 @@
 
 <h2>Recent submissions</h2>
 {% if recent_submissions %}
+  <div class="table-wrap">
   <table class="data">
     <thead><tr><th>Business</th><th>Submitter</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
     <tbody>
@@ -25,6 +26,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% else %}
   <p class="muted">No recent submissions.</p>
 {% endif %}

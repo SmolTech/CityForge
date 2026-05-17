@@ -4,21 +4,34 @@ from pathlib import Path
 
 import dj_database_url
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
-    DEBUG=(bool, False),
-    ALLOWED_HOSTS=(list, ["*"]),
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "testserver"]),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
-    default="django-insecure-change-me-in-prod",
+    default="django-insecure-dev-only-change-me",
 )
-DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
+DEBUG = env.bool("DJANGO_DEBUG", default=True)
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS",
+    default=["localhost", "127.0.0.1", "testserver"],
+)
+
+if not DEBUG:
+    if SECRET_KEY.startswith("django-insecure") or SECRET_KEY in {
+        "change-this-in-production",
+        "change-this-to-a-long-random-string",
+    }:
+        raise ImproperlyConfigured("Set DJANGO_SECRET_KEY to a secure value when DEBUG=False.")
+    if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
+        raise ImproperlyConfigured("Set DJANGO_ALLOWED_HOSTS explicitly when DEBUG=False.")
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
@@ -133,8 +146,13 @@ PAGINATION_DEFAULT_LIMIT = env.int("PAGINATION_DEFAULT_LIMIT", default=24)
 # OpenSearch
 OPENSEARCH_HOST = env("OPENSEARCH_HOST", default="opensearch-service")
 OPENSEARCH_PORT = env.int("OPENSEARCH_PORT", default=9200)
-OPENSEARCH_USE_HTTPS = env.bool("OPENSEARCH_USE_HTTPS", default=False)
+OPENSEARCH_USE_HTTPS = env.bool(
+    "OPENSEARCH_USE_HTTPS",
+    default=env.bool("OPENSEARCH_USE_SSL", default=False),
+)
 OPENSEARCH_NAMESPACE = env("OPENSEARCH_NAMESPACE", default=env("NAMESPACE", default="community"))
+OPENSEARCH_USERNAME = env("OPENSEARCH_USERNAME", default="")
+OPENSEARCH_PASSWORD = env("OPENSEARCH_PASSWORD", default="")
 
 # Security
 SESSION_COOKIE_HTTPONLY = True

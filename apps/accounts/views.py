@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
+from hashlib import sha256
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,6 +20,9 @@ from .forms import ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordFor
 from .models import PasswordResetToken, User
 
 TOKEN_TTL_HOURS = 1
+EMAIL_VERIFICATION_TTL_HOURS = 48
+PASSWORD_RESET_LIMIT = 5
+PASSWORD_RESET_WINDOW_SECONDS = 3600
 
 
 def _client_ip(request: HttpRequest) -> str | None:
@@ -25,6 +30,21 @@ def _client_ip(request: HttpRequest) -> str | None:
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR")
+
+
+def _reset_rate_key(request: HttpRequest, email: str) -> str:
+    ip = _client_ip(request) or "unknown"
+    digest = sha256(f"{ip}:{email}".encode()).hexdigest()
+    return f"password-reset:{digest}"
+
+
+def _allow_password_reset_request(request: HttpRequest, email: str) -> bool:
+    key = _reset_rate_key(request, email)
+    count = cache.get(key, 0)
+    if count >= PASSWORD_RESET_LIMIT:
+        return False
+    cache.set(key, count + 1, PASSWORD_RESET_WINDOW_SECONDS)
+    return True
 
 
 @require_http_methods(["GET", "POST"])
@@ -88,7 +108,7 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             email = form.cleaned_data["email"].lower().strip()
             user = User.objects.filter(email__iexact=email).first()
-            if user is not None:
+            if user is not None and _allow_password_reset_request(request, email):
                 token = PasswordResetToken.objects.create(
                     user=user,
                     token=secrets.token_urlsafe(32),
@@ -141,6 +161,12 @@ def verify_email(request: HttpRequest, token: str) -> HttpResponse:
     user = User.objects.filter(email_verification_token=token).first()
     if not user:
         messages.error(request, "Verification link is invalid.")
+        return redirect("directory:home")
+    sent_at = user.email_verification_sent_at
+    if sent_at is None or sent_at < timezone.now() - timedelta(hours=EMAIL_VERIFICATION_TTL_HOURS):
+        user.email_verification_token = None
+        user.save(update_fields=["email_verification_token"])
+        messages.error(request, "Verification link has expired. Please request a new one.")
         return redirect("directory:home")
     user.email_verified = True
     user.email_verification_token = None
