@@ -71,6 +71,6 @@ jobs:
       image: returntocorp/semgrep
     steps:
       - uses: actions/checkout@v4
-      - run: semgrep ci --config=p/python --config=p/django --config=p/security-audit
+      - run: semgrep ci --config=p/python --config=p/django --config=p/security-audit --config=p/dockerfile
         env:
-          SEMGREP_RULES: p/python p/django p/security-audit
+          SEMGREP_RULES: p/python p/django p/security-audit p/dockerfile

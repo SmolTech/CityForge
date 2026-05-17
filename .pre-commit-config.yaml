@@ -25,6 +25,7 @@ repos:
           - --config=p/python
           - --config=p/django
           - --config=p/security-audit
+          - --config=p/dockerfile
           - --error
           - --skip-unknown-extensions
           - --exclude=reference

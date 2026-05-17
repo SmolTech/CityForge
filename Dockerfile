@@ -37,7 +37,12 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY . /app
 
-RUN mkdir -p /app/uploads /app/staticfiles
+RUN groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /app/uploads /app/staticfiles \
+    && chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 
