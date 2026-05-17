@@ -30,6 +30,9 @@ class QuickAccessItem(models.Model):
         db_table = "quick_access_items"
         ordering = ["display_order", "title"]
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class ResourceItem(models.Model):
     title = models.CharField(max_length=200)
@@ -59,6 +62,9 @@ class ResourceItem(models.Model):
         ]
         ordering = ["display_order", "title"]
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class ResourceConfig(models.Model):
     key = models.CharField(max_length=100, unique=True)
@@ -69,3 +75,6 @@ class ResourceConfig(models.Model):
 
     class Meta:
         db_table = "resource_config"
+
+    def __str__(self) -> str:
+        return self.key

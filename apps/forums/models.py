@@ -20,6 +20,9 @@ class ForumCategory(models.Model):
         db_table = "forum_categories"
         ordering = ["display_order", "name"]
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class ForumCategoryRequest(models.Model):
     name = models.CharField(max_length=100)
@@ -47,6 +50,9 @@ class ForumCategoryRequest(models.Model):
         db_table = "forum_category_requests"
         indexes = [models.Index(fields=["status"])]
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class ForumThread(models.Model):
     category = models.ForeignKey(
@@ -67,6 +73,9 @@ class ForumThread(models.Model):
     class Meta:
         db_table = "forum_threads"
         ordering = ["-is_pinned", "-updated_date"]
+
+    def __str__(self) -> str:
+        return self.title
 
 
 class ForumPost(models.Model):
@@ -92,6 +101,9 @@ class ForumPost(models.Model):
     class Meta:
         db_table = "forum_posts"
 
+    def __str__(self) -> str:
+        return f"Post in {self.thread}"
+
 
 class ForumReport(models.Model):
     thread = models.ForeignKey(ForumThread, on_delete=models.CASCADE, related_name="reports")
@@ -116,3 +128,6 @@ class ForumReport(models.Model):
 
     class Meta:
         db_table = "forum_reports"
+
+    def __str__(self) -> str:
+        return f"Report for {self.thread}"
