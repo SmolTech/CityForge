@@ -39,15 +39,24 @@ indexer/       Python crawler service (unchanged from upstream)
 ## Quickstart (local)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # edit as needed
+pipx install poetry           # or: pip install --user poetry
+poetry install --with dev
+cp .env.example .env          # edit as needed
 
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+poetry run python manage.py migrate
+poetry run python manage.py createsuperuser
+poetry run python manage.py runserver
 ```
+
+### Pre-commit hooks
+
+```bash
+poetry run pre-commit install
+poetry run pre-commit run --all-files
+```
+
+The hook config runs `ruff`, `ruff-format`, and `semgrep` (with the `p/python`,
+`p/django`, and `p/security-audit` rule packs) on every commit.
 
 Visit:
 
