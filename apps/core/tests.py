@@ -338,3 +338,9 @@ class BootstrapModuleTests(TestCase):
         self.assertIsNotNone(asgi_module.application)
         self.assertIsNotNone(wsgi_module.application)
         self.assertTrue(any(str(p.pattern) == "api/cards" for p in urls_module.urlpatterns))
+        self.assertTrue(any(str(p.pattern) == "api/health" for p in urls_module.urlpatterns))
+
+    def test_health_endpoint_returns_ok(self) -> None:
+        response = self.client.get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
