@@ -63,6 +63,8 @@ jobs:
         run: poetry run python manage.py migrate --noinput
       - name: Pytest
         run: poetry run pytest
+      - name: E2E journeys
+        run: poetry run pytest tests/e2e -m e2e --no-cov
 
   semgrep:
     name: Semgrep security scan
