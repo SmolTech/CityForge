@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Log in · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Welcome back</h1>
+  <p class="muted">Log in to manage submissions and reviews.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+    <div class="form-actions">
+      <button type="submit" class="btn">Log in</button>
+      <a href="{% url 'accounts:forgot_password' %}">Forgot password?</a>
+    </div>
+  </form>
+  <p style="margin-top:18px">No account? <a href="{% url 'accounts:register' %}">Register here</a>.</p>
+</div>
+{% endblock %}

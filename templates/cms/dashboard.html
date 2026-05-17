@@ -1,0 +1,31 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Dashboard · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Overview</h1>
+<div class="stat-grid">
+  <div class="stat-card"><div class="label">Users</div><div class="value">{{ stats.users }}</div></div>
+  <div class="stat-card"><div class="label">Businesses</div><div class="value">{{ stats.cards }}</div></div>
+  <div class="stat-card"><div class="label">Pending submissions</div><div class="value">{{ stats.pending_submissions }}</div></div>
+  <div class="stat-card"><div class="label">Reported reviews</div><div class="value">{{ stats.reported_reviews }}</div></div>
+</div>
+
+<h2>Recent submissions</h2>
+{% if recent_submissions %}
+  <table class="data">
+    <thead><tr><th>Business</th><th>Submitter</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+    <tbody>
+      {% for s in recent_submissions %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td>{{ s.submitter.email }}</td>
+          <td><span class="badge badge-{{ s.status }}">{{ s.get_status_display }}</span></td>
+          <td>{{ s.created_date|date:"M j, Y H:i" }}</td>
+          <td><a href="{% url 'cms:submission_detail' pk=s.pk %}">Review</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">No recent submissions.</p>
+{% endif %}
+{% endblock %}

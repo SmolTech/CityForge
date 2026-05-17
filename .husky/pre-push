@@ -1,6 +1,0 @@
-npm run typecheck
-npm run lint
-npm run semgrep:ci
-npm audit
-npm run test:unit
-npm run build

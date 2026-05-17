@@ -1,0 +1,24 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Edit {{ card.name }}{% endblock %}
+{% block cms_content %}
+<a href="{% url 'cms:cards_list' %}">← Back</a>
+<h1>Edit business</h1>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }} {{ field.errors }}
+    </div>
+  {% endfor %}
+  <div class="form-field">
+    <label>Tags (comma-separated)</label>
+    <input type="text" name="tags_text" value="{{ tags_text }}">
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}" class="btn btn-secondary">View public page</a>
+  </div>
+</form>
+{% endblock %}

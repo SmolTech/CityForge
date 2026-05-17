@@ -1,0 +1,22 @@
+{% load directory_extras %}
+<article class="card {% if card.featured %}featured{% endif %}">
+  <h3>
+    <a href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}">{{ card.name }}</a>
+  </h3>
+  {% if card.featured %}<small class="badge badge-pending">Featured</small>{% endif %}
+  {% if card.contact_name %}<div class="meta">{{ card.contact_name }}</div>{% endif %}
+  {% if card.description %}<p class="desc">{{ card.description|truncatechars:140 }}</p>{% endif %}
+  <div class="meta">
+    {% if card.address %}📍 {{ card.address }}<br>{% endif %}
+    {% if card.phone_number %}☎ {{ card.phone_number }}<br>{% endif %}
+    {% if card.website_url %}<a href="{{ card.website_url }}" rel="noopener">Website</a>{% endif %}
+  </div>
+  {% if card.avg_rating %}
+    <div class="rating">★ {{ card.avg_rating|floatformat:1 }} ({{ card.num_reviews }})</div>
+  {% endif %}
+  <div class="tags">
+    {% for tag in card.tags.all %}
+      <span class="tag-chip">{{ tag.name }}</span>
+    {% endfor %}
+  </div>
+</article>

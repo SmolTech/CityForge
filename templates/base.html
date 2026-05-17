@@ -1,0 +1,55 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{% url 'directory:home' %}">{{ SITE_NAME }}</a>
+      <nav class="primary-nav">
+        <a href="{% url 'directory:home' %}">Directory</a>
+        <a href="{% url 'search:search' %}">Search</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'directory:card_submit' %}">Submit Business</a>
+          {% if user.is_admin or user.is_staff %}
+            <a href="{% url 'cms:dashboard' %}">Manage</a>
+          {% endif %}
+          <span class="user-chip">{{ user.first_name }}</span>
+          <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="link-button">Logout</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Login</a>
+          <a href="{% url 'accounts:register' %}">Register</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="container">
+      <ul class="messages">
+        {% for msg in messages %}
+          <li class="msg msg-{{ msg.tags }}">{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <small>&copy; {% now "Y" %} {{ SITE_NAME }} — {{ SITE_TAGLINE }}</small>
+    </div>
+  </footer>
+</body>
+</html>

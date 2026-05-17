@@ -60,3 +60,12 @@ next-env.d.ts
 cloudflare-email-secret.yaml
 mailgun-email-secret.yaml
 k8s/s3-secret.yaml
+
+# Django
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/uploads/
+/media/
+.env

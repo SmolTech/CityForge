@@ -1,94 +1,26 @@
-FROM node:22-alpine AS base
+FROM python:3.12-slim
 
-# Update packages to latest versions for security patches
-RUN apk update && apk upgrade --no-cache
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DJANGO_SETTINGS_MODULE=cityforge.settings
 
-# Install dependencies only when needed
-FROM base AS deps
-# Update packages and install dependencies with busybox trigger error tolerance for ARM64
-RUN apk update && apk upgrade --no-cache && \
-    (apk add --no-cache gcompat curl || true) && \
-    if ! apk info gcompat curl >/dev/null 2>&1; then \
-        echo "Packages not found, attempting with --force-broken-world"; \
-        apk add --no-cache --force-broken-world gcompat curl; \
-    fi
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       build-essential libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Generate Prisma client in separate stage for better caching
-FROM base AS prisma
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY prisma ./prisma
-COPY package.json ./
-ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
-RUN npx prisma generate
+COPY requirements.txt /app/requirements.txt
+RUN pip install -r requirements.txt
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma
-COPY . .
+COPY . /app
 
-# Set environment variables for build time
-ENV NEXT_BUILD_TIME=true
-ENV SKIP_DATABASE_HEALTH_CHECK=true
-ENV DATABASE_URL="postgresql://user:pass@localhost:5432/dummy"
+RUN mkdir -p /app/uploads /app/staticfiles
 
-# Build the application (Prisma client already generated)
-RUN npm run build
+ENV PORT=8000
+EXPOSE 8000
 
-# Production image, copy all the files and run next
-FROM base AS runner
-# Update packages and install curl for health checks with busybox trigger error tolerance for ARM64
-RUN apk update && apk upgrade --no-cache && \
-    (apk add --no-cache curl || true) && \
-    if ! apk info curl >/dev/null 2>&1; then \
-        echo "Package not found, attempting with --force-broken-world"; \
-        apk add --no-cache --force-broken-world curl; \
-    fi
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-
-# Copy database initialization script
-COPY --from=builder /app/scripts ./scripts
-
-# Copy entire node_modules for database operations (Prisma requires many dependencies)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy Prisma schema for database operations
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy entrypoint script for runtime config generation
-COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# Use entrypoint to create runtime config before starting server
-ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "server.js"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

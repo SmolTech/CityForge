@@ -1,0 +1,40 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Businesses · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Businesses</h1>
+<form method="get" class="search-bar">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search businesses by name">
+  <button type="submit" class="btn">Search</button>
+</form>
+
+<table class="data">
+  <thead><tr><th>Name</th><th>Approved</th><th>Featured</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+    {% for c in page_obj %}
+      <tr>
+        <td><a href="{% url 'cms:card_edit' pk=c.pk %}">{{ c.name }}</a></td>
+        <td>{% if c.approved %}<span class="badge badge-approved">Yes</span>{% else %}<span class="badge badge-pending">No</span>{% endif %}</td>
+        <td>{% if c.featured %}★{% endif %}</td>
+        <td>{{ c.created_date|date:"M j, Y" }}</td>
+        <td>
+          <form method="post" action="{% url 'cms:card_delete' pk=c.pk %}" style="display:inline"
+                onsubmit="return confirm('Delete this card?');">
+            {% csrf_token %}
+            <button type="submit" class="link-button" style="color:var(--danger)">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No businesses.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?q={{ q }}&page={{ page_obj.previous_page_number }}">‹ Prev</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?q={{ q }}&page={{ page_obj.next_page_number }}">Next ›</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}
