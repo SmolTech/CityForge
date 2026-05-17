@@ -53,6 +53,7 @@ services:
       OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-}
       OPENSEARCH_NAMESPACE: default
       SITE_NAME: CityForge
+      MEDIA_ROOT: /app/uploads
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-}

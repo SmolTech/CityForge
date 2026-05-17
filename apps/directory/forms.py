@@ -6,6 +6,13 @@ from .models import Card, CardSubmission, Review
 
 
 class CardSubmissionForm(forms.ModelForm):
+    image = forms.ImageField(
+        required=False,
+        help_text="Upload a JPG, PNG, GIF, or WebP image up to 5 MB.",
+        widget=forms.ClearableFileInput(
+            attrs={"accept": "image/jpeg,image/png,image/gif,image/webp"}
+        ),
+    )
     tags_text = forms.CharField(
         label="Tags",
         required=False,
@@ -24,10 +31,16 @@ class CardSubmissionForm(forms.ModelForm):
             "address",
             "address_override_url",
             "contact_name",
-            "image_url",
+            "image",
             "tags_text",
         )
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        if image and image.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("Image must be 5 MB or smaller.")
+        return image
 
 
 class CardModerationForm(forms.ModelForm):

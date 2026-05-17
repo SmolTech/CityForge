@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    branches: [main, django]
+    paths:
+      - pyproject.toml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tag-release:
+    name: Tag version release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read package version
+        id: version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from __future__ import annotations
+
+          import os
+          import subprocess
+          import tomllib
+          from pathlib import Path
+
+          def read_version(data: bytes) -> str:
+              parsed = tomllib.loads(data.decode())
+              return parsed["tool"]["poetry"]["version"]
+
+          current = read_version(Path("pyproject.toml").read_bytes())
+          previous = ""
+          before_sha = os.environ.get("BEFORE_SHA", "")
+
+          if before_sha and set(before_sha) != {"0"}:
+              try:
+                  previous = read_version(
+                      subprocess.check_output(
+                          ["git", "show", f"{before_sha}:pyproject.toml"],
+                          stderr=subprocess.DEVNULL,
+                      )
+                  )
+              except (KeyError, subprocess.CalledProcessError, tomllib.TOMLDecodeError):
+                  previous = ""
+
+          changed = current != previous
+          print(f"version={current}")
+          print(f"tag=v{current}")
+          print(f"changed={'true' if changed else 'false'}")
+          PY
+
+      - name: Check existing tag
+        id: tag
+        if: steps.version.outputs.changed == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release tag
+        if: steps.version.outputs.changed == 'true' && steps.tag.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        if: steps.version.outputs.changed == 'true' && steps.tag.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" --title "$TAG" --generate-notes
