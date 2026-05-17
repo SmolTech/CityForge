@@ -4,6 +4,9 @@ set -e
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
+echo "Synchronizing database sequences..."
+python manage.py sync_sequences --verbosity 0
+
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
