@@ -1,0 +1,19 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Site settings · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Site settings</h1>
+{# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
+<form method="post">
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="form-field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {{ field.errors }}
+    </div>
+  {% endfor %}
+  <div class="form-actions">
+    <button type="submit" class="btn">Save settings</button>
+  </div>
+</form>
+{% endblock %}
