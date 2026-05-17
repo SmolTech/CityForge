@@ -206,9 +206,9 @@ spec:
                   key: s3_region
                   name: cityforge-s3-credentials
                   optional: true
-            # Upload folder configuration (fallback if S3/Cloudinary not available)
-            - name: UPLOAD_FOLDER
-              value: "/tmp/uploads"
+            # Uploaded media is stored on a PVC mounted at /app/uploads.
+            - name: MEDIA_ROOT
+              value: "/app/uploads"
             # Cloudinary configuration (optional - for image hosting)
             - name: CLOUDINARY_CLOUD_NAME
               valueFrom:
@@ -267,6 +267,9 @@ spec:
                   key: EMAIL_FROM_NAME
                   name: mailgun-email
                   optional: true
+          volumeMounts:
+            - name: cityforge-uploads
+              mountPath: /app/uploads
           livenessProbe:
             httpGet:
               path: /api/health
@@ -287,3 +290,7 @@ spec:
             limits:
               memory: "1.5Gi" # Increased from 1Gi for safety margin
               cpu: "1200m" # Increased from 1000m for API processing
+      volumes:
+        - name: cityforge-uploads
+          persistentVolumeClaim:
+            claimName: cityforge-uploads-pvc

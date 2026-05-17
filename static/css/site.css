@@ -98,6 +98,10 @@ a:hover { text-decoration: underline; }
   width: 100%; padding: 8px 10px; border: 1px solid var(--border);
   border-radius: var(--radius); font: inherit; background: #fff;
 }
+.form-field input[type="checkbox"],
+.form-field input[type="radio"] {
+  width: auto; padding: 0;
+}
 .form-field textarea { min-height: 100px; resize: vertical; }
 .form-field .helptext { color: var(--muted); font-size: .85rem; }
 .form-field .errorlist { color: var(--danger); margin: 4px 0 0; padding-left: 18px; font-size: .9rem; }
