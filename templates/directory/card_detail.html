@@ -10,22 +10,32 @@
     {% if card.featured %}<span class="badge badge-pending">Featured</span>{% endif %}
   </div>
 
-  {% if card.image_url %}<img src="{{ card.image_url }}" alt="" style="max-width:100%;border-radius:8px;margin-bottom:14px">{% endif %}
-
-  {% if card.description %}<p>{{ card.description|linebreaksbr }}</p>{% endif %}
-
-  <ul style="list-style:none;padding:0">
-    {% if card.address %}{% with address_url=card.address|business_address_url:card.address_override_url %}<li>📍 {% if address_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ address_url }}" rel="noopener">{{ card.address }}</a>{% else %}{{ card.address }}{% endif %}</li>{% endwith %}{% endif %}
-    {% if card.phone_number %}{% with tel_url=card.phone_number|phone_href %}<li>☎ {% if tel_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ tel_url }}">{{ card.phone_number }}</a>{% else %}{{ card.phone_number }}{% endif %}</li>{% endwith %}{% endif %}
-    {% if card.email %}<li>✉ <a href="mailto:{{ card.email }}">{{ card.email }}</a></li>{% endif %}
-    {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<li>🌐 <a href="{{ safe_url }}" rel="noopener">{{ card.website_url }}</a></li>{% endif %}{% endwith %}{% endif %}
-  </ul>
-
-  {% if card.tags.all %}
-    <div class="tags" style="margin-top:12px">
-      {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
+  <div class="business-detail-grid">
+    <div class="business-description">
+      {% if card.image_url %}<img src="{{ card.image_url }}" alt="" class="business-image">{% endif %}
+      {% if card.description %}
+        <h2>About</h2>
+        <p>{{ card.description|linebreaksbr }}</p>
+      {% else %}
+        <p class="muted">No description has been added yet.</p>
+      {% endif %}
     </div>
-  {% endif %}
+
+    <aside class="business-contact-card">
+      <h2>Contact</h2>
+      <ul class="contact-list">
+        {% if card.address %}{% with address_url=card.address|business_address_url:card.address_override_url %}<li><span>📍</span><div>{% if address_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ address_url }}" rel="noopener">{{ card.address }}</a>{% else %}{{ card.address }}{% endif %}</div></li>{% endwith %}{% endif %}
+        {% if card.phone_number %}{% with tel_url=card.phone_number|phone_href %}<li><span>☎</span><div>{% if tel_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ tel_url }}">{{ card.phone_number }}</a>{% else %}{{ card.phone_number }}{% endif %}</div></li>{% endwith %}{% endif %}
+        {% if card.email %}<li><span>✉</span><div><a href="mailto:{{ card.email }}">{{ card.email }}</a></div></li>{% endif %}
+        {% if card.website_url %}{% with safe_url=card.website_url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<li><span>🌐</span><div><a href="{{ safe_url }}" rel="noopener">{{ card.website_url }}</a></div></li>{% endif %}{% endwith %}{% endif %}
+      </ul>
+      {% if card.tags.all %}
+        <div class="tags">
+          {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
+        </div>
+      {% endif %}
+    </aside>
+  </div>
 </article>
 
 <section class="card-detail">

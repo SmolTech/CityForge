@@ -165,6 +165,20 @@ a:hover { text-decoration: underline; }
 .card-detail h1 { margin-top: 0; }
 .detail-meta { color: var(--muted); margin-bottom: 16px; }
 .detail-meta span + span::before { content: " · "; }
+.business-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+.business-description h2,
+.business-contact-card h2 { margin-top: 0; }
+.business-image { max-width: 100%; border-radius: var(--radius); margin-bottom: 16px; }
+.business-contact-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+}
+.contact-list { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 12px; }
+.contact-list li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; }
+.contact-list a { overflow-wrap: anywhere; }
+@media (max-width: 800px) {
+  .business-detail-grid { grid-template-columns: 1fr; }
+}
 .star-rating { display: flex; flex-wrap: wrap; gap: 8px; }
 .star-rating label {
   display: inline-flex; align-items: center; gap: 4px;
