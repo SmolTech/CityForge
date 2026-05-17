@@ -117,6 +117,11 @@ spec:
                 configMapKeyRef:
                   name: cityforge-config
                   key: DJANGO_ALLOWED_HOSTS
+            - name: CSRF_TRUSTED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: cityforge-config
+                  key: CSRF_TRUSTED_ORIGINS
             # Runtime site URL for server-side code (sitemap, server components)
             - name: SITE_URL
               valueFrom:
