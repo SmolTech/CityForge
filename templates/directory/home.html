@@ -31,8 +31,8 @@
       <div class="form-field">
         <label>Tag match</label>
         <select name="tag_mode" onchange="this.form.submit()">
-          <option value="and" {% if tag_mode == 'and' %}selected{% endif %}>Match all selected</option>
           <option value="or" {% if tag_mode == 'or' %}selected{% endif %}>Match any selected</option>
+          <option value="and" {% if tag_mode == 'and' %}selected{% endif %}>Match all selected</option>
         </select>
       </div>
       <h3 style="margin-top:18px">Tags</h3>
