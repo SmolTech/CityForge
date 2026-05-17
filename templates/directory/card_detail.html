@@ -23,7 +23,7 @@
 
   {% if card.tags.all %}
     <div class="tags" style="margin-top:12px">
-      {% for tag in card.tags.all %}<span class="tag-chip">{{ tag.name }}</span>{% endfor %}
+      {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
     </div>
   {% endif %}
 </article>
@@ -51,7 +51,20 @@
       {% for field in review_form %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }} {{ field.errors }}
+          {% if field.name == "rating" %}
+            <div class="star-rating">
+              {% for option in field %}
+                <label for="{{ option.id_for_label }}">
+                  {{ option.tag }}
+                  <span aria-hidden="true">{{ option.choice_label }}</span>
+                  <span class="visually-hidden">{{ option.data.value }} star{{ option.data.value|pluralize }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          {% else %}
+            {{ field }}
+          {% endif %}
+          {{ field.errors }}
         </div>
       {% endfor %}
       <div class="form-actions">

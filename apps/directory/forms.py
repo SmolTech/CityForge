@@ -52,7 +52,12 @@ class CardModerationForm(forms.ModelForm):
 
 
 class ReviewForm(forms.ModelForm):
-    rating = forms.IntegerField(min_value=1, max_value=5)
+    rating = forms.TypedChoiceField(
+        choices=[(value, "★" * value) for value in range(1, 6)],
+        coerce=int,
+        empty_value=None,
+        widget=forms.RadioSelect,
+    )
 
     class Meta:
         model = Review
