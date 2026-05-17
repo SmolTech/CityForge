@@ -7,23 +7,28 @@ The JSON is the structure produced by the old ``/api/admin/data/export`` endpoin
 a top-level object whose keys are Prisma model names (``User``, ``Card``, ...) and
 whose values are arrays of records using camelCase keys.
 
-Passwords are not imported. Imported users have an unusable Django password and
-must use the password reset flow to sign in.
+Legacy bcrypt password hashes are preserved using Django's ``bcrypt$...``
+password-hasher format so imported users can keep signing in. Some exports omit
+``passwordHash`` from top-level ``User`` rows but include it in nested relation
+payloads (for example ``Card.creator``); those nested hashes are collected
+before users are imported.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.dateparse import parse_datetime
 
-from apps.accounts.models import PasswordResetToken, TokenBlacklist, User
+from apps.accounts.models import TokenBlacklist, User
 from apps.classifieds.models import HelpWantedComment, HelpWantedPost
 from apps.directory.models import (
     Card,
@@ -43,6 +48,7 @@ from apps.resources.models import (
 )
 
 _CAMEL_RE = re.compile(r"(?<!^)(?=[A-Z])")
+_BCRYPT_RE = re.compile(r"^\$2[aby]\$\d{2}\$.{53}$")
 
 
 def snake(name: str) -> str:
@@ -55,6 +61,41 @@ def to_dt(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     return parse_datetime(str(value))
+
+
+def legacy_password_hash(value: Any) -> str | None:
+    if isinstance(value, str) and _BCRYPT_RE.match(value):
+        return f"bcrypt${value}"
+    return None
+
+
+def collect_legacy_password_hashes(data: Any) -> tuple[dict[int, str], dict[str, str]]:
+    by_id: dict[int, str] = {}
+    by_email: dict[str, str] = {}
+
+    def visit(value: Any) -> None:
+        if isinstance(value, list):
+            for item in value:
+                visit(item)
+            return
+        if not isinstance(value, dict):
+            return
+
+        password = legacy_password_hash(value.get("passwordHash") or value.get("password_hash"))
+        if password:
+            user_id = value.get("id")
+            if isinstance(user_id, int):
+                by_id.setdefault(user_id, password)
+            email = value.get("email")
+            if isinstance(email, str):
+                by_email.setdefault(email.lower().strip(), password)
+
+        for item in value.values():
+            if isinstance(item, (dict, list)):
+                visit(item)
+
+    visit(data)
+    return by_id, by_email
 
 
 # Map of camelCase JSON keys → Django model field names where they differ.
@@ -99,16 +140,6 @@ def normalize_row(row: dict[str, Any], renames: dict[str, str]) -> dict[str, Any
     return out
 
 
-def model_fields(model) -> set[str]:
-    names: set[str] = set()
-    for f in model._meta.get_fields():
-        if hasattr(f, "attname"):
-            names.add(f.attname)
-        if hasattr(f, "name"):
-            names.add(f.name)
-    return names
-
-
 def _concrete_field_map(model) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for f in model._meta.get_fields():
@@ -151,6 +182,9 @@ class Command(BaseCommand):
         if not path.is_file():
             raise CommandError(f"File not found: {path}")
         data = json.loads(path.read_text())
+        self._legacy_passwords_by_id, self._legacy_passwords_by_email = (
+            collect_legacy_password_hashes(data)
+        )
         only = {x.strip() for x in opts["only"].split(",") if x.strip()}
         dry = opts["dry_run"]
 
@@ -198,12 +232,19 @@ class Command(BaseCommand):
     def _import_users(self, rows):
         for r in rows:
             d = normalize_row(r, FK_RENAMES["User"])
-            d.pop("password_hash", None)
+            pk = d.pop("id")
+            email = (d.get("email") or "").lower().strip()
+            password = (
+                legacy_password_hash(d.pop("password_hash", None))
+                or self._legacy_passwords_by_id.get(pk)
+                or self._legacy_passwords_by_email.get(email)
+                or make_password(None)
+            )
             for k in ("created_date", "last_login", "email_verification_sent_at"):
                 if k in d:
                     d[k] = to_dt(d[k])
-            user, _ = User.objects.update_or_create(
-                pk=d.pop("id"),
+            User.objects.update_or_create(
+                pk=pk,
                 defaults={
                     "email": d.get("email"),
                     "first_name": d.get("first_name") or "",
@@ -218,10 +259,9 @@ class Command(BaseCommand):
                     "registration_ip_address": d.get("registration_ip_address"),
                     "created_date": d.get("created_date") or datetime.now(),
                     "last_login": d.get("last_login"),
+                    "password": password,
                 },
             )
-            user.set_unusable_password()
-            user.save(update_fields=["password"])
         return len(rows)
 
     def _import_tags(self, rows):
