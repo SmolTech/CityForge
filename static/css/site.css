@@ -168,6 +168,7 @@ a:hover { text-decoration: underline; }
 .business-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
 .business-description h2,
 .business-contact-card h2 { margin-top: 0; }
+.business-tags { margin-top: 16px; }
 .business-image { max-width: 100%; border-radius: var(--radius); margin-bottom: 16px; }
 .business-contact-card {
   background: var(--bg); border: 1px solid var(--border);
