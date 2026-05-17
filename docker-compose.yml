@@ -35,79 +35,38 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend service removed - Next.js frontend now handles all API endpoints
-
-  frontend:
+  web:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cityforge-frontend
+    container_name: cityforge-web
     environment:
-      NODE_ENV: production
-      PORT: 3000
-      # Database connection for Prisma (Next.js API routes)
+      DJANGO_SECRET_KEY: change-this-in-production
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "*"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/community_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: community_db
-      # JWT configuration for authentication
-      JWT_SECRET_KEY: change-this-in-production
-      # OpenSearch configuration for search functionality
       OPENSEARCH_HOST: opensearch
-      OPENSEARCH_PORT: 9200
+      OPENSEARCH_PORT: "9200"
       OPENSEARCH_NAMESPACE: default
-      # Upload folder configuration
-      UPLOAD_FOLDER: /app/uploads
-      # Optional: Set these to create an admin user automatically
-      # ADMIN_EMAIL: admin@example.com
-      # ADMIN_PASSWORD: ChangeThisPassword123!
+      SITE_NAME: CityForge
+      EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      DJANGO_SUPERUSER_EMAIL: admin@example.com
+      DJANGO_SUPERUSER_PASSWORD: ChangeThisPassword123!
     volumes:
-      - frontend_uploads:/app/uploads
-    expose:
-      - "3000"
+      - web_uploads:/app/uploads
+      - web_static:/app/staticfiles
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       opensearch:
         condition: service_healthy
-    # Initialize database using Node.js script, then start Next.js
-    command: >
-      sh -c "node scripts/db-init.mjs &&
-             node server.js"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://0.0.0.0:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://0.0.0.0:8000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  nginx:
-    image: nginx:alpine
-    container_name: cityforge-nginx
-    environment:
-      # CORS allowed origins - comma separated list
-      # For development: localhost:3000,127.0.0.1:3000
-      # For production: community.community,cityforge.cityforge
-      CORS_ALLOWED_ORIGINS: "localhost:3000,127.0.0.1:3000,community.community,cityforge.cityforge"
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - frontend_uploads:/app/uploads:ro
-    depends_on:
-      frontend:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://127.0.0.1/nginx-health || exit 1",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
 
   indexer:
     build:
@@ -117,7 +76,7 @@ services:
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
-      BACKEND_URL: http://frontend:3000 # Updated to point to Next.js frontend
+      BACKEND_URL: http://web:8000
       NAMESPACE: default
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -125,7 +84,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: community_db
     depends_on:
-      frontend:
+      web:
         condition: service_healthy
       opensearch:
         condition: service_healthy
@@ -134,4 +93,5 @@ services:
 volumes:
   postgres_data:
   opensearch_data:
-  frontend_uploads: # Renamed from backend_uploads since frontend now handles uploads
+  web_uploads:
+  web_static:

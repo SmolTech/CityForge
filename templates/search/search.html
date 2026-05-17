@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Search · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<h1>Search resources</h1>
+<form method="get" class="search-bar">
+  <input type="search" name="q" value="{{ query }}" placeholder="Search across community resources…" autofocus>
+  <button type="submit" class="btn">Search</button>
+</form>
+
+{% if error %}
+  <div class="msg msg-error">{{ error }}</div>
+{% endif %}
+
+{% if query and results is not None %}
+  <p class="muted">{{ total }} result{{ total|pluralize }} for "{{ query }}"</p>
+
+  {% for r in results %}
+    <article class="search-result">
+      <h3>
+        {% if r.url %}<a href="{{ r.url }}" rel="noopener">{{ r.title|default:r.url }}</a>
+        {% else %}{{ r.title }}{% endif %}
+      </h3>
+      {% if r.url %}<div class="url">{{ r.url }}</div>{% endif %}
+      {% if r.highlight.description %}
+        <p>{% for h in r.highlight.description %}{{ h|safe }}{% endfor %}</p>
+      {% elif r.description %}
+        <p>{{ r.description|truncatechars:240 }}</p>
+      {% endif %}
+      {% if r.highlight.content %}
+        <p>{% for h in r.highlight.content %}{{ h|safe }} {% endfor %}</p>
+      {% elif r.excerpt %}
+        <p class="muted">{{ r.excerpt|truncatechars:240 }}</p>
+      {% endif %}
+      {% if r.category %}<small class="badge badge-pending">{{ r.category }}</small>{% endif %}
+    </article>
+  {% empty %}
+    <p>No results found.</p>
+  {% endfor %}
+
+  {% if total_pages > 1 %}
+    <div class="pagination">
+      {% if has_prev %}<a href="?q={{ query }}&page={{ page|add:'-1' }}">‹ Prev</a>{% endif %}
+      <span class="current">Page {{ page }} of {{ total_pages }}</span>
+      {% if has_next %}<a href="?q={{ query }}&page={{ page|add:'1' }}">Next ›</a>{% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

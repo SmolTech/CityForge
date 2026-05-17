@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Submit a business · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-card" style="max-width:680px">
+  <h1>Submit a business</h1>
+  <p class="muted">Submissions are reviewed by an admin before they appear in the directory.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn">Submit for review</button>
+      <a href="{% url 'directory:home' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

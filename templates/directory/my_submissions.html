@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}My submissions · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<h1>My submissions</h1>
+{% if submissions %}
+  <table class="data">
+    <thead><tr><th>Business</th><th>Status</th><th>Submitted</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for s in submissions %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td><span class="badge badge-{{ s.status }}">{{ s.get_status_display }}</span></td>
+          <td>{{ s.created_date|date:"M j, Y" }}</td>
+          <td>{{ s.review_notes|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>You haven't submitted any businesses yet. <a href="{% url 'directory:card_submit' %}">Submit one now.</a></p>
+{% endif %}
+{% endblock %}
