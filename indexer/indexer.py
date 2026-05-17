@@ -19,7 +19,6 @@ from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
 from opensearchpy import OpenSearch
 import logging
-import xml.etree.ElementTree as ET
 
 # Database imports (optional - for progress tracking)
 try:

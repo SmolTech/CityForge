@@ -4,6 +4,7 @@
 <a href="{% url 'cms:cards_list' %}">← Back</a>
 <h1>Edit business</h1>
 
+{# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
 <form method="post" novalidate>
   {% csrf_token %}
   {% for field in form %}
@@ -12,10 +13,6 @@
       {{ field }} {{ field.errors }}
     </div>
   {% endfor %}
-  <div class="form-field">
-    <label>Tags (comma-separated)</label>
-    <input type="text" name="tags_text" value="{{ tags_text }}">
-  </div>
   <div class="form-actions">
     <button type="submit" class="btn">Save</button>
     <a href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}" class="btn btn-secondary">View public page</a>
