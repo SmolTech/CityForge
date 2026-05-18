@@ -290,6 +290,8 @@ spec:
               httpHeaders:
                 - name: Host
                   value: localhost
+                - name: X-Forwarded-Proto
+                  value: https
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
@@ -299,6 +301,8 @@ spec:
               httpHeaders:
                 - name: Host
                   value: localhost
+                - name: X-Forwarded-Proto
+                  value: https
             initialDelaySeconds: 5
             periodSeconds: 5
           # Resource allocation increased since container now handles both frontend and all API endpoints
