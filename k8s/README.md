@@ -27,12 +27,6 @@ The deployment includes automated maintenance jobs:
 - **Purpose**: Crawls and indexes business card websites into OpenSearch
 - **Resources**: 512Mi memory, 500m CPU
 
-### 2. Token Cleanup (`token-cleanup-cronjob.yaml`)
-
-- **Schedule**: Daily at 3 AM Eastern Time
-- **Purpose**: Removes expired JWT tokens from the database blacklist
-- **Resources**: 256Mi memory, 200m CPU
-
 ### 3. Database Backup (`backup-cronjob.yaml`)
 
 - **Schedule**: Daily at 2 AM Eastern Time

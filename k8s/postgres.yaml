@@ -16,6 +16,7 @@ spec:
   # maintenanceWindows:
   volume:
     size: "10Gi"
+    storageClass: "microk8s-hostpath-retain"
   users:
     cityforge: []
   databases:
