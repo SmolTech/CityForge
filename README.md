@@ -10,7 +10,7 @@ resource search, and a custom staff CMS (no `django.contrib.admin`).
 
 ## Stack
 
-- **Web**: Django 5 + Django templates (server-rendered)
+- **Web**: Django 6 + Django templates (server-rendered)
 - **Database**: PostgreSQL (sqlite fallback for dev) via `dj-database-url`
 - **Search**: OpenSearch 2.x via `opensearch-py`
 - **Static**: Whitenoise
