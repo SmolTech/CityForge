@@ -172,12 +172,6 @@ spec:
                 configMapKeyRef:
                   name: cityforge-config
                   key: POSTGRES_DB
-            # JWT configuration for authentication
-            - name: JWT_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: jwt_secret_key
-                  name: cityforge-secrets
             # Django secret key for CSRF protection and sessions
             - name: DJANGO_SECRET_KEY
               valueFrom:

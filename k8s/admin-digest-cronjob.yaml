@@ -68,11 +68,6 @@ spec:
                     configMapKeyRef:
                       name: cityforge-config
                       key: POSTGRES_DB
-                - name: JWT_SECRET_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: cityforge-secrets
-                      key: jwt_secret_key
                 - name: NEXT_PUBLIC_SITE_URL
                   valueFrom:
                     configMapKeyRef:
