@@ -146,7 +146,15 @@ class ResourceIndexer:
             url = f"{self.api_url}/cards?limit=1000"
             logger.info(f"Fetching cards from {url}")
 
-            response = requests.get(url, timeout=30)
+            response = requests.get(
+                url,
+                timeout=30,
+                headers={
+                    # The app sits behind TLS-terminating ingress in production and
+                    # redirects plain HTTP unless the forwarded scheme is trusted.
+                    "X-Forwarded-Proto": "https",
+                },
+            )
             response.raise_for_status()
 
             data = response.json()
