@@ -24,7 +24,6 @@
       <nav class="primary-nav">
         <a href="{% url 'directory:home' %}">Directory</a>
         <a href="{% url 'search:search' %}">Search</a>
-        <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Theme">Theme</button>
         {% if user.is_authenticated %}
           <a href="{% url 'directory:card_submit' %}">Submit Business</a>
           <details class="account-menu">
@@ -37,6 +36,7 @@
               {% if user.is_admin or user.is_superuser %}
                 <a href="{% url 'cms:site_settings' %}">Site settings</a>
               {% endif %}
+              <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Theme">Theme</button>
               <form action="{% url 'accounts:logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit" class="link-button">Logout</button>
@@ -46,6 +46,7 @@
         {% else %}
           <a href="{% url 'accounts:login' %}">Login</a>
           <a href="{% url 'accounts:register' %}">Register</a>
+          <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Theme">Theme</button>
         {% endif %}
       </nav>
     </div>
