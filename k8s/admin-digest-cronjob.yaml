@@ -29,8 +29,8 @@ spec:
             - name: admin-digest
               image: ghcr.io/smoltech/cityforge
               imagePullPolicy: Always
-              command: ["node"]
-              args: ["scripts/daily-admin-digest.mjs"]
+              command: ["python"]
+              args: ["manage.py", "send_admin_digest"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: false
@@ -68,6 +68,13 @@ spec:
                     configMapKeyRef:
                       name: cityforge-config
                       key: POSTGRES_DB
+                - name: DATABASE_URL
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+                - name: DJANGO_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cityforge-secrets
+                      key: DJANGO_SECRET_KEY
                 - name: NEXT_PUBLIC_SITE_URL
                   valueFrom:
                     configMapKeyRef:
