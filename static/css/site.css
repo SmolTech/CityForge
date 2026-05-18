@@ -131,12 +131,14 @@ a:hover { text-decoration: underline; }
   padding: 8px; z-index: 20;
 }
 .account-menu-panel a,
-.account-menu-panel .link-button {
+.account-menu-panel .link-button,
+.account-menu-panel .theme-toggle {
   display: block; width: 100%; padding: 8px 10px; border-radius: var(--radius);
   color: var(--text); text-align: left;
 }
 .account-menu-panel a:hover,
-.account-menu-panel .link-button:hover {
+.account-menu-panel .link-button:hover,
+.account-menu-panel .theme-toggle:hover {
   background: var(--bg); text-decoration: none;
 }
 
