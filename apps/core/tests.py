@@ -14,6 +14,12 @@ from django.test import RequestFactory, TestCase
 from apps.accounts.models import TokenBlacklist, User
 from apps.classifieds.models import HelpWantedComment, HelpWantedPost
 from apps.core.context_processors import site
+from apps.core.management.commands.fix_imported_passwords import (
+    Command as FixPasswordsCommand,
+)
+from apps.core.management.commands.fix_imported_passwords import (
+    collect_password_hashes,
+)
 from apps.core.management.commands.import_prisma_export import (
     Command,
     collect_legacy_password_hashes,
@@ -344,3 +350,72 @@ class BootstrapModuleTests(TestCase):
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
+
+
+class FixImportedPasswordsTests(TestCase):
+    def test_collect_password_hashes_from_nested_relations(self) -> None:
+        """Passwords in nested relations are collected even if missing from top-level User."""
+        export_data = {
+            "User": [
+                {
+                    "id": 1,
+                    "email": "user1@example.com",
+                    "firstName": "User",
+                    "lastName": "One",
+                }
+            ],
+            "Card": [
+                {
+                    "id": 100,
+                    "name": "Test Card",
+                    "creator": {
+                        "id": 1,
+                        "email": "user1@example.com",
+                        "passwordHash": "$2b$12$mm.khEgvaI29Xz6F9R5c0O8PTJm51vr4CHRXEKXEYbYQqbUoiI.DW",
+                    },
+                }
+            ],
+        }
+        by_email = collect_password_hashes(export_data)
+        self.assertIn("user1@example.com", by_email)
+        self.assertTrue(by_email["user1@example.com"].startswith("bcrypt$"))
+
+    def test_fix_passwords_command_updates_unusable_passwords(self) -> None:
+        """Command updates users with unusable passwords from export data."""
+        # Create a user with unusable password
+        user = User.objects.create_user(
+            email="fixme@example.com",
+            password=None,  # Creates unusable password
+            first_name="Fix",
+            last_name="Me",
+        )
+        self.assertFalse(user.has_usable_password())
+
+        # Export with password hash
+        export_data = {
+            "Card": [
+                {
+                    "id": 100,
+                    "name": "Card",
+                    "creator": {
+                        "id": 1,
+                        "email": "fixme@example.com",
+                        "passwordHash": "$2b$12$mm.khEgvaI29Xz6F9R5c0O8PTJm51vr4CHRXEKXEYbYQqbUoiI.DW",
+                    },
+                }
+            ]
+        }
+
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+            tmp.write(json.dumps(export_data))
+            tmp_path = Path(tmp.name)
+
+        try:
+            cmd = FixPasswordsCommand(stdout=StringIO())
+            cmd.handle(path=str(tmp_path), dry_run=False)
+
+            user.refresh_from_db()
+            self.assertTrue(user.has_usable_password())
+            self.assertTrue(user.password.startswith("bcrypt$"))
+        finally:
+            tmp_path.unlink(missing_ok=True)
