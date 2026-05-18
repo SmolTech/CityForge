@@ -53,6 +53,7 @@ jobs:
             type=raw,value=${{ steps.app_version.outputs.version }}
             type=raw,value=${{ steps.app_version.outputs.version_with_v }}
             type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build (and push on non-PR)
         uses: docker/build-push-action@v6
