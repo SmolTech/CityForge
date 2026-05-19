@@ -22,7 +22,7 @@ from apps.directory.models import (
     Review,
     Tag,
 )
-from apps.directory.views import _safe_int, _split_tags, home
+from apps.directory.views import _safe_int, _split_tags, card_detail, home
 
 
 def _uploaded_png() -> SimpleUploadedFile:
@@ -141,6 +141,53 @@ class DirectoryViewTests(TestCase):
         response = self.client.get(reverse("directory:card_detail_short", args=[self.card_a.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertIn(self.card_a.slug, response.headers["Location"])
+
+    def test_card_detail_displays_all_collected_business_fields(self) -> None:
+        self.card_a.description = "Specialty coffee and pastries"
+        self.card_a.website_url = "https://alpha.example"
+        self.card_a.phone_number = "555-0100"
+        self.card_a.email = "hello@alpha.example"
+        self.card_a.address = "1 Main Street"
+        self.card_a.address_override_url = "https://maps.example/alpha"
+        self.card_a.contact_name = "Taylor Owner"
+        self.card_a.image_url = "https://images.example/alpha.jpg"
+        self.card_a.save(
+            update_fields=[
+                "description",
+                "website_url",
+                "phone_number",
+                "email",
+                "address",
+                "address_override_url",
+                "contact_name",
+                "image_url",
+            ]
+        )
+
+        request = RequestFactory().get(
+            reverse("directory:card_detail", args=[self.card_a.pk, self.card_a.slug])
+        )
+        request.user = self.user
+        captured: dict = {}
+
+        def fake_render(_request, _template, context):
+            captured.update(context)
+            return HttpResponse("ok")
+
+        with patch("apps.directory.views.render", side_effect=fake_render):
+            response = card_detail(request, pk=self.card_a.pk, slug=self.card_a.slug)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["card"].name, "Alpha Coffee")
+        self.assertEqual(captured["card"].description, "Specialty coffee and pastries")
+        self.assertEqual(captured["card"].website_url, "https://alpha.example")
+        self.assertEqual(captured["card"].phone_number, "555-0100")
+        self.assertEqual(captured["card"].email, "hello@alpha.example")
+        self.assertEqual(captured["card"].address, "1 Main Street")
+        self.assertEqual(captured["card"].address_override_url, "https://maps.example/alpha")
+        self.assertEqual(captured["card"].contact_name, "Taylor Owner")
+        self.assertEqual(captured["card"].image_url, "https://images.example/alpha.jpg")
+        self.assertEqual(list(captured["card"].tags.values_list("name", flat=True)), ["coffee"])
 
     def test_submit_review_creates_review(self) -> None:
         self.client.force_login(self.user)
