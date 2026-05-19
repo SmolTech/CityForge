@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 from hashlib import sha256
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -15,6 +16,8 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+
+from apps.webhooks.service import dispatch_event
 
 from .forms import ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordForm
 from .models import PasswordResetToken, User
@@ -76,6 +79,11 @@ def _captcha_kwargs(request: HttpRequest, scope: str) -> dict[str, str]:
     return {"captcha_prompt": prompt, "captcha_expected": answer}
 
 
+def _admin_users_url(request: HttpRequest, email: str) -> str:
+    query = urlencode({"q": email})
+    return request.build_absolute_uri(f"{reverse('cms:users_list')}?{query}")
+
+
 @require_http_methods(["GET", "POST"])
 def register(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
@@ -84,11 +92,27 @@ def register(request: HttpRequest) -> HttpResponse:
         form = RegisterForm(request.POST, **_captcha_kwargs(request, "register"))
         if form.is_valid():
             user: User = form.save(commit=False)
-            user.registration_ip_address = _client_ip(request)
+            registration_ip = _client_ip(request)
+            user.registration_ip_address = registration_ip
             user.email_verification_token = secrets.token_urlsafe(32)
             user.email_verification_sent_at = timezone.now()
             user.save()
             _send_verification_email(request, user)
+            dispatch_event(
+                "account.created",
+                {
+                    "user_id": user.id,
+                    "user_email": user.email,
+                    "user_name": user.full_name,
+                    "role": user.role,
+                    "email_verified": user.email_verified,
+                    "registration_ip_address": registration_ip or "",
+                    "change_text": f"New account created for {user.email}.",
+                    "content_url": _admin_users_url(request, user.email),
+                    "content_title": user.email,
+                },
+                source_info="accounts.register",
+            )
             messages.success(
                 request,
                 "Account created. Check your email to verify your address.",
@@ -144,6 +168,19 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
                     expires_at=timezone.now() + timedelta(hours=TOKEN_TTL_HOURS),
                 )
                 _send_password_reset_email(request, user, token)
+                dispatch_event(
+                    "password_reset.requested",
+                    {
+                        "user_id": user.id,
+                        "user_email": user.email,
+                        "request_ip_address": _client_ip(request) or "",
+                        "expires_at": token.expires_at.isoformat(),
+                        "change_text": f"Password reset requested for {user.email}.",
+                        "content_url": _admin_users_url(request, user.email),
+                        "content_title": user.email,
+                    },
+                    source_info="accounts.forgot_password",
+                )
             messages.success(
                 request,
                 "If an account exists for that email, a reset link has been sent.",
@@ -174,6 +211,18 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
             prt.used = True
             prt.used_at = timezone.now()
             prt.save(update_fields=["used", "used_at"])
+            dispatch_event(
+                "password_reset.completed",
+                {
+                    "user_id": user.id,
+                    "user_email": user.email,
+                    "completed_at": prt.used_at.isoformat() if prt.used_at else "",
+                    "change_text": f"Password reset completed for {user.email}.",
+                    "content_url": _admin_users_url(request, user.email),
+                    "content_title": user.email,
+                },
+                source_info="accounts.reset_password",
+            )
             messages.success(request, "Password updated. You can now log in.")
             return redirect("accounts:login")
     else:
