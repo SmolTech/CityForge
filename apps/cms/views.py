@@ -581,8 +581,7 @@ def review_toggle_hidden(request: HttpRequest, pk: int) -> HttpResponse:
             "actor_id": request.user.id,
             "actor_email": request.user.email,
             "change_text": (
-                f"{request.user.email} {'hid' if review.hidden else 'unhid'} "
-                f"review #{review.id}."
+                f"{request.user.email} {'hid' if review.hidden else 'unhid'} review #{review.id}."
             ),
             "content_url": _absolute_url(
                 request,
