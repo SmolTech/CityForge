@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Suggest update · {{ card.name }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-card" style="max-width:680px">
+  <h1>Suggest an update</h1>
+  <p class="muted">Your changes will be reviewed by an admin before they are applied.</p>
+  <p><strong>Business:</strong> {{ card.name }}</p>
+  {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn">Submit update for review</button>
+      <a href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

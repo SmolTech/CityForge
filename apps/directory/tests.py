@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
@@ -12,7 +13,15 @@ from django.urls import reverse
 from PIL import Image
 
 from apps.accounts.models import User
-from apps.directory.models import Card, CardSubmission, CardSubmissionStatus, CardTag, Review, Tag
+from apps.directory.models import (
+    Card,
+    CardModification,
+    CardSubmission,
+    CardSubmissionStatus,
+    CardTag,
+    Review,
+    Tag,
+)
 from apps.directory.views import _safe_int, _split_tags, home
 
 
@@ -40,15 +49,16 @@ class CardSubmissionUploadTests(TestCase):
         with TemporaryDirectory() as media_root:
             with override_settings(MEDIA_ROOT=media_root, MEDIA_URL="/media/"):
                 self.client.force_login(self.user)
-                response = self.client.post(
-                    reverse("directory:card_submit"),
-                    {
-                        "name": "Uploaded Business",
-                        "description": "Business with a photo",
-                        "tags_text": "coffee, bakery",
-                        "image": _uploaded_png(),
-                    },
-                )
+                with patch("apps.directory.views.dispatch_event") as mocked_dispatch:
+                    response = self.client.post(
+                        reverse("directory:card_submit"),
+                        {
+                            "name": "Uploaded Business",
+                            "description": "Business with a photo",
+                            "tags_text": "coffee, bakery",
+                            "image": _uploaded_png(),
+                        },
+                    )
 
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.headers["Location"], reverse("directory:home"))
@@ -57,6 +67,11 @@ class CardSubmissionUploadTests(TestCase):
                 self.assertTrue(submission.image_url.startswith("/media/business-submissions/"))
                 saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
                 self.assertTrue(saved_path.exists())
+                mocked_dispatch.assert_called_once()
+                self.assertEqual(mocked_dispatch.call_args.args[0], "submission.created")
+                payload = mocked_dispatch.call_args.args[1]
+                self.assertIn("submitted new business", payload["change_text"])
+                self.assertIn(str(submission.id), payload["content_url"])
 
     @override_settings(MEDIA_URL="/media/")
     def test_submission_approval_copies_uploaded_image_to_card(self) -> None:
@@ -129,24 +144,69 @@ class DirectoryViewTests(TestCase):
 
     def test_submit_review_creates_review(self) -> None:
         self.client.force_login(self.user)
-        response = self.client.post(
-            reverse("directory:submit_review", args=[self.card_a.pk]),
-            {"rating": "5", "title": "Great", "comment": "Excellent service"},
-        )
+        with patch("apps.directory.views.dispatch_event") as mocked_dispatch:
+            response = self.client.post(
+                reverse("directory:submit_review", args=[self.card_a.pk]),
+                {"rating": "5", "title": "Great", "comment": "Excellent service"},
+            )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Review.objects.filter(card=self.card_a, user=self.user).exists())
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "review.created")
+        payload = mocked_dispatch.call_args.args[1]
+        self.assertIn("posted a 5-star review", payload["change_text"])
+        self.assertIn(str(self.card_a.id), payload["content_url"])
 
     def test_duplicate_review_is_rejected(self) -> None:
         Review.objects.create(card=self.card_a, user=self.user, rating=5)
         self.client.force_login(self.user)
-        response = self.client.post(
-            reverse("directory:submit_review", args=[self.card_a.pk]),
-            {"rating": "4", "title": "Again", "comment": "Second"},
-        )
+        with patch("apps.directory.views.dispatch_event") as mocked_dispatch:
+            response = self.client.post(
+                reverse("directory:submit_review", args=[self.card_a.pk]),
+                {"rating": "4", "title": "Again", "comment": "Second"},
+            )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Review.objects.filter(card=self.card_a, user=self.user).count(), 1)
+        mocked_dispatch.assert_not_called()
 
     def test_my_submissions_requires_authentication(self) -> None:
         response = self.client.get(reverse("directory:my_submissions"))
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("accounts:login"), response.headers["Location"])
+
+    def test_card_update_submit_requires_authentication(self) -> None:
+        response = self.client.get(reverse("directory:card_update_submit", args=[self.card_a.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.headers["Location"])
+
+    def test_card_update_submit_creates_pending_modification(self) -> None:
+        self.client.force_login(self.user)
+        with patch("apps.directory.views.dispatch_event") as mocked_dispatch:
+            response = self.client.post(
+                reverse("directory:card_update_submit", args=[self.card_a.pk]),
+                {
+                    "name": "Alpha Coffee Roasters",
+                    "description": "Updated description",
+                    "website_url": "https://alpha.example",
+                    "phone_number": "555-0100",
+                    "email": "hello@alpha.example",
+                    "address": "1 Main Street",
+                    "address_override_url": "",
+                    "contact_name": "Owner",
+                    "tags_text": "coffee,roasters",
+                },
+            )
+        self.assertEqual(response.status_code, 302)
+        modification = CardModification.objects.get(card=self.card_a, submitter=self.user)
+        self.assertEqual(modification.status, CardSubmissionStatus.PENDING)
+        self.assertEqual(modification.name, "Alpha Coffee Roasters")
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "modification.created")
+        payload = mocked_dispatch.call_args.args[1]
+        self.assertIn("changed_fields", payload)
+        changed_names = {item["field"] for item in payload["changed_fields"]}
+        self.assertIn("Name", changed_names)
+        self.assertIn("Description", changed_names)
+        name_change = next(item for item in payload["changed_fields"] if item["field"] == "Name")
+        self.assertEqual(name_change["old_value"], "Alpha Coffee")
+        self.assertEqual(name_change["new_value"], "Alpha Coffee Roasters")

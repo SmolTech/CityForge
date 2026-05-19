@@ -83,6 +83,76 @@ class WebhookDispatchTests(TestCase):
         self.assertEqual(deliveries, 0)
         mocked_post.assert_not_called()
 
+    @patch("apps.webhooks.service.requests.post")
+    def test_dispatch_formats_runtime_event_with_change_text_and_url(
+        self, mocked_post: Mock
+    ) -> None:
+        mocked_response = Mock(status_code=200, text="ok", headers={"X-Test": "1"})
+        mocked_post.return_value = mocked_response
+
+        WebhookEndpoint.objects.create(
+            name="Mattermost",
+            url="https://mattermost.example/hooks/runtime",
+            events='["submission.approved"]',
+            format="mattermost",
+        )
+        dispatch_event(
+            "submission.approved",
+            {
+                "change_text": "admin approved submission.",
+                "content_url": "https://cityforge.example/business/1/my-business/",
+                "content_title": "My Business",
+            },
+            environment="test",
+            source_info="unit-test",
+        )
+
+        payload = mocked_post.call_args.kwargs["json"]
+        attachment = payload["attachments"][0]
+        self.assertIn("Change", attachment["text"])
+        self.assertIn("admin approved submission.", attachment["text"])
+        self.assertIn("Open item", attachment["text"])
+        self.assertIn("submission.approved", attachment["title"])
+
+    @patch("apps.webhooks.service.requests.post")
+    def test_dispatch_formats_runtime_event_with_changed_fields_only(
+        self, mocked_post: Mock
+    ) -> None:
+        mocked_response = Mock(status_code=200, text="ok", headers={"X-Test": "1"})
+        mocked_post.return_value = mocked_response
+
+        WebhookEndpoint.objects.create(
+            name="Mattermost",
+            url="https://mattermost.example/hooks/runtime-fields",
+            events='["modification.approved"]',
+            format="mattermost",
+        )
+        dispatch_event(
+            "modification.approved",
+            {
+                "change_text": "admin approved 2 change(s).",
+                "changed_fields": [
+                    {
+                        "field": "Description",
+                        "old_value": "Old content",
+                        "new_value": "Updated content",
+                    },
+                    {"field": "Phone", "old_value": "555-0000", "new_value": "555-0100"},
+                ],
+                "content_url": "https://cityforge.example/business/1/my-business/",
+                "content_title": "My Business",
+            },
+            environment="test",
+            source_info="unit-test",
+        )
+
+        payload = mocked_post.call_args.kwargs["json"]
+        attachment = payload["attachments"][0]
+        self.assertIn("Changed content", attachment["text"])
+        self.assertIn("Description", attachment["text"])
+        self.assertIn("Phone", attachment["text"])
+        self.assertIn("Old content → Updated content", attachment["text"])
+
 
 class AdminDigestCommandTests(TestCase):
     @override_settings(ALLOWED_HOSTS=["testserver"])

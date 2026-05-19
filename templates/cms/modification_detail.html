@@ -1,0 +1,64 @@
+{% extends "cms/_layout.html" %}
+{% load directory_extras %}
+{% block title %}Business update · {{ modification.card.name }}{% endblock %}
+{% block cms_content %}
+<a href="{% url 'cms:modifications_list' %}">← Back to updates</a>
+<h1>Update for {{ modification.card.name }}</h1>
+<p>
+  <span class="badge badge-{{ modification.status }}">{{ modification.get_status_display }}</span>
+  · submitted by {{ modification.submitter.email }} on {{ modification.created_date|date:"M j, Y H:i" }}
+</p>
+<p class="muted">
+  {{ changed_count }} field{{ changed_count|pluralize }} changed. Highlighted rows will be applied if approved.
+</p>
+
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Current</th>
+        <th>Proposed</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in comparison_rows %}
+        <tr class="{% if row.changed %}compare-row-changed{% endif %}">
+          <td>{{ row.label }}</td>
+          <td>{{ row.current_value|default:"—"|linebreaksbr }}</td>
+          <td>
+            {{ row.proposed_value|default:"—"|linebreaksbr }}
+            {% if row.changed %}
+              <span class="badge badge-pending compare-change-flag">Changed</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if modification.status == 'pending' %}
+  <div style="display:flex;gap:24px;margin-top:24px">
+    <form method="post" action="{% url 'cms:modification_approve' pk=modification.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Approval notes (optional)</label>
+        <textarea name="review_notes" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn">Approve & apply</button>
+    </form>
+    <form method="post" action="{% url 'cms:modification_reject' pk=modification.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Rejection reason</label>
+        <textarea name="review_notes" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">Reject</button>
+    </form>
+  </div>
+{% else %}
+  <p class="muted">Reviewed on {{ modification.reviewed_date|date:"M j, Y H:i" }} by {{ modification.reviewer.email|default:"—" }}.</p>
+  {% if modification.review_notes %}<p><strong>Notes:</strong> {{ modification.review_notes }}</p>{% endif %}
+{% endif %}
+{% endblock %}

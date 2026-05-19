@@ -3,6 +3,7 @@
 {% block content %}
 <h1>My submissions</h1>
 {% if submissions %}
+  <h2>New businesses</h2>
   <table class="data">
     <thead><tr><th>Business</th><th>Status</th><th>Submitted</th><th>Notes</th></tr></thead>
     <tbody>
@@ -18,5 +19,30 @@
   </table>
 {% else %}
   <p>You haven't submitted any businesses yet. <a href="{% url 'directory:card_submit' %}">Submit one now.</a></p>
+{% endif %}
+
+<h2 style="margin-top:24px">Business updates</h2>
+{% if modifications %}
+  <table class="data">
+    <thead><tr><th>Business</th><th>Status</th><th>Submitted</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for m in modifications %}
+        <tr>
+          <td>
+            {% if m.card %}
+              <a href="{% url 'directory:card_detail' pk=m.card.pk slug=m.card.slug %}">{{ m.card.name }}</a>
+            {% else %}
+              {{ m.name }}
+            {% endif %}
+          </td>
+          <td><span class="badge badge-{{ m.status }}">{{ m.get_status_display }}</span></td>
+          <td>{{ m.created_date|date:"M j, Y" }}</td>
+          <td>{{ m.review_notes|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>You haven't submitted any business updates yet.</p>
 {% endif %}
 {% endblock %}

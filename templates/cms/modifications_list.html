@@ -1,0 +1,39 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Business updates · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Business updates</h1>
+<form method="get" class="form-field" style="margin-bottom:16px">
+  <label>Status</label>
+  <select name="status" onchange="this.form.submit()">
+    {% for value, label in statuses %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="table-wrap">
+<table class="data">
+  <thead><tr><th>Business</th><th>Submitted by</th><th>Submitted</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for m in page_obj %}
+      <tr>
+        <td>{{ m.card.name }}</td>
+        <td>{{ m.submitter.email }}</td>
+        <td>{{ m.created_date|date:"M j, Y" }}</td>
+        <td><a href="{% url 'cms:modification_detail' pk=m.pk %}">Review</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No updates in this state.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?status={{ status }}&page={{ page_obj.previous_page_number }}">‹ Prev</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?status={{ status }}&page={{ page_obj.next_page_number }}">Next ›</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

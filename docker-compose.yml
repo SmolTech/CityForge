@@ -57,6 +57,7 @@ services:
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-}
+      WEBHOOKS_ENABLED: true
     volumes:
       - web_uploads:/app/uploads
     ports:

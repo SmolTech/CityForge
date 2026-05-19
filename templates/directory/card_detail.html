@@ -39,6 +39,14 @@
 </article>
 
 <section class="card-detail">
+  {% if can_suggest_update %}
+    <p>
+      <a class="btn" href="{% url 'directory:card_update_submit' pk=card.pk %}">Suggest an update</a>
+    </p>
+  {% elif not user.is_authenticated %}
+    <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to suggest an update.</p>
+  {% endif %}
+
   <h2>Reviews</h2>
   {% if reviews %}
     {% for r in reviews %}
