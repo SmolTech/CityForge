@@ -8,7 +8,26 @@ from django.core.exceptions import ValidationError
 User = get_user_model()
 
 
-class RegisterForm(forms.ModelForm):
+class CaptchaFormMixin:
+    def __init__(
+        self,
+        *args,
+        captcha_prompt: str | None = None,
+        captcha_expected: str | None = None,
+        **kwargs,
+    ):
+        self._captcha_expected = (captcha_expected or "").strip()
+        super().__init__(*args, **kwargs)
+        self.fields["captcha_answer"].help_text = captcha_prompt or "Solve the challenge above."
+
+    def clean_captcha_answer(self) -> str:
+        answer = (self.cleaned_data.get("captcha_answer") or "").strip()
+        if not self._captcha_expected or answer != self._captcha_expected:
+            raise ValidationError("Incorrect security check answer.")
+        return answer
+
+
+class RegisterForm(CaptchaFormMixin, forms.ModelForm):
     password1 = forms.CharField(
         label="Password",
         widget=forms.PasswordInput,
@@ -19,6 +38,7 @@ class RegisterForm(forms.ModelForm):
         widget=forms.PasswordInput,
         strip=False,
     )
+    captcha_answer = forms.CharField(label="Security check")
 
     class Meta:
         model = User
@@ -60,11 +80,12 @@ class LoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput, strip=False)
 
 
-class ForgotPasswordForm(forms.Form):
+class ForgotPasswordForm(CaptchaFormMixin, forms.Form):
     email = forms.EmailField()
+    captcha_answer = forms.CharField(label="Security check")
 
 
-class ResetPasswordForm(forms.Form):
+class ResetPasswordForm(CaptchaFormMixin, forms.Form):
     password1 = forms.CharField(
         label="New password",
         widget=forms.PasswordInput,
@@ -75,6 +96,7 @@ class ResetPasswordForm(forms.Form):
         widget=forms.PasswordInput,
         strip=False,
     )
+    captcha_answer = forms.CharField(label="Security check")
 
     def clean(self):
         cleaned = super().clean()

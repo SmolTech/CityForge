@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user
 from django.core.cache import cache
+from django.http import HttpResponse
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -29,8 +30,18 @@ class AccountFlowTests(TestCase):
             email_verified=False,
         )
 
+    def _captcha_answer(self, scope: str) -> str:
+        return self.client.session[f"accounts_captcha:{scope}:answer"]
+
+    def _set_captcha(self, scope: str, answer: str = "7") -> None:
+        session = self.client.session
+        session[f"accounts_captcha:{scope}:prompt"] = "What is 3 + 4?"
+        session[f"accounts_captcha:{scope}:answer"] = answer
+        session.save()
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_register_creates_user_and_logs_in(self) -> None:
+        self._set_captcha("register")
         with patch("apps.accounts.views._send_verification_email") as sender:
             response = self.client.post(
                 reverse("accounts:register"),
@@ -40,6 +51,7 @@ class AccountFlowTests(TestCase):
                     "last_name": "User",
                     "password1": "AnotherS3curePass!",
                     "password2": "AnotherS3curePass!",
+                    "captcha_answer": self._captcha_answer("register"),
                 },
             )
         self.assertEqual(response.status_code, 302)
@@ -63,9 +75,14 @@ class AccountFlowTests(TestCase):
             token="reset-token",
             expires_at=timezone.now() + timedelta(hours=1),
         )
+        self._set_captcha("reset_password")
         response = self.client.post(
             reverse("accounts:reset_password", args=[token.token]),
-            {"password1": "N3wPass!234", "password2": "N3wPass!234"},
+            {
+                "password1": "N3wPass!234",
+                "password2": "N3wPass!234",
+                "captcha_answer": self._captcha_answer("reset_password"),
+            },
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("accounts:login"))
@@ -73,6 +90,23 @@ class AccountFlowTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(token.used)
         self.assertTrue(self.user.check_password("N3wPass!234"))
+
+    def test_register_with_incorrect_captcha_is_rejected(self) -> None:
+        self._set_captcha("register")
+        with patch("apps.accounts.views.render", return_value=HttpResponse("bad captcha")):
+            response = self.client.post(
+                reverse("accounts:register"),
+                {
+                    "email": "badcaptcha@example.com",
+                    "first_name": "Bad",
+                    "last_name": "Captcha",
+                    "password1": "AnotherS3curePass!",
+                    "password2": "AnotherS3curePass!",
+                    "captcha_answer": "wrong",
+                },
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(email="badcaptcha@example.com").exists())
 
     def test_verify_email_expired_token_clears_token(self) -> None:
         self.user.email_verification_token = "verify-token"
@@ -110,6 +144,12 @@ class AccountFlowTests(TestCase):
 
 
 class AccountHelperTests(TestCase):
+    def _set_captcha(self, scope: str, answer: str = "7") -> None:
+        session = self.client.session
+        session[f"accounts_captcha:{scope}:prompt"] = "What is 3 + 4?"
+        session[f"accounts_captcha:{scope}:answer"] = answer
+        session.save()
+
     def test_client_ip_prefers_forwarded_for(self) -> None:
         from django.test import RequestFactory
 
@@ -140,12 +180,37 @@ class AccountHelperTests(TestCase):
             first_name="Forgot",
             last_name="User",
         )
+        self._set_captcha("forgot_password")
         with patch("apps.accounts.views._send_password_reset_email") as sender:
-            response = self.client.post(reverse("accounts:forgot_password"), {"email": user.email})
+            response = self.client.post(
+                reverse("accounts:forgot_password"),
+                {
+                    "email": user.email,
+                    "captcha_answer": self.client.session[
+                        "accounts_captcha:forgot_password:answer"
+                    ],
+                },
+            )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("accounts:login"))
         self.assertEqual(PasswordResetToken.objects.filter(user=user).count(), 1)
         sender.assert_called_once()
+
+    def test_forgot_password_with_wrong_captcha_does_not_create_token(self) -> None:
+        user = User.objects.create_user(
+            "forgot-captcha@example.com",
+            "ForgotPass!123",
+            first_name="Forgot",
+            last_name="User",
+        )
+        self._set_captcha("forgot_password")
+        with patch("apps.accounts.views.render", return_value=HttpResponse("bad captcha")):
+            response = self.client.post(
+                reverse("accounts:forgot_password"),
+                {"email": user.email, "captcha_answer": "nope"},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PasswordResetToken.objects.filter(user=user).count(), 0)
 
     def test_user_manager_and_role_properties(self) -> None:
         admin = User.objects.create_superuser("admin@example.com", "AdminPass!234")
