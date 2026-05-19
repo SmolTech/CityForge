@@ -42,7 +42,10 @@ class AccountFlowTests(TestCase):
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_register_creates_user_and_logs_in(self) -> None:
         self._set_captcha("register")
-        with patch("apps.accounts.views._send_verification_email") as sender:
+        with (
+            patch("apps.accounts.views._send_verification_email") as sender,
+            patch("apps.accounts.views.dispatch_event") as mocked_dispatch,
+        ):
             response = self.client.post(
                 reverse("accounts:register"),
                 {
@@ -60,6 +63,12 @@ class AccountFlowTests(TestCase):
         self.assertTrue(created.email_verification_token)
         self.assertEqual(get_user(self.client).pk, created.pk)
         sender.assert_called_once()
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "account.created")
+        payload = mocked_dispatch.call_args.args[1]
+        self.assertEqual(payload["user_email"], "newuser@example.com")
+        self.assertIn("New account created", payload["change_text"])
+        self.assertIn(reverse("cms:users_list"), payload["content_url"])
 
     def test_login_success_redirects_home(self) -> None:
         response = self.client.post(
@@ -76,20 +85,27 @@ class AccountFlowTests(TestCase):
             expires_at=timezone.now() + timedelta(hours=1),
         )
         self._set_captcha("reset_password")
-        response = self.client.post(
-            reverse("accounts:reset_password", args=[token.token]),
-            {
-                "password1": "N3wPass!234",
-                "password2": "N3wPass!234",
-                "captcha_answer": self._captcha_answer("reset_password"),
-            },
-        )
+        with patch("apps.accounts.views.dispatch_event") as mocked_dispatch:
+            response = self.client.post(
+                reverse("accounts:reset_password", args=[token.token]),
+                {
+                    "password1": "N3wPass!234",
+                    "password2": "N3wPass!234",
+                    "captcha_answer": self._captcha_answer("reset_password"),
+                },
+            )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("accounts:login"))
         token.refresh_from_db()
         self.user.refresh_from_db()
         self.assertTrue(token.used)
         self.assertTrue(self.user.check_password("N3wPass!234"))
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "password_reset.completed")
+        payload = mocked_dispatch.call_args.args[1]
+        self.assertEqual(payload["user_email"], self.user.email)
+        self.assertIn("Password reset completed", payload["change_text"])
+        self.assertIn(reverse("cms:users_list"), payload["content_url"])
 
     def test_register_with_incorrect_captcha_is_rejected(self) -> None:
         self._set_captcha("register")
@@ -181,7 +197,10 @@ class AccountHelperTests(TestCase):
             last_name="User",
         )
         self._set_captcha("forgot_password")
-        with patch("apps.accounts.views._send_password_reset_email") as sender:
+        with (
+            patch("apps.accounts.views._send_password_reset_email") as sender,
+            patch("apps.accounts.views.dispatch_event") as mocked_dispatch,
+        ):
             response = self.client.post(
                 reverse("accounts:forgot_password"),
                 {
@@ -195,6 +214,12 @@ class AccountHelperTests(TestCase):
         self.assertEqual(response.headers["Location"], reverse("accounts:login"))
         self.assertEqual(PasswordResetToken.objects.filter(user=user).count(), 1)
         sender.assert_called_once()
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "password_reset.requested")
+        payload = mocked_dispatch.call_args.args[1]
+        self.assertEqual(payload["user_email"], user.email)
+        self.assertIn("Password reset requested", payload["change_text"])
+        self.assertIn(reverse("cms:users_list"), payload["content_url"])
 
     def test_forgot_password_with_wrong_captcha_does_not_create_token(self) -> None:
         user = User.objects.create_user(
