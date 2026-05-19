@@ -304,6 +304,9 @@ table.data { width: 100%; border-collapse: collapse; }
 .table-wrap { overflow-x: auto; }
 table.data th, table.data td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 table.data tr:hover td { background: var(--bg); }
+.compare-row-changed td { background: color-mix(in srgb, var(--warning) 16%, transparent); }
+.compare-row-changed:hover td { background: color-mix(in srgb, var(--warning) 22%, transparent); }
+.compare-change-flag { margin-left: 8px; }
 .inline-controls { display: inline-flex; gap: 6px; align-items: center; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .stat-card { background: var(--bg); border-radius: var(--radius); padding: 14px; }

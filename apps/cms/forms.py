@@ -9,3 +9,13 @@ class SiteSettingsForm(forms.Form):
         required=False,
         widget=forms.TextInput(),
     )
+    mattermost_webhook_url = forms.URLField(
+        label="Mattermost webhook URL",
+        required=False,
+        max_length=500,
+        help_text="Incoming webhook URL used for daily admin digest delivery.",
+    )
+    mattermost_webhook_enabled = forms.BooleanField(
+        label="Enable Mattermost digest webhook",
+        required=False,
+    )
