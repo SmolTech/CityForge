@@ -118,6 +118,29 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(_safe_int("500", default=10, minimum=1, maximum=100), 100)
         self.assertEqual(_safe_int("bad", default=10, minimum=1, maximum=100), 10)
 
+    @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=[
+            "cityforge-service",
+            "cityforge-service.cityforge",
+            "cityforge-service.cityforge.svc",
+            "cityforge-service.cityforge.svc.cluster.local",
+        ],
+        SECURE_SSL_REDIRECT=True,
+        USE_X_FORWARDED_HOST=True,
+        SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
+    )
+    def test_cards_api_allows_internal_service_host(self) -> None:
+        response = self.client.get(
+            "/api/cards",
+            {"limit": "10"},
+            HTTP_HOST="cityforge-service.cityforge",
+            HTTP_X_FORWARDED_PROTO="https",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["cards"]), 2)
+
     def test_home_filters_by_featured_and_tags(self) -> None:
         request = RequestFactory().get("/", {"featured": "1", "tag": ["coffee"]})
         request.user = self.user
