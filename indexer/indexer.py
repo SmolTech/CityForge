@@ -94,6 +94,10 @@ class ResourceIndexer:
 
     def _build_database_url(self):
         """Build database URL from environment variables"""
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            return database_url
+
         user = os.getenv("POSTGRES_USER", "postgres")
         password = os.getenv("POSTGRES_PASSWORD", "")
         host = os.getenv("POSTGRES_HOST", "localhost")

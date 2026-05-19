@@ -63,6 +63,8 @@ spec:
                     configMapKeyRef:
                       name: cityforge-config
                       key: POSTGRES_DB
+                - name: DATABASE_URL
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
                 - name: BACKEND_URL
                   value: "http://cityforge-service/api"
               resources:
