@@ -23,9 +23,18 @@ def _uploaded_png() -> SimpleUploadedFile:
     return SimpleUploadedFile("flow.png", image.getvalue(), content_type="image/png")
 
 
+def _set_captcha(client, scope: str, answer: str = "7") -> str:
+    session = client.session
+    session[f"accounts_captcha:{scope}:prompt"] = "What is 3 + 4?"
+    session[f"accounts_captcha:{scope}:answer"] = answer
+    session.save()
+    return answer
+
+
 class CriticalJourneyE2ETests(TestCase):
     def test_register_login_and_review_flow(self) -> None:
         card = Card.objects.create(name="Flow Coffee", approved=True)
+        captcha_answer = _set_captcha(self.client, "register")
         with patch("apps.accounts.views._send_verification_email"):
             response = self.client.post(
                 reverse("accounts:register"),
@@ -35,6 +44,7 @@ class CriticalJourneyE2ETests(TestCase):
                     "last_name": "User",
                     "password1": "JourneyPass!123",
                     "password2": "JourneyPass!123",
+                    "captcha_answer": captcha_answer,
                 },
             )
         self.assertEqual(response.status_code, 302)

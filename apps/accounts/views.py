@@ -23,6 +23,7 @@ TOKEN_TTL_HOURS = 1
 EMAIL_VERIFICATION_TTL_HOURS = 48
 PASSWORD_RESET_LIMIT = 5
 PASSWORD_RESET_WINDOW_SECONDS = 3600
+CAPTCHA_SESSION_KEY_PREFIX = "accounts_captcha"
 
 
 def _client_ip(request: HttpRequest) -> str | None:
@@ -47,12 +48,40 @@ def _allow_password_reset_request(request: HttpRequest, email: str) -> bool:
     return True
 
 
+def _captcha_session_keys(scope: str) -> tuple[str, str]:
+    return (
+        f"{CAPTCHA_SESSION_KEY_PREFIX}:{scope}:prompt",
+        f"{CAPTCHA_SESSION_KEY_PREFIX}:{scope}:answer",
+    )
+
+
+def _ensure_captcha(request: HttpRequest, scope: str) -> tuple[str, str]:
+    prompt_key, answer_key = _captcha_session_keys(scope)
+    prompt = request.session.get(prompt_key)
+    answer = request.session.get(answer_key)
+    if prompt and answer:
+        return prompt, answer
+    left = secrets.randbelow(9) + 1
+    right = secrets.randbelow(9) + 1
+    prompt = f"What is {left} + {right}?"
+    answer = str(left + right)
+    request.session[prompt_key] = prompt
+    request.session[answer_key] = answer
+    request.session.modified = True
+    return prompt, answer
+
+
+def _captcha_kwargs(request: HttpRequest, scope: str) -> dict[str, str]:
+    prompt, answer = _ensure_captcha(request, scope)
+    return {"captcha_prompt": prompt, "captcha_expected": answer}
+
+
 @require_http_methods(["GET", "POST"])
 def register(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("directory:home")
     if request.method == "POST":
-        form = RegisterForm(request.POST)
+        form = RegisterForm(request.POST, **_captcha_kwargs(request, "register"))
         if form.is_valid():
             user: User = form.save(commit=False)
             user.registration_ip_address = _client_ip(request)
@@ -67,7 +96,7 @@ def register(request: HttpRequest) -> HttpResponse:
             login(request, user)
             return redirect("directory:home")
     else:
-        form = RegisterForm()
+        form = RegisterForm(**_captcha_kwargs(request, "register"))
     return render(request, "accounts/register.html", {"form": form})
 
 
@@ -104,7 +133,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def forgot_password(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
-        form = ForgotPasswordForm(request.POST)
+        form = ForgotPasswordForm(request.POST, **_captcha_kwargs(request, "forgot_password"))
         if form.is_valid():
             email = form.cleaned_data["email"].lower().strip()
             user = User.objects.filter(email__iexact=email).first()
@@ -121,7 +150,7 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
             )
             return redirect("accounts:login")
     else:
-        form = ForgotPasswordForm()
+        form = ForgotPasswordForm(**_captcha_kwargs(request, "forgot_password"))
     return render(request, "accounts/forgot_password.html", {"form": form})
 
 
@@ -133,7 +162,7 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
         return redirect("accounts:forgot_password")
 
     if request.method == "POST":
-        form = ResetPasswordForm(request.POST)
+        form = ResetPasswordForm(request.POST, **_captcha_kwargs(request, "reset_password"))
         if form.is_valid():
             user = prt.user
             # ResetPasswordForm.clean() invokes validate_password() before this.
@@ -148,7 +177,7 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
             messages.success(request, "Password updated. You can now log in.")
             return redirect("accounts:login")
     else:
-        form = ResetPasswordForm()
+        form = ResetPasswordForm(**_captcha_kwargs(request, "reset_password"))
     return render(
         request,
         "accounts/reset_password.html",
