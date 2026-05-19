@@ -12,8 +12,10 @@ import argparse
 import logging
 import os
 import time
+from collections import deque
 from datetime import UTC, datetime
-from urllib.parse import urljoin, urlparse
+from hashlib import sha256
+from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
 from urllib.robotparser import RobotFileParser
 
 import requests
@@ -143,6 +145,54 @@ class ResourceIndexer:
             # If we can't check, be conservative and allow it
             return True
 
+    def _normalize_page_url(self, url):
+        """Normalize URLs for crawl deduplication and result links."""
+        if not url:
+            return ""
+        url, _fragment = urldefrag(url)
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return ""
+        normalized = parsed._replace(
+            scheme=parsed.scheme.lower(),
+            netloc=parsed.netloc.lower(),
+            path=parsed.path or "/",
+        )
+        return urlunparse(normalized)
+
+    def _extract_internal_links(self, soup, current_url, site_netloc):
+        """Extract same-site HTTP links from a page."""
+        links = []
+        seen = set()
+        for anchor in soup.find_all("a", href=True):
+            candidate = self._normalize_page_url(urljoin(current_url, anchor["href"]))
+            if not candidate:
+                continue
+            parsed = urlparse(candidate)
+            if parsed.netloc != site_netloc:
+                continue
+            if parsed.path.lower().endswith(
+                (
+                    ".jpg",
+                    ".jpeg",
+                    ".png",
+                    ".gif",
+                    ".svg",
+                    ".webp",
+                    ".pdf",
+                    ".zip",
+                    ".xml",
+                    ".json",
+                    ".txt",
+                )
+            ):
+                continue
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            links.append(candidate)
+        return links
+
     def fetch_cards(self):
         """Fetch business cards from the Next.js API"""
         try:
@@ -172,9 +222,16 @@ class ResourceIndexer:
 
     def scrape_page_content(self, url, max_retries=3):
         """Scrape content from a webpage with retries"""
+        normalized_url = self._normalize_page_url(url) or url
         if not self.is_url_allowed(url):
             logger.info(f"URL not allowed by robots.txt: {url}")
-            return {"content": "", "page_title": "", "page_description": ""}
+            return {
+                "content": "",
+                "page_title": "",
+                "page_description": "",
+                "page_url": normalized_url,
+                "links": [],
+            }
 
         for attempt in range(max_retries):
             try:
@@ -188,6 +245,7 @@ class ResourceIndexer:
                 response.raise_for_status()
 
                 soup = BeautifulSoup(response.text, "html.parser")
+                page_url = self._normalize_page_url(response.url) or normalized_url
 
                 # Extract page title
                 page_title = ""
@@ -220,6 +278,10 @@ class ResourceIndexer:
                     "content": text,
                     "page_title": page_title,
                     "page_description": page_description,
+                    "page_url": page_url,
+                    "links": self._extract_internal_links(
+                        soup, page_url, urlparse(page_url).netloc
+                    ),
                 }
 
             except Exception as e:
@@ -230,7 +292,59 @@ class ResourceIndexer:
                 else:
                     logger.error(f"Failed to scrape {url} after {max_retries} attempts")
 
-        return {"content": "", "page_title": "", "page_description": ""}
+        return {
+            "content": "",
+            "page_title": "",
+            "page_description": "",
+            "page_url": normalized_url,
+            "links": [],
+        }
+
+    def scrape_site_pages(self, start_url):
+        """Crawl and scrape the homepage plus same-site pages."""
+        start_url = self._normalize_page_url(start_url)
+        if not start_url:
+            return []
+
+        site_netloc = urlparse(start_url).netloc
+        queue = deque([start_url])
+        queued = {start_url}
+        crawled = set()
+        indexed_pages = set()
+        pages = []
+
+        while queue and len(pages) < IndexerConfig.MAX_PAGES_PER_SITE:
+            current_url = queue.popleft()
+            queued.discard(current_url)
+            if current_url in crawled:
+                continue
+
+            crawled.add(current_url)
+            scraped = self.scrape_page_content(current_url)
+            page_url = self._normalize_page_url(scraped.get("page_url")) or current_url
+            crawled.add(page_url)
+
+            if page_url not in indexed_pages:
+                pages.append(scraped | {"page_url": page_url})
+                indexed_pages.add(page_url)
+
+            for link in scraped.get("links", []):
+                normalized_link = self._normalize_page_url(link)
+                if not normalized_link:
+                    continue
+                if urlparse(normalized_link).netloc != site_netloc:
+                    continue
+                if normalized_link in crawled or normalized_link in queued:
+                    continue
+                if len(pages) + len(queue) >= IndexerConfig.MAX_PAGES_PER_SITE:
+                    break
+                queue.append(normalized_link)
+                queued.add(normalized_link)
+
+            if queue and len(pages) < IndexerConfig.MAX_PAGES_PER_SITE:
+                time.sleep(IndexerConfig.DELAY_BETWEEN_PAGES)
+
+        return pages
 
     def index_resource(self, card):
         """Index a single business card into OpenSearch"""
@@ -238,6 +352,7 @@ class ResourceIndexer:
             card_id = card["id"]
             name = card["name"]
             website_url = card.get("website_url", "")
+            normalized_website_url = self._normalize_page_url(website_url) or website_url
 
             if not website_url:
                 logger.info(f"Skipping card {card_id} ({name}): No website URL")
@@ -245,30 +360,52 @@ class ResourceIndexer:
 
             logger.info(f"Indexing card {card_id}: {name} - {website_url}")
 
-            # Scrape the website
-            scraped_data = self.scrape_page_content(website_url)
+            pages = self.scrape_site_pages(website_url)
+            if not pages:
+                pages = [
+                    {
+                        "content": "",
+                        "page_title": "",
+                        "page_description": "",
+                        "page_url": normalized_website_url,
+                        "links": [],
+                    }
+                ]
 
-            # Build document for OpenSearch
-            document = {
-                "resource_id": card_id,
-                "title": scraped_data["page_title"] or name,
-                "description": card.get("description", ""),
-                "page_description": scraped_data["page_description"],
-                "content": scraped_data["content"],
-                "url": website_url,
-                "page_url": website_url,
-                "category": "",  # Cards don't have categories in the new schema
-                "phone": card.get("phone_number", ""),
-                "address": card.get("address", ""),
-                "domain": urlparse(website_url).netloc if website_url else "",
-                "is_homepage": True,
-                "indexed_at": datetime.now(UTC).isoformat(),
-            }
+            self.client.delete_by_query(
+                index=self.index_name,
+                body={"query": {"term": {"resource_id": card_id}}},
+                conflicts="proceed",
+                refresh=True,
+            )
 
-            # Index into OpenSearch
-            self.client.index(index=self.index_name, id=f"resource_{card_id}", body=document)
+            domain = urlparse(normalized_website_url).netloc if normalized_website_url else ""
+            for page in pages:
+                page_url = self._normalize_page_url(page.get("page_url")) or normalized_website_url
+                is_homepage = page_url == normalized_website_url
+                document = {
+                    "resource_id": card_id,
+                    "title": page.get("page_title") or name,
+                    "description": card.get("description", ""),
+                    "page_description": page.get("page_description", ""),
+                    "content": page.get("content", ""),
+                    "url": normalized_website_url,
+                    "page_url": page_url,
+                    "category": "",  # Cards don't have categories in the new schema
+                    "phone": card.get("phone_number", ""),
+                    "address": card.get("address", ""),
+                    "domain": domain,
+                    "is_homepage": is_homepage,
+                    "indexed_at": datetime.now(UTC).isoformat(),
+                }
+                document_id = (
+                    f"resource_{card_id}"
+                    if is_homepage
+                    else f"resource_{card_id}_{sha256(page_url.encode()).hexdigest()[:12]}"
+                )
+                self.client.index(index=self.index_name, id=document_id, body=document)
 
-            logger.info(f"Successfully indexed card {card_id}")
+            logger.info(f"Successfully indexed {len(pages)} page(s) for card {card_id}")
 
         except Exception as e:
             logger.error(f"Error indexing card {card.get('id', 'unknown')}: {e}")

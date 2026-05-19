@@ -79,3 +79,96 @@ def test_build_database_url_falls_back_to_postgres_parts() -> None:
             indexer._build_database_url()
             == "postgresql://cityforge:secret@db.internal:5433/community_db"
         )
+
+
+def test_scrape_page_content_extracts_same_site_links() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+    response = Mock()
+    response.url = "https://example.com/about"
+    response.text = """
+    <html>
+      <head>
+        <title>About Us</title>
+        <meta name="description" content="About page">
+      </head>
+      <body>
+        <p>Hello world</p>
+        <a href="/services">Services</a>
+        <a href="https://example.com/contact#team">Contact</a>
+        <a href="https://other.example/offsite">Offsite</a>
+      </body>
+    </html>
+    """
+    response.raise_for_status.return_value = None
+
+    with (
+        patch.object(indexer, "is_url_allowed", return_value=True),
+        patch.object(module.requests, "get", return_value=response),
+    ):
+        scraped = indexer.scrape_page_content("https://example.com/about")
+
+    assert scraped["page_url"] == "https://example.com/about"
+    assert scraped["page_title"] == "About Us"
+    assert scraped["page_description"] == "About page"
+    assert scraped["links"] == [
+        "https://example.com/services",
+        "https://example.com/contact",
+    ]
+
+
+def test_index_resource_indexes_each_crawled_page_with_page_url() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+    indexer.client = Mock()
+
+    with patch.object(
+        indexer,
+        "scrape_site_pages",
+        return_value=[
+            {
+                "page_title": "Example Home",
+                "page_description": "Homepage",
+                "content": "Welcome to the homepage",
+                "page_url": "https://example.com/",
+                "links": ["https://example.com/about"],
+            },
+            {
+                "page_title": "About Example",
+                "page_description": "About page",
+                "content": "This is the content we searched for",
+                "page_url": "https://example.com/about",
+                "links": [],
+            },
+        ],
+    ):
+        indexer.index_resource(
+            {
+                "id": 42,
+                "name": "Example Co",
+                "description": "Directory description",
+                "website_url": "https://example.com/",
+                "phone_number": "555-0100",
+                "address": "123 Main St",
+            }
+        )
+
+    indexer.client.delete_by_query.assert_called_once_with(
+        index="default-resources",
+        body={"query": {"term": {"resource_id": 42}}},
+        conflicts="proceed",
+        refresh=True,
+    )
+    assert indexer.client.index.call_count == 2
+
+    homepage_call = indexer.client.index.call_args_list[0]
+    assert homepage_call.kwargs["id"] == "resource_42"
+    assert homepage_call.kwargs["body"]["page_url"] == "https://example.com/"
+    assert homepage_call.kwargs["body"]["url"] == "https://example.com/"
+    assert homepage_call.kwargs["body"]["is_homepage"] is True
+
+    subpage_call = indexer.client.index.call_args_list[1]
+    assert subpage_call.kwargs["id"].startswith("resource_42_")
+    assert subpage_call.kwargs["body"]["page_url"] == "https://example.com/about"
+    assert subpage_call.kwargs["body"]["url"] == "https://example.com/"
+    assert subpage_call.kwargs["body"]["is_homepage"] is False
