@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Submission · {{ submission.title }}{% endblock %}
+{% block content %}
+<article class="card-detail">
+  <h1>{{ submission.title }}</h1>
+  <p><span class="badge badge-{{ submission.status }}">{{ submission.get_status_display }}</span></p>
+  <dl>
+    <dt>Description</dt><dd>{{ submission.description|default:"—"|linebreaksbr }}</dd>
+    <dt>Location</dt><dd>{{ submission.location|default:"—" }}</dd>
+    <dt>Starts</dt><dd>{{ submission.start_at|date:"M j, Y g:i A" }}</dd>
+    <dt>Ends</dt><dd>{% if submission.end_at %}{{ submission.end_at|date:"M j, Y g:i A" }}{% else %}—{% endif %}</dd>
+    <dt>URL</dt><dd>{{ submission.url|default:"—" }}</dd>
+  </dl>
+</article>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Event submission · {{ submission.title }}{% endblock %}
+{% block cms_content %}
+<a href="{% url 'cms:event_submissions_list' %}">← Back to event submissions</a>
+<h1>{{ submission.title }}</h1>
+<p><span class="badge badge-{{ submission.status }}">{{ submission.get_status_display }}</span></p>
+
+<dl>
+  <dt>Description</dt><dd>{{ submission.description|default:"—"|linebreaksbr }}</dd>
+  <dt>Location</dt><dd>{{ submission.location|default:"—" }}</dd>
+  <dt>Starts</dt><dd>{{ submission.start_at|date:"M j, Y g:i A" }}</dd>
+  <dt>Ends</dt><dd>{% if submission.end_at %}{{ submission.end_at|date:"M j, Y g:i A" }}{% else %}—{% endif %}</dd>
+  <dt>URL</dt><dd>{{ submission.url|default:"—" }}</dd>
+  <dt>Submitted by</dt><dd>{{ submission.submitter.email }}</dd>
+</dl>
+
+{% if submission.status == 'pending' %}
+  <div style="display:flex;gap:24px;margin-top:24px">
+    <form method="post" action="{% url 'cms:event_submission_approve' pk=submission.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Approval notes (optional)</label>
+        <textarea name="review_notes" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn">Approve & publish</button>
+    </form>
+    <form method="post" action="{% url 'cms:event_submission_reject' pk=submission.pk %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>Rejection reason</label>
+        <textarea name="review_notes" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">Reject</button>
+    </form>
+  </div>
+{% else %}
+  <p class="muted">Reviewed on {{ submission.reviewed_date|date:"M j, Y H:i" }} by {{ submission.reviewer.email|default:"—" }}.</p>
+  {% if submission.review_notes %}<p><strong>Notes:</strong> {{ submission.review_notes }}</p>{% endif %}
+{% endif %}
+{% endblock %}

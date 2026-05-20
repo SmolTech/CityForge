@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Submit Event · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Submit an Event</h1>
+  <p class="muted">Share a community event for review.</p>
+  {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">Submit event</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

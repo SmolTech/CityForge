@@ -19,6 +19,10 @@ import {
   exportBusinessesToContacts,
   getBusinessContactSyncEnabled,
 } from "../utils/businessContactSync";
+import {
+  exportCommunityCalendar,
+  getCommunityCalendarSyncEnabled,
+} from "../utils/communityCalendarSync";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,6 +33,8 @@ export default function ProfileScreen() {
   const { colors, colorScheme, setColorScheme } = useTheme();
   const [isExportingContacts, setIsExportingContacts] = useState(false);
   const [isContactSyncEnabled, setIsContactSyncEnabled] = useState(false);
+  const [isExportingCalendar, setIsExportingCalendar] = useState(false);
+  const [isCalendarSyncEnabled, setIsCalendarSyncEnabled] = useState(false);
 
   const styles = useThemedStyles((colors) => ({
     container: {
@@ -222,6 +228,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!activeInstance?.id) {
       setIsContactSyncEnabled(false);
+      setIsCalendarSyncEnabled(false);
       return;
     }
 
@@ -229,6 +236,11 @@ export default function ProfileScreen() {
     void getBusinessContactSyncEnabled(activeInstance.id).then((enabled) => {
       if (!cancelled) {
         setIsContactSyncEnabled(enabled);
+      }
+    });
+    void getCommunityCalendarSyncEnabled(activeInstance.id).then((enabled) => {
+      if (!cancelled) {
+        setIsCalendarSyncEnabled(enabled);
       }
     });
 
@@ -291,6 +303,44 @@ export default function ProfileScreen() {
               );
             } finally {
               setIsExportingContacts(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleExportCalendar = () => {
+    if (!activeInstance?.id) {
+      Alert.alert("No instance selected", "Choose a CityForge server first.");
+      return;
+    }
+
+    Alert.alert(
+      isCalendarSyncEnabled ? "Sync calendar now?" : "Enable calendar sync?",
+      isCalendarSyncEnabled
+        ? "This will refresh your phone calendar from the current event list."
+        : "This will add approved community events to your phone calendar and keep them updated automatically.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: isCalendarSyncEnabled ? "Sync" : "Enable",
+          onPress: async () => {
+            setIsExportingCalendar(true);
+            try {
+              const result = await exportCommunityCalendar(activeInstance.id);
+              setIsCalendarSyncEnabled(true);
+              Alert.alert(
+                "Calendar synced",
+                `${result.total} events are now kept in sync with your calendar.`
+              );
+            } catch (error) {
+              Alert.alert(
+                "Sync failed",
+                error instanceof Error ? error.message : "Unable to sync calendar."
+              );
+            } finally {
+              setIsExportingCalendar(false);
             }
           },
         },
@@ -437,6 +487,32 @@ export default function ProfileScreen() {
         <Text style={styles.sectionHint}>
           Once enabled, CityForge refreshes the exported contacts whenever the
           app resumes or periodically while it is open.
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Calendar</Text>
+        <TouchableOpacity
+          style={[styles.menuItem, isExportingCalendar && styles.menuItemDisabled]}
+          onPress={handleExportCalendar}
+          disabled={isExportingCalendar}
+        >
+          <Text style={styles.menuItemText}>
+            {isCalendarSyncEnabled ? "Sync Community Calendar Now" : "Enable Calendar Sync"}
+          </Text>
+          {isExportingCalendar ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.menuItemArrow}>→</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.sectionMessage}>
+          Save approved community events to your phone calendar so they stay in
+          sync with CityForge.
+        </Text>
+        <Text style={styles.sectionHint}>
+          Once enabled, CityForge refreshes your calendar whenever the app
+          resumes or periodically while it is open.
         </Text>
       </View>
 

@@ -11,6 +11,7 @@ import type {
   Card,
   Tag,
   CardSubmission,
+  CommunityCalendarEvent,
   BusinessSubmissionInput,
   CardReviewsResponse,
   Review,
@@ -39,6 +40,10 @@ interface CardsApiResponse {
 
 interface CardsListOnlyApiResponse {
   cards: RawCard[];
+}
+
+interface EventsApiResponse {
+  events: CommunityCalendarEvent[];
 }
 
 type RawCard = Omit<Card, "tags"> & {
@@ -400,6 +405,11 @@ class ApiClient {
 
   async getMySubmissions(): Promise<CardSubmission[]> {
     return this.request<CardSubmission[]>("/api/submissions");
+  }
+
+  async getCalendarEvents(): Promise<CommunityCalendarEvent[]> {
+    const response = await this.request<EventsApiResponse>("/api/events");
+    return response.events ?? [];
   }
 
   async suggestEdit(

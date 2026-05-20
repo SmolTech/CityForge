@@ -5,6 +5,7 @@ import type { MainTabParamList } from "../types/navigation";
 
 // Import screens (we'll create these next)
 import BusinessScreen from "../screens/BusinessScreen";
+import CalendarScreen from "../screens/CalendarScreen";
 import TagsScreen from "../screens/TagsScreen";
 import SearchScreen from "../screens/SearchScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -29,6 +30,8 @@ export default function MainTabNavigator() {
 
           if (route.name === "Business") {
             iconName = focused ? "business" : "business-outline";
+          } else if (route.name === "Calendar") {
+            iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "Tags") {
             iconName = focused ? "pricetag" : "pricetag-outline";
           } else if (route.name === "Search") {
@@ -49,6 +52,14 @@ export default function MainTabNavigator() {
         options={{
           title: "Directory",
           tabBarLabel: "Business",
+        }}
+      />
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{
+          title: "Calendar",
+          tabBarLabel: "Calendar",
         }}
       />
       <Tab.Screen

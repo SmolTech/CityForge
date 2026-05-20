@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My Event Submissions · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="card-detail">
+  <h1>My Event Submissions</h1>
+  {% if submissions %}
+    <table class="data">
+      <thead>
+        <tr><th>Event</th><th>Status</th><th>Submitted</th></tr>
+      </thead>
+      <tbody>
+        {% for submission in submissions %}
+          <tr>
+            <td>{{ submission.title }}</td>
+            <td><span class="badge badge-{{ submission.status }}">{{ submission.get_status_display }}</span></td>
+            <td>{{ submission.created_date|date:"M j, Y H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No event submissions yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

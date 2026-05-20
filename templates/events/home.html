@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load directory_extras %}
+{% block title %}Events · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="card-detail">
+  <div class="event-page-header">
+    <div>
+      <h1>Community Events</h1>
+      <p class="muted">Upcoming events submitted by the community.</p>
+    </div>
+    <div class="event-actions">
+      <a class="btn btn-secondary" href="{% url 'events:calendar' %}">Calendar view</a>
+      <a class="btn btn-secondary" href="{% url 'events:feed' %}">iCal feed</a>
+      {% if user.is_authenticated %}
+        <a class="btn" href="{% url 'events:submit' %}">Submit event</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form class="search-bar" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search events">
+    <button class="btn" type="submit">Search</button>
+  </form>
+
+  {% if events %}
+    <div class="event-list">
+      {% for event in events %}
+        <article class="event-card">
+          <h3><a href="{% url 'events:event_detail' pk=event.pk slug=event.slug %}">{{ event.title }}</a></h3>
+          <div class="event-meta">
+            <span>{{ event.start_at|date:"M j, Y g:i A" }}</span>
+            {% if event.end_at %}<span>– {{ event.end_at|date:"M j, Y g:i A" }}</span>{% endif %}
+            {% if event.location %}<span>· {{ event.location }}</span>{% endif %}
+          </div>
+          {% if event.description %}<p>{{ event.description|linebreaksbr }}</p>{% endif %}
+          {% with safe_url=event.url|safe_external_url %}
+            {% if safe_url %}<p>{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">Event link</a></p>{% endif %}
+          {% endwith %}
+        </article>
+      {% endfor %}
+    </div>
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}">Previous</a>{% endif %}
+        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}">Next</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="muted">No approved events yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

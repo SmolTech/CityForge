@@ -58,6 +58,12 @@
           "contactsPermission": "Allow CityForge to export businesses to your contacts."
         }
       ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow CityForge to sync approved community events to your calendar."
+        }
+      ],
       "expo-font"
     ],
     "extra": {

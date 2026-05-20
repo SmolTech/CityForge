@@ -15,6 +15,12 @@ urlpatterns = [
     path("submissions/<int:pk>/", views.submission_detail, name="submission_detail"),
     path("submissions/<int:pk>/approve/", views.submission_approve, name="submission_approve"),
     path("submissions/<int:pk>/reject/", views.submission_reject, name="submission_reject"),
+    path("events/", views.event_submissions_list, name="event_submissions_list"),
+    path("events/<int:pk>/", views.event_submission_detail, name="event_submission_detail"),
+    path(
+        "events/<int:pk>/approve/", views.event_submission_approve, name="event_submission_approve"
+    ),
+    path("events/<int:pk>/reject/", views.event_submission_reject, name="event_submission_reject"),
     path("modifications/", views.modifications_list, name="modifications_list"),
     path("modifications/<int:pk>/", views.modification_detail, name="modification_detail"),
     path(

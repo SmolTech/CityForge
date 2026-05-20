@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.cms.views import _modification_comparison_rows
@@ -16,6 +17,7 @@ from apps.directory.models import (
     Review,
     Tag,
 )
+from apps.events.models import Event, EventStatus, EventSubmission
 from apps.resources.models import ResourceConfig
 from apps.webhooks.models import WebhookEndpoint
 
@@ -87,6 +89,22 @@ class CmsAccessTests(TestCase):
         endpoint = WebhookEndpoint.objects.get(name="Mattermost Admin Digest")
         self.assertFalse(endpoint.enabled)
 
+    def test_dashboard_shows_pending_events(self) -> None:
+        EventSubmission.objects.create(
+            title="Community Picnic",
+            description="A casual get-together in the park.",
+            location="Central Park",
+            start_at=timezone.now(),
+            submitter=self.user,
+            status=EventStatus.PENDING,
+        )
+        self.client.force_login(self.staff)
+        with patch("apps.cms.views.render", return_value=HttpResponse("ok")) as mocked_render:
+            response = self.client.get(reverse("cms:dashboard"))
+        self.assertEqual(response.status_code, 200)
+        context = mocked_render.call_args.args[2]
+        self.assertEqual(context["stats"]["pending_events"], 1)
+
 
 class CmsMutationTests(TestCase):
     def setUp(self) -> None:
@@ -118,6 +136,16 @@ class CmsMutationTests(TestCase):
             tags_text="coffee,updated",
             submitter=self.member,
             status=CardSubmissionStatus.PENDING,
+        )
+        self.event_submission = EventSubmission.objects.create(
+            title="Community Picnic",
+            description="A casual get-together in the park.",
+            location="Central Park",
+            start_at=timezone.now(),
+            end_at=timezone.now(),
+            url="https://example.com/picnic",
+            submitter=self.member,
+            status=EventStatus.PENDING,
         )
 
     @patch("apps.cms.views.dispatch_event")
@@ -229,6 +257,36 @@ class CmsMutationTests(TestCase):
         self.assertEqual(self.modification.reviewer_id, self.admin.pk)
         mocked_dispatch.assert_called_once()
         self.assertEqual(mocked_dispatch.call_args.args[0], "modification.rejected")
+
+    @patch("apps.cms.views.dispatch_event")
+    def test_event_submission_approve_creates_event(self, mocked_dispatch) -> None:
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("cms:event_submission_approve", args=[self.event_submission.pk]),
+            {"review_notes": "Looks good"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], reverse("cms:event_submissions_list"))
+        self.event_submission.refresh_from_db()
+        self.assertEqual(self.event_submission.status, EventStatus.APPROVED)
+        self.assertIsNotNone(self.event_submission.event)
+        self.assertTrue(Event.objects.filter(title="Community Picnic", approved=True).exists())
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "event.approved")
+
+    @patch("apps.cms.views.dispatch_event")
+    def test_event_submission_reject_marks_reviewed(self, mocked_dispatch) -> None:
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("cms:event_submission_reject", args=[self.event_submission.pk]),
+            {"review_notes": "Not enough details"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], reverse("cms:event_submissions_list"))
+        self.event_submission.refresh_from_db()
+        self.assertEqual(self.event_submission.status, EventStatus.REJECTED)
+        mocked_dispatch.assert_called_once()
+        self.assertEqual(mocked_dispatch.call_args.args[0], "event.rejected")
 
     def test_modification_detail_highlights_changed_fields(self) -> None:
         self.client.force_login(self.admin)

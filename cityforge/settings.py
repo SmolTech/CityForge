@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.accounts",
     "apps.directory",
+    "apps.events",
     "apps.forums",
     "apps.classifieds",
     "apps.resources",

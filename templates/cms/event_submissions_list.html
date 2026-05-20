@@ -1,0 +1,26 @@
+{% extends "cms/_layout.html" %}
+{% block title %}Event submissions · {{ SITE_NAME }}{% endblock %}
+{% block cms_content %}
+<h1>Event Submissions</h1>
+<p class="muted">Review community event submissions.</p>
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr><th>Event</th><th>Submitter</th><th>Status</th><th>Submitted</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for submission in page_obj %}
+        <tr>
+          <td>{{ submission.title }}</td>
+          <td>{{ submission.submitter.email }}</td>
+          <td><span class="badge badge-{{ submission.status }}">{{ submission.get_status_display }}</span></td>
+          <td>{{ submission.created_date|date:"M j, Y H:i" }}</td>
+          <td><a href="{% url 'cms:event_submission_detail' pk=submission.pk %}">Review</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No submissions.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

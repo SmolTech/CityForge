@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load directory_extras %}
+{% block title %}{{ event.title }} · {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<article class="card-detail">
+  <h1>{{ event.title }}</h1>
+  <div class="detail-meta">
+    <span>{{ event.start_at|date:"M j, Y g:i A" }}</span>
+    {% if event.end_at %}<span>· {{ event.end_at|date:"M j, Y g:i A" }}</span>{% endif %}
+    {% if event.location %}<span>· {{ event.location }}</span>{% endif %}
+  </div>
+
+  {% if event.description %}
+    <p>{{ event.description|linebreaksbr }}</p>
+  {% endif %}
+
+  {% with safe_url=event.url|safe_external_url %}
+    {% if safe_url %}
+      <p>{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a class="btn btn-secondary" href="{{ safe_url }}" rel="noopener">Event link</a></p>
+    {% endif %}
+  {% endwith %}
+
+  <p><a href="{% url 'events:calendar' %}">Back to calendar</a></p>
+</article>
+{% endblock %}

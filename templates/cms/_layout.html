@@ -6,6 +6,7 @@
     <ul>
       <li><a href="{% url 'cms:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Overview</a></li>
       <li><a href="{% url 'cms:submissions_list' %}" class="{% if 'submission' in request.resolver_match.url_name %}active{% endif %}">Submissions</a></li>
+      <li><a href="{% url 'cms:event_submissions_list' %}" class="{% if 'event_submission' in request.resolver_match.url_name %}active{% endif %}">Events</a></li>
       <li><a href="{% url 'cms:modifications_list' %}" class="{% if 'modification' in request.resolver_match.url_name %}active{% endif %}">Updates</a></li>
       <li><a href="{% url 'cms:cards_list' %}" class="{% if 'card' in request.resolver_match.url_name %}active{% endif %}">Businesses</a></li>
       <li><a href="{% url 'cms:tags_list' %}" class="{% if 'tag' in request.resolver_match.url_name %}active{% endif %}">Tags</a></li>

@@ -55,6 +55,21 @@ export interface CardSubmission {
   created_date: string;
 }
 
+export interface CommunityCalendarEvent {
+  id: number;
+  title: string;
+  description: string;
+  location?: string;
+  start_at: string;
+  end_at?: string | null;
+  url?: string;
+  all_day: boolean;
+  slug: string;
+  approved: boolean;
+  created_date: string;
+  updated_date: string;
+}
+
 export interface BusinessSubmissionInput {
   name: string;
   description?: string;

@@ -27,6 +27,8 @@ from apps.directory.modification_diff import (
     modification_changed_fields,
     modification_comparison_rows,
 )
+from apps.events.models import Event, EventSubmission
+from apps.events.models import EventStatus as EventSubmissionStatus
 from apps.webhooks.models import WebhookEndpoint
 from apps.webhooks.service import dispatch_event
 
@@ -56,15 +58,25 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "pending_modifications": CardModification.objects.filter(
             status=CardSubmissionStatus.PENDING
         ).count(),
+        "pending_events": EventSubmission.objects.filter(
+            status=EventSubmissionStatus.PENDING
+        ).count(),
         "reported_reviews": Review.objects.filter(reported=True, hidden=False).count(),
     }
     recent_submissions = CardSubmission.objects.select_related("submitter").order_by(
         "-created_date"
     )[:5]
+    recent_event_submissions = EventSubmission.objects.select_related("submitter").order_by(
+        "-created_date"
+    )[:5]
     return render(
         request,
         "cms/dashboard.html",
-        {"stats": stats, "recent_submissions": recent_submissions},
+        {
+            "stats": stats,
+            "recent_submissions": recent_submissions,
+            "recent_event_submissions": recent_event_submissions,
+        },
     )
 
 
@@ -320,6 +332,113 @@ def submissions_list(request: HttpRequest) -> HttpResponse:
 def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
     sub = get_object_or_404(CardSubmission.objects.select_related("submitter"), pk=pk)
     return render(request, "cms/submission_detail.html", {"submission": sub})
+
+
+@staff_required
+def event_submissions_list(request: HttpRequest) -> HttpResponse:
+    status = request.GET.get("status") or EventSubmissionStatus.PENDING
+    qs = (
+        EventSubmission.objects.filter(status=status)
+        .select_related("submitter")
+        .order_by("-created_date")
+    )
+    page = Paginator(qs, 20).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "cms/event_submissions_list.html",
+        {"page_obj": page, "status": status, "statuses": EventSubmissionStatus.choices},
+    )
+
+
+@staff_required
+def event_submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    submission = get_object_or_404(EventSubmission.objects.select_related("submitter"), pk=pk)
+    return render(request, "cms/event_submission_detail.html", {"submission": submission})
+
+
+@staff_required
+@require_http_methods(["POST"])
+def event_submission_approve(request: HttpRequest, pk: int) -> HttpResponse:
+    submission = get_object_or_404(EventSubmission, pk=pk)
+    if submission.status != EventSubmissionStatus.PENDING:
+        messages.error(request, "Event submission already reviewed.")
+        return redirect("cms:event_submissions_list")
+
+    event = Event.objects.create(
+        title=submission.title,
+        description=submission.description,
+        location=submission.location,
+        start_at=submission.start_at,
+        end_at=submission.end_at,
+        url=submission.url,
+        all_day=submission.all_day,
+        creator=submission.submitter,
+        approved=True,
+        approver=request.user,
+        approved_date=timezone.now(),
+    )
+    submission.status = EventSubmissionStatus.APPROVED
+    submission.reviewer = request.user
+    submission.reviewed_date = timezone.now()
+    submission.review_notes = request.POST.get("review_notes", "")
+    submission.event = event
+    submission.save()
+    dispatch_event(
+        "event.approved",
+        {
+            "submission_id": submission.id,
+            "submission_title": submission.title,
+            "event_id": event.id,
+            "event_title": event.title,
+            "reviewer_id": request.user.id,
+            "reviewer_email": request.user.email,
+            "review_notes": submission.review_notes or "",
+            "change_text": (
+                f"{request.user.email} approved event submission '{submission.title}' and "
+                f"published '{event.title}'."
+            ),
+            "content_url": _absolute_url(
+                request, "events:event_detail", pk=event.id, slug=slugify(event.title)
+            ),
+            "content_title": event.title,
+        },
+        source_info="cms.event_submission_approve",
+    )
+    messages.success(request, f"Approved and published '{event.title}'.")
+    return redirect("cms:event_submissions_list")
+
+
+@staff_required
+@require_http_methods(["POST"])
+def event_submission_reject(request: HttpRequest, pk: int) -> HttpResponse:
+    submission = get_object_or_404(EventSubmission, pk=pk)
+    if submission.status != EventSubmissionStatus.PENDING:
+        messages.error(request, "Event submission already reviewed.")
+        return redirect("cms:event_submissions_list")
+    submission.status = EventSubmissionStatus.REJECTED
+    submission.reviewer = request.user
+    submission.reviewed_date = timezone.now()
+    submission.review_notes = request.POST.get("review_notes", "")
+    submission.save()
+    dispatch_event(
+        "event.rejected",
+        {
+            "submission_id": submission.id,
+            "submission_title": submission.title,
+            "reviewer_id": request.user.id,
+            "reviewer_email": request.user.email,
+            "review_notes": submission.review_notes or "",
+            "change_text": (
+                f"{request.user.email} rejected event submission '{submission.title}'. "
+                f"Notes: {submission.review_notes or 'No notes provided.'}"
+            ),
+            "content_url": _absolute_url(request, "cms:event_submission_detail", pk=submission.id),
+            "content_title": submission.title,
+        },
+        source_info="cms.event_submission_reject",
+    )
+    messages.info(request, "Event submission rejected.")
+    return redirect("cms:event_submissions_list")
 
 
 @staff_required
