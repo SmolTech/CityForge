@@ -12,7 +12,6 @@ import { apiClient } from "../api/client";
 import { logger } from "../utils/logger";
 import type { SearchResult } from "../types/api";
 import EmptyState from "../components/EmptyState";
-import SkeletonLoader from "../components/SkeletonLoader";
 import ErrorMessage from "../components/ErrorMessage";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";

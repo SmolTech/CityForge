@@ -23,12 +23,12 @@ interface InstanceContextType {
   activeInstance: Instance | null;
   isLoading: boolean;
   addInstance: (
-    instance: Omit<Instance, "createdAt" | "lastActive">
+    _: Omit<Instance, "createdAt" | "lastActive">
   ) => Promise<void>;
-  removeInstance: (instanceId: string) => Promise<void>;
-  switchInstance: (instanceId: string) => Promise<void>;
-  updateToken: (instanceId: string, token: string | null) => Promise<void>;
-  updateUser: (instanceId: string, user: Instance["user"]) => Promise<void>;
+  removeInstance: (_: string) => Promise<void>;
+  switchInstance: (_: string) => Promise<void>;
+  updateToken: (_: string, __: string | null) => Promise<void>;
+  updateUser: (_: string, __: Instance["user"]) => Promise<void>;
   refreshInstances: () => Promise<void>;
 }
 

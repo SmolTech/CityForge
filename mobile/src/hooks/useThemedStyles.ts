@@ -3,9 +3,7 @@ import { StyleSheet, ImageStyle, TextStyle, ViewStyle } from "react-native";
 
 type StyleFunction<
   T extends Record<string, ViewStyle | TextStyle | ImageStyle>,
-> = (
-  colors: ReturnType<typeof useTheme>["colors"]
-) => StyleSheet.NamedStyles<T>;
+> = (_: ReturnType<typeof useTheme>["colors"]) => StyleSheet.NamedStyles<T>;
 
 /**
  * Hook for creating themed styles that automatically update with theme changes

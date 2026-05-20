@@ -14,7 +14,7 @@ export default function LoadingScreen({
         {/* App Logo/Icon */}
         <View style={styles.logoContainer}>
           <Image
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            // eslint-disable-next-line no-undef
             source={require("../../assets/icon.png")}
             alt="CityForge App Icon"
             style={styles.logo}

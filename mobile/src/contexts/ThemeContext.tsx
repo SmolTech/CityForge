@@ -20,7 +20,7 @@ interface ThemeContextType {
   theme: Theme;
   colors: ThemeColors;
   colorScheme: ColorScheme;
-  setColorScheme: (scheme: ColorScheme) => Promise<void>;
+  setColorScheme: (_: ColorScheme) => Promise<void>;
   isDark: boolean;
 }
 

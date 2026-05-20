@@ -8,7 +8,7 @@ interface NetworkState {
 }
 
 class NetworkManager {
-  private listeners: ((state: NetworkState) => void)[] = [];
+  private listeners: ((_: NetworkState) => void)[] = [];
   private currentState: NetworkState = {
     isConnected: false,
     type: null,
@@ -93,7 +93,7 @@ class NetworkManager {
   /**
    * Add a listener for network state changes
    */
-  addListener(listener: (state: NetworkState) => void): () => void {
+  addListener(listener: (_: NetworkState) => void): () => void {
     this.listeners.push(listener);
 
     // Return unsubscribe function

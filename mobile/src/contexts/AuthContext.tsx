@@ -16,10 +16,10 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (
-    credentials: LoginRequest,
+    _: LoginRequest,
     targetInstance?: Pick<Instance, "id" | "apiUrl">
   ) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  register: (_: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }

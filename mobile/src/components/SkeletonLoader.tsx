@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Animated, StyleSheet, ViewStyle } from "react-native";
+import { View, Animated } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface SkeletonLoaderProps {

@@ -370,7 +370,7 @@ class ApiClient {
     return card;
   }
 
-  async getCardBySlug(id: number, _slug?: string): Promise<Card> {
+  async getCardBySlug(id: number): Promise<Card> {
     return this.getCard(id);
   }
 

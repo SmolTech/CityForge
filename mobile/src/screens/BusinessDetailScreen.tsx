@@ -260,7 +260,7 @@ export default function BusinessDetailScreen() {
     setError(null);
 
     try {
-      const cardData = await apiClient.getCardBySlug(id, slug);
+      const cardData = await apiClient.getCardBySlug(id);
       setCard(cardData);
       await loadReviews(cardData.id);
     } catch (err) {
