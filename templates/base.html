@@ -45,9 +45,6 @@
                 <a href="{% url 'cms:dashboard' %}">Manage</a>
               {% endif %}
               <a href="{% url 'directory:my_submissions' %}">My submissions</a>
-              {% if user.is_admin or user.is_superuser %}
-                <a href="{% url 'cms:site_settings' %}">Site settings</a>
-              {% endif %}
               <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Theme">Theme</button>
               <form action="{% url 'accounts:logout' %}" method="post">
                 {% csrf_token %}
