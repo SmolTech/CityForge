@@ -193,9 +193,7 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
         )
 
 
-def _fallback_resource_search(
-    query: str, page_num: int, page_size: int
-) -> tuple[list[dict], int]:
+def _fallback_resource_search(query: str, page_num: int, page_size: int) -> tuple[list[dict], int]:
     qs = ResourceItem.objects.filter(is_active=True)
     if query:
         qs = qs.filter(
