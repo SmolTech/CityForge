@@ -32,6 +32,7 @@ export interface Card {
   hours?: string;
   image_url?: string;
   logo_url?: string;
+  address_override_url?: string;
   slug: string;
   tags: Tag[];
   created_date: string;

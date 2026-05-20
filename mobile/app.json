@@ -52,6 +52,12 @@
           "faceIDPermission": "Allow CityForge to access Face ID for secure authentication."
         }
       ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow CityForge to export businesses to your contacts."
+        }
+      ],
       "expo-font"
     ],
     "extra": {

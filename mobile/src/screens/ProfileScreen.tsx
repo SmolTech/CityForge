@@ -1,5 +1,12 @@
-import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../types/navigation";
@@ -8,6 +15,10 @@ import { useInstance } from "../contexts/InstanceContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
 import type { ColorScheme } from "../theme/colors";
+import {
+  exportBusinessesToContacts,
+  getBusinessContactSyncEnabled,
+} from "../utils/businessContactSync";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -15,7 +26,9 @@ export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout, isLoading } = useAuth();
   const { activeInstance, instances } = useInstance();
-  const { colorScheme, setColorScheme } = useTheme();
+  const { colors, colorScheme, setColorScheme } = useTheme();
+  const [isExportingContacts, setIsExportingContacts] = useState(false);
+  const [isContactSyncEnabled, setIsContactSyncEnabled] = useState(false);
 
   const styles = useThemedStyles((colors) => ({
     container: {
@@ -185,7 +198,44 @@ export default function ProfileScreen() {
     themeOptionActiveText: {
       color: colors.surface,
     } as const,
+    menuItemDisabled: {
+      opacity: 0.6,
+    } as const,
+    sectionMessage: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 16,
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    } as const,
+    sectionHint: {
+      paddingHorizontal: 16,
+      paddingTop: 0,
+      paddingBottom: 16,
+      fontSize: 12,
+      color: colors.textMuted,
+      lineHeight: 16,
+    } as const,
   }));
+
+  useEffect(() => {
+    if (!activeInstance?.id) {
+      setIsContactSyncEnabled(false);
+      return;
+    }
+
+    let cancelled = false;
+    void getBusinessContactSyncEnabled(activeInstance.id).then((enabled) => {
+      if (!cancelled) {
+        setIsContactSyncEnabled(enabled);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeInstance?.id]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -208,6 +258,44 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleExportContacts = () => {
+    if (!activeInstance?.id) {
+      Alert.alert("No instance selected", "Choose a CityForge server first.");
+      return;
+    }
+
+    Alert.alert(
+      isContactSyncEnabled ? "Sync contacts now?" : "Enable contact sync?",
+      isContactSyncEnabled
+        ? "This will refresh your phone contacts from the current business list."
+        : "This will add approved businesses to your phone's contacts and keep them updated automatically.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: isContactSyncEnabled ? "Sync" : "Enable",
+          onPress: async () => {
+            setIsExportingContacts(true);
+            try {
+              const result = await exportBusinessesToContacts(activeInstance.id);
+              setIsContactSyncEnabled(true);
+              Alert.alert(
+                "Contacts synced",
+                `${result.total} businesses are now kept in sync with your contacts.`
+              );
+            } catch (error) {
+              Alert.alert(
+                "Sync failed",
+                error instanceof Error ? error.message : "Unable to export contacts."
+              );
+            } finally {
+              setIsExportingContacts(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -323,6 +411,34 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Contacts</Text>
+        <TouchableOpacity
+          style={[styles.menuItem, isExportingContacts && styles.menuItemDisabled]}
+          onPress={handleExportContacts}
+          disabled={isExportingContacts}
+        >
+          <Text style={styles.menuItemText}>
+            {isContactSyncEnabled
+              ? "Sync Business Contacts Now"
+              : "Enable Business Contact Sync"}
+          </Text>
+          {isExportingContacts ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.menuItemArrow}>→</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.sectionMessage}>
+          Save businesses to your phone contacts so you can call, email, or
+          navigate directly from Contacts.
+        </Text>
+        <Text style={styles.sectionHint}>
+          Once enabled, CityForge refreshes the exported contacts whenever the
+          app resumes or periodically while it is open.
+        </Text>
+      </View>
 
       {user?.is_admin && (
         <View style={styles.section}>
