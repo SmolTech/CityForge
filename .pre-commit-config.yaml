@@ -63,3 +63,12 @@ repos:
         language: system
         files: ^mobile/
         stages: [pre-commit]
+
+      - id: mobile-expo-doctor
+        name: expo health check
+        entry: bash -c 'cd mobile && npx expo-doctor'
+        language: system
+        files: ^mobile/
+        stages: [pre-commit]
+        pass_filenames: false
+
