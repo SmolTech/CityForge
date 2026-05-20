@@ -484,16 +484,15 @@ class ApiClient {
   }
 
   async searchOpensearch(query: string): Promise<SearchResult[]> {
-    try {
-      const response = await this.request<{
-        results: SearchResult[];
-        total: number;
-      }>(`/api/cards/search/?q=${encodeURIComponent(query)}`);
-      return response.results || [];
-    } catch (error) {
-      logger.error("OpenSearch error:", error);
-      return [];
+    const response = await this.request<{
+      results: SearchResult[];
+      total: number;
+      error?: string;
+    }>(`/api/cards/search/?q=${encodeURIComponent(query)}`);
+    if (response.error) {
+      throw new Error(response.error);
     }
+    return response.results || [];
   }
 
   // Resources APIs

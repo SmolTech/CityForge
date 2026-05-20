@@ -117,7 +117,7 @@ def api_cards(request: HttpRequest) -> JsonResponse:
 
 def api_opensearch(request: HttpRequest) -> JsonResponse:
     """Search OpenSearch index for resources content."""
-    from opensearchpy import OpenSearch
+    from apps.search.views import _client
 
     query = (request.GET.get("q") or "").strip()
     page_num = _safe_int(request.GET.get("page"), default=1, minimum=1, maximum=10000)
@@ -126,23 +126,14 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
     if not query:
         return JsonResponse({"results": [], "total": 0})
 
-    try:
-        opensearch_host = settings.OPENSEARCH_HOST
-        opensearch_port = settings.OPENSEARCH_PORT
-        opensearch_use_https = getattr(settings, "OPENSEARCH_USE_HTTPS", False)
-
-        client = OpenSearch(
-            hosts=[
-                {
-                    "host": opensearch_host,
-                    "port": opensearch_port,
-                    "scheme": "https" if opensearch_use_https else "http",
-                }
-            ],
-            use_ssl=opensearch_use_https,
-            verify_certs=opensearch_use_https,
+    client = _client()
+    if client is None:
+        return JsonResponse(
+            {"detail": "Search is not configured.", "results": [], "total": 0},
+            status=503,
         )
 
+    try:
         index = f"{settings.OPENSEARCH_NAMESPACE}-resources"
         response = client.search(
             index=index,
@@ -162,9 +153,7 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
 
         hits = response.get("hits", {})
         total_obj = hits.get("total", 0)
-        total = (
-            total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
-        )
+        total = total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
 
         results = []
         for hit in hits.get("hits", []):
@@ -186,7 +175,7 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
         )
     except Exception as e:
         return JsonResponse(
-            {"error": str(e), "results": [], "total": 0}, status=500
+            {"detail": str(e), "results": [], "total": 0}, status=500
         )
 
 
