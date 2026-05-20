@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% load directory_extras %}
-{% block title %}Search · {{ SITE_NAME }}{% endblock %}
+{% block title %}Web Search · {{ SITE_NAME }}{% endblock %}
 {% block content %}
-<h1>Search resources</h1>
+<h1>Web Search</h1>
+<p>We regularly index the websites of businesses within our directory. Search locally.</p>
 <form method="get" class="search-bar">
   <input type="search" name="q" value="{{ query }}" placeholder="Search across community resources…" autofocus>
   <button type="submit" class="btn">Search</button>
