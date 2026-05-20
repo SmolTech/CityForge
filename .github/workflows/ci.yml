@@ -11,8 +11,8 @@ jobs:
     name: Lint & format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Poetry
@@ -47,8 +47,8 @@ jobs:
       OPENSEARCH_HOST: localhost
       OPENSEARCH_PORT: "9200"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Poetry
@@ -72,7 +72,7 @@ jobs:
     container:
       image: returntocorp/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: semgrep ci --config=p/python --config=p/django --config=p/security-audit --config=p/dockerfile
         env:
           SEMGREP_RULES: p/python p/django p/security-audit p/dockerfile
