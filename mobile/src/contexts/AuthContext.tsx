@@ -27,8 +27,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { activeInstance, switchInstance, updateToken, updateUser } =
-    useInstance();
+  const {
+    activeInstance,
+    isLoading: instancesLoading,
+    switchInstance,
+    updateToken,
+    updateUser,
+  } = useInstance();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sync user from active instance
   useEffect(() => {
+    if (instancesLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     if (activeInstance) {
       setUser(activeInstance.user);
       setIsLoading(false);
@@ -48,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsLoading(false);
     }
-  }, [activeInstance]);
+  }, [activeInstance, instancesLoading]);
 
   // Check auth when active instance changes
   useEffect(() => {

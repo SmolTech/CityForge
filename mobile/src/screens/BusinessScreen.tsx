@@ -21,6 +21,7 @@ import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useInstance } from "../contexts/InstanceContext";
 
 type BusinessScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -31,6 +32,7 @@ export default function BusinessScreen() {
   const navigation = useNavigation<BusinessScreenNavigationProp>();
   const { colors } = useTheme();
   const { isAuthenticated } = useAuth();
+  const { activeInstance, isLoading: instancesLoading } = useInstance();
   const [cards, setCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,8 +172,12 @@ export default function BusinessScreen() {
   });
 
   useEffect(() => {
-    loadCards();
-  }, []);
+    if (instancesLoading || !activeInstance?.apiUrl) {
+      return;
+    }
+
+    loadCards(1);
+  }, [activeInstance?.apiUrl, instancesLoading]);
 
   const loadMore = () => {
     if (!isLoading && hasMore) {
