@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
     (function () {
+      document.documentElement.classList.add("js");
       const stored = localStorage.getItem("theme-preference");
       if (stored === "light" || stored === "dark") {
         document.documentElement.dataset.theme = stored;
@@ -17,16 +18,25 @@
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="{% url 'directory:home' %}">{{ SITE_NAME }}</a>
-      <nav class="primary-nav">
-        <a href="{% url 'directory:home' %}">Directory</a>
-        <a href="{% url 'search:search' %}">Web Search</a>
-        {% if user.is_authenticated %}
-          <a href="{% url 'directory:card_submit' %}">Submit Business</a>
-          <details class="account-menu">
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="{% url 'directory:home' %}">{{ SITE_NAME }}</a>
+        <button
+          id="mobile-nav-toggle"
+          class="mobile-nav-toggle"
+          type="button"
+          aria-controls="primary-nav"
+          aria-expanded="false"
+        >
+          ☰ Menu
+        </button>
+        <nav id="primary-nav" class="primary-nav">
+          <a href="{% url 'directory:home' %}">Directory</a>
+          <a href="{% url 'search:search' %}">Web Search</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'directory:card_submit' %}">Submit Business</a>
+            <details class="account-menu">
             <summary class="user-chip">{{ user.first_name|default:user.email }}</summary>
             <div class="account-menu-panel">
               {% if user.is_admin or user.is_staff or user.is_support %}
@@ -102,13 +112,54 @@
       applyTheme(current);
       updateLabel(current);
 
+        toggle.addEventListener("click", function () {
+          const idx = themes.indexOf(current);
+          current = themes[(idx + 1) % themes.length];
+          localStorage.setItem(key, current);
+          applyTheme(current);
+          updateLabel(current);
+        });
+    })();
+  </script>
+  <script>
+    (function () {
+      const header = document.querySelector(".site-header");
+      const toggle = document.getElementById("mobile-nav-toggle");
+      const nav = document.getElementById("primary-nav");
+      if (!header || !toggle || !nav) return;
+
+      const mq = window.matchMedia("(max-width: 700px)");
+
+      function setOpen(isOpen) {
+        header.classList.toggle("nav-open", isOpen);
+        toggle.setAttribute("aria-expanded", String(isOpen));
+      }
+
+      function syncViewport() {
+        if (!mq.matches) {
+          setOpen(false);
+        }
+      }
+
       toggle.addEventListener("click", function () {
-        const idx = themes.indexOf(current);
-        current = themes[(idx + 1) % themes.length];
-        localStorage.setItem(key, current);
-        applyTheme(current);
-        updateLabel(current);
+        setOpen(!header.classList.contains("nav-open"));
       });
+
+      nav.querySelectorAll("a, button[type='submit']").forEach(function (item) {
+        item.addEventListener("click", function () {
+          if (mq.matches) {
+            setOpen(false);
+          }
+        });
+      });
+
+      if (typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", syncViewport);
+      } else {
+        mq.addListener(syncViewport);
+      }
+
+      syncViewport();
     })();
   </script>
 </body>
