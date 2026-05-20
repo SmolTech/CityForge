@@ -1,0 +1,387 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Linking,
+} from "react-native";
+import { apiClient } from "../api/client";
+import { logger } from "../utils/logger";
+import type { ResourceCategory, ResourceItem } from "../types/api";
+import ErrorScreen from "../components/ErrorScreen";
+import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useTheme } from "../contexts/ThemeContext";
+
+export default function ResourcesScreen() {
+  const { colors } = useTheme();
+  const [categories, setCategories] = useState<ResourceCategory[]>([]);
+  const [items, setItems] = useState<ResourceItem[]>([]);
+  const [selectedCategory, setSelectedCategory] =
+    useState<ResourceCategory | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const styles = useThemedStyles((colors) => ({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    } as const,
+    centered: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    } as const,
+    categoryList: {
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      flexGrow: 0,
+      flexShrink: 0,
+      maxHeight: 58,
+    } as const,
+    categoryListContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 8,
+      alignItems: "center",
+    } as const,
+    categoryTab: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 18,
+      backgroundColor: colors.backgroundTertiary,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    categoryTabActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    } as const,
+    categoryText: {
+      fontSize: 14,
+      fontWeight: "500" as const,
+      color: colors.textSecondary,
+    } as const,
+    categoryTextActive: {
+      color: "#fff",
+    } as const,
+    itemList: {
+      padding: 16,
+    } as const,
+    item: {
+      backgroundColor: colors.surface,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    } as const,
+    itemTitle: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.text,
+      marginBottom: 4,
+    } as const,
+    itemDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 8,
+    } as const,
+    itemMetaRow: {
+      marginTop: 4,
+      marginBottom: 8,
+    } as const,
+    itemMetaLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: "600" as const,
+      marginBottom: 2,
+      textTransform: "uppercase" as const,
+      letterSpacing: 0.4,
+    } as const,
+    itemMetaText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    } as const,
+    itemMetaLink: {
+      fontSize: 14,
+      color: colors.primary,
+      lineHeight: 20,
+      fontWeight: "500" as const,
+    } as const,
+    actionRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 8,
+    } as const,
+    actionButton: {
+      backgroundColor: colors.backgroundTertiary,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    } as const,
+    actionButtonPrimary: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    } as const,
+    actionButtonText: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: "600" as const,
+    } as const,
+    actionButtonTextPrimary: {
+      color: colors.surface,
+    } as const,
+    itemUrl: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: "500" as const,
+    } as const,
+    emptyContainer: {
+      padding: 40,
+      alignItems: "center",
+    } as const,
+    emptyText: {
+      fontSize: 16,
+      color: colors.textMuted,
+    } as const,
+  }));
+
+  const loadData = async (refresh = false) => {
+    if (!refresh) {
+      setIsLoading(true);
+    }
+
+    try {
+      const categoriesData = await apiClient.getResourceCategories();
+      setCategories(categoriesData);
+      setError(null);
+
+      if (categoriesData.length > 0) {
+        const firstCategory = categoriesData[0];
+        if (firstCategory) {
+          setSelectedCategory(firstCategory);
+          await loadItems(firstCategory);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load resources");
+    } finally {
+      if (!refresh) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Network-aware refresh hook
+  const { refreshControl } = useNetworkRefresh({
+    onRefresh: async () => {
+      await loadData(true);
+    },
+  });
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategory === null) {
+      const firstCategory = categories[0];
+      if (firstCategory) {
+        setSelectedCategory(firstCategory);
+        loadItems(firstCategory);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
+
+  const loadItems = async (category: ResourceCategory) => {
+    try {
+      const itemsData = await apiClient.getResourceItems(category);
+      setItems(itemsData);
+    } catch (err) {
+      logger.error("Error loading items:", err);
+    }
+  };
+
+  const handleCategorySelect = (category: ResourceCategory) => {
+    setSelectedCategory(category);
+    loadItems(category);
+  };
+
+  const openExternalUrl = (url: string) => {
+    Linking.openURL(url).catch((err) => logger.error("Error opening URL:", err));
+  };
+
+  const openWebsite = (url?: string) => {
+    if (!url) {
+      return;
+    }
+    openExternalUrl(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+  };
+
+  const openPhone = (phone?: string) => {
+    if (!phone) {
+      return;
+    }
+    openExternalUrl(`tel:${phone.replace(/[^\d+]/g, "")}`);
+  };
+
+  const openAddress = (address?: string) => {
+    if (!address) {
+      return;
+    }
+    openExternalUrl(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        address
+      )}`
+    );
+  };
+
+  const renderCategory = ({ item }: { item: ResourceCategory }) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryTab,
+        selectedCategory === item && styles.categoryTabActive,
+      ]}
+      onPress={() => handleCategorySelect(item)}
+    >
+      <Text
+        style={[
+          styles.categoryText,
+          selectedCategory === item && styles.categoryTextActive,
+        ]}
+      >
+        {item}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderItem = ({ item }: { item: ResourceItem }) => (
+    <View style={styles.item}>
+      <Text style={styles.itemTitle}>{item.title}</Text>
+      {item.description && (
+        <Text style={styles.itemDescription}>{item.description}</Text>
+      )}
+      {item.phone ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Phone</Text>
+          <TouchableOpacity onPress={() => openPhone(item.phone)}>
+            <Text style={styles.itemMetaLink}>{item.phone}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {item.address ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Address</Text>
+          <TouchableOpacity onPress={() => openAddress(item.address)}>
+            <Text style={styles.itemMetaLink}>{item.address}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {item.url ? (
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMetaLabel}>Website</Text>
+          <Text style={styles.itemUrl}>{item.url}</Text>
+        </View>
+      ) : null}
+      <View style={styles.actionRow}>
+        {item.url ? (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonPrimary]}
+            onPress={() => openWebsite(item.url)}
+          >
+            <Text
+              style={[styles.actionButtonText, styles.actionButtonTextPrimary]}
+            >
+              Website
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {item.phone ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openPhone(item.phone)}
+          >
+            <Text style={styles.actionButtonText}>Call</Text>
+          </TouchableOpacity>
+        ) : null}
+        {item.address ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openAddress(item.address)}
+          >
+            <Text style={styles.actionButtonText}>Map</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorScreen
+        message={error}
+        onRetry={() => loadData()}
+        icon="library-outline"
+      />
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        horizontal
+        data={categories}
+        renderItem={renderCategory}
+        keyExtractor={(item) => item}
+        style={styles.categoryList}
+        contentContainerStyle={styles.categoryListContent}
+        showsHorizontalScrollIndicator={false}
+      />
+
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.itemList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshControl.refreshing}
+            onRefresh={refreshControl.onRefresh}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No resources available</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
