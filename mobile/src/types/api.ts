@@ -40,6 +40,7 @@ export interface Card {
 
 export interface CardSubmission {
   id: number;
+  kind?: "submission" | "modification";
   name: string;
   description: string;
   address?: string;

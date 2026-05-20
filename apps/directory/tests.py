@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -300,3 +301,58 @@ class DirectoryViewTests(TestCase):
         name_change = next(item for item in payload["changed_fields"] if item["field"] == "Name")
         self.assertEqual(name_change["old_value"], "Alpha Coffee")
         self.assertEqual(name_change["new_value"], "Alpha Coffee Roasters")
+
+    def test_api_submissions_create_and_list_user_history(self) -> None:
+        self.client.force_login(self.user)
+        with patch("apps.directory.views.dispatch_event"):
+            create_response = self.client.post(
+                "/api/submissions",
+                data=json.dumps(
+                    {
+                        "name": "Mobile Submission",
+                        "description": "Submitted from the app",
+                        "websiteUrl": "https://mobile.example",
+                        "phoneNumber": "555-0199",
+                        "email": "hello@mobile.example",
+                        "address": "10 Main Street",
+                        "contactName": "Casey",
+                        "imageUrl": "https://mobile.example/image.jpg",
+                        "tagsText": "coffee,local",
+                    }
+                ),
+                content_type="application/json",
+            )
+            edit_response = self.client.post(
+                f"/api/cards/{self.card_a.pk}/suggest-edit",
+                data=json.dumps(
+                    {
+                        "name": "Alpha Coffee Roasters",
+                        "description": "Updated description",
+                        "websiteUrl": "https://alpha.example",
+                        "phoneNumber": "555-0100",
+                        "email": "hello@alpha.example",
+                        "address": "1 Main Street",
+                        "contactName": "Owner",
+                        "tagsText": "coffee,roasters",
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(edit_response.status_code, 201)
+        self.assertEqual(CardSubmission.objects.filter(name="Mobile Submission").count(), 1)
+        self.assertTrue(
+            CardModification.objects.filter(
+                card=self.card_a,
+                submitter=self.user,
+                name="Alpha Coffee Roasters",
+            ).exists()
+        )
+
+        history_response = self.client.get("/api/submissions")
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual([item["kind"] for item in history], ["modification", "submission"])
+        self.assertEqual(history[0]["name"], "Alpha Coffee Roasters")
+        self.assertEqual(history[1]["name"], "Mobile Submission")

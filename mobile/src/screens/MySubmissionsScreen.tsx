@@ -167,11 +167,13 @@ export default function MySubmissionsScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={submissions}
-        renderItem={renderSubmission}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
+        <FlatList
+          data={submissions}
+          renderItem={renderSubmission}
+          keyExtractor={(item) =>
+            `${item.kind ?? "submission"}-${item.id.toString()}`
+          }
+          contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

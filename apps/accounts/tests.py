@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -10,7 +11,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import PasswordResetToken, User
+from apps.accounts.models import PasswordResetToken, TokenBlacklist, User
 from apps.accounts.views import (
     PASSWORD_RESET_LIMIT,
     _allow_password_reset_request,
@@ -266,3 +267,81 @@ class AccountHelperTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
         sender.assert_not_called()
+
+
+class MobileAuthApiTests(TestCase):
+    def setUp(self) -> None:
+        self.password = "MobilePass!123"
+        self.user = User.objects.create_user(
+            email="mobile@example.com",
+            password=self.password,
+            first_name="Mobile",
+            last_name="User",
+            email_verified=True,
+        )
+
+    def _auth_header(self, token: str) -> dict[str, str]:
+        return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+
+    def test_login_returns_access_token_and_user(self) -> None:
+        response = self.client.post(
+            "/api/auth/login",
+            data=json.dumps({"email": self.user.email, "password": self.password}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("access_token", body)
+        self.assertEqual(body["user"]["email"], self.user.email)
+
+    def test_me_requires_bearer_token(self) -> None:
+        response = self.client.get("/api/auth/me")
+        self.assertEqual(response.status_code, 401)
+
+    def test_me_returns_current_user(self) -> None:
+        login_response = self.client.post(
+            "/api/auth/login",
+            data=json.dumps({"email": self.user.email, "password": self.password}),
+            content_type="application/json",
+        )
+        token = login_response.json()["access_token"]
+
+        response = self.client.get("/api/auth/me", **self._auth_header(token))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["email"], self.user.email)
+
+    def test_logout_blacklists_token(self) -> None:
+        login_response = self.client.post(
+            "/api/auth/login",
+            data=json.dumps({"email": self.user.email, "password": self.password}),
+            content_type="application/json",
+        )
+        token = login_response.json()["access_token"]
+
+        response = self.client.post("/api/auth/logout", **self._auth_header(token))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TokenBlacklist.objects.count(), 1)
+        me_response = self.client.get("/api/auth/me", **self._auth_header(token))
+        self.assertEqual(me_response.status_code, 401)
+
+    def test_register_returns_access_token(self) -> None:
+        response = self.client.post(
+            "/api/auth/register",
+            data=json.dumps(
+                {
+                    "email": "newmobile@example.com",
+                    "password": "AnotherMobilePass!123",
+                    "first_name": "New",
+                    "last_name": "Mobile",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("access_token", body)
+        self.assertEqual(body["user"]["email"], "newmobile@example.com")

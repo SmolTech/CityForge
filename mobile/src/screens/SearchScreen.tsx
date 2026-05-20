@@ -236,7 +236,7 @@ export default function SearchScreen() {
                 activeTab === "business" && styles.tabTextActive,
               ]}
             >
-              Businesses
+              Business Directory
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -249,7 +249,7 @@ export default function SearchScreen() {
                 activeTab === "content" && styles.tabTextActive,
               ]}
             >
-              Content
+              Search the Web
             </Text>
           </TouchableOpacity>
         </View>
@@ -259,8 +259,8 @@ export default function SearchScreen() {
             style={styles.searchInput}
             placeholder={
               activeTab === "business"
-                ? "Search businesses..."
-                : "Search content..."
+                ? "Search business directory..."
+                : "Search the web..."
             }
             value={currentQuery}
             onChangeText={
@@ -285,11 +285,11 @@ export default function SearchScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>
-            {activeTab === "business"
-              ? "Searching businesses..."
-              : "Searching content..."}
-          </Text>
+            <Text style={styles.loadingText}>
+              {activeTab === "business"
+                ? "Searching business directory..."
+                : "Searching the web..."}
+            </Text>
         </View>
       ) : error ? (
         <View style={styles.centered}>
@@ -319,7 +319,7 @@ export default function SearchScreen() {
           ListEmptyComponent={
             <EmptyState
               title="No Results Found"
-              message={`No ${activeTab === "business" ? "businesses" : "content"} match "${currentQuery}". Try different keywords.`}
+              message={`No ${activeTab === "business" ? "business directory" : "web results"} match "${currentQuery}". Try different keywords.`}
               action={{
                 label: "Clear Search",
                 onPress: () => {
@@ -339,18 +339,18 @@ export default function SearchScreen() {
         />
       ) : (
         <View style={styles.centered}>
-          <EmptyState
-            title={
-              activeTab === "business"
-                ? "Search Businesses"
-                : "Search Content"
-            }
-            message={
-              activeTab === "business"
-                ? "Enter a keyword to find local businesses, categories, or locations."
-                : "Enter keywords to search helpful content and resources."
-            }
-          />
+            <EmptyState
+              title={
+                activeTab === "business"
+                  ? "Search Business Directory"
+                  : "Search the Web"
+              }
+              message={
+                activeTab === "business"
+                  ? "Enter a keyword to find local businesses, categories, or locations."
+                  : "Enter keywords to search the web for helpful content and resources."
+              }
+            />
         </View>
       )}
     </View>

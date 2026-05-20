@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -36,6 +37,107 @@ def _split_tags(text: str) -> list[str]:
 
 def _absolute_url(request: HttpRequest, view_name: str, **kwargs) -> str:
     return request.build_absolute_uri(reverse(view_name, kwargs=kwargs))
+
+
+def _request_payload(request: HttpRequest) -> dict[str, object]:
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError as exc:
+            raise ValueError("Request body must be valid JSON.") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("Request body must be a JSON object.")
+        return payload
+    return dict(request.POST)
+
+
+def _payload_text(payload: dict[str, object], *keys: str) -> str:
+    for key in keys:
+        value = payload.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return ""
+
+
+def _form_payload(payload: dict[str, object]) -> dict[str, str]:
+    return {
+        "name": _payload_text(payload, "name"),
+        "description": _payload_text(payload, "description"),
+        "website_url": _payload_text(payload, "website_url", "websiteUrl"),
+        "phone_number": _payload_text(payload, "phone_number", "phoneNumber"),
+        "email": _payload_text(payload, "email"),
+        "address": _payload_text(payload, "address"),
+        "address_override_url": _payload_text(
+            payload, "address_override_url", "addressOverrideUrl"
+        ),
+        "contact_name": _payload_text(payload, "contact_name", "contactName"),
+        "tags_text": _payload_text(payload, "tags_text", "tagsText"),
+    }
+
+
+def _serialize_user(user) -> dict[str, object] | None:
+    if user is None:
+        return None
+    return {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": getattr(user, "username", ""),
+        "role": getattr(user, "role", ""),
+        "is_admin": getattr(user, "is_admin", False),
+        "is_supporter": getattr(user, "is_supporter", False),
+        "is_supporter_flag": getattr(user, "is_supporter_flag", False),
+        "is_active": getattr(user, "is_active", False),
+        "created_date": getattr(user, "created_date", None),
+        "last_login": user.last_login,
+    }
+
+
+def _serialize_submission_like(
+    item: CardSubmission | CardModification,
+    *,
+    kind: str,
+) -> dict[str, object]:
+    submitter = getattr(item, "submitter", None)
+    return {
+        "id": item.id,
+        "kind": kind,
+        "name": item.name,
+        "description": item.description or "",
+        "address": item.address,
+        "phone": item.phone_number,
+        "phone_number": item.phone_number,
+        "email": item.email,
+        "website": item.website_url,
+        "website_url": item.website_url,
+        "address_override_url": item.address_override_url,
+        "contact_name": item.contact_name,
+        "image_url": item.image_url,
+        "tags_text": item.tags_text,
+        "status": item.status,
+        "submitted_by": _serialize_user(submitter),
+        "card_id": getattr(item, "card_id", None),
+        "created_date": item.created_date,
+    }
+
+
+def _api_auth_failure() -> JsonResponse:
+    return JsonResponse({"detail": "Authentication required."}, status=401)
+
+
+def _api_invalid_payload(message: str) -> JsonResponse:
+    return JsonResponse({"detail": message}, status=400)
+
+
+def _save_submission_image_url(item: CardSubmission | CardModification, payload: dict[str, object]) -> None:
+    image_url = _payload_text(payload, "image_url", "imageUrl")
+    if image_url:
+        item.image_url = image_url
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -249,6 +351,121 @@ def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) ->
     except (TypeError, ValueError):
         return default
     return min(max(parsed, minimum), maximum)
+
+
+@require_http_methods(["GET", "POST"])
+def api_submissions(request: HttpRequest) -> HttpResponse:
+    if not request.user.is_authenticated:
+        return _api_auth_failure()
+
+    if request.method == "GET":
+        submissions = [
+            _serialize_submission_like(submission, kind="submission")
+            for submission in CardSubmission.objects.filter(submitter=request.user).order_by(
+                "-created_date"
+            )
+        ]
+        modifications = [
+            _serialize_submission_like(modification, kind="modification")
+            for modification in CardModification.objects.filter(
+                submitter=request.user
+            ).select_related("card").order_by("-created_date")
+        ]
+        items = submissions + modifications
+        items.sort(key=lambda item: item["created_date"], reverse=True)
+        return JsonResponse(items, safe=False)
+
+    payload = _request_payload(request)
+    try:
+        form = CardSubmissionForm(_form_payload(payload), request.FILES)
+    except ValueError as exc:
+        return _api_invalid_payload(str(exc))
+
+    if not form.is_valid():
+        return JsonResponse(
+            {"detail": "Invalid submission data", "errors": form.errors.get_json_data()},
+            status=400,
+        )
+
+    submission: CardSubmission = form.save(commit=False)
+    submission.submitter = request.user
+    submission.status = CardSubmissionStatus.PENDING
+    submission.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
+    _save_submission_image_url(submission, payload)
+    submission.save()
+    dispatch_event(
+        "submission.created",
+        {
+            "submission_id": submission.id,
+            "name": submission.name,
+            "submitter_id": request.user.id,
+            "submitter_email": request.user.email,
+            "status": submission.status,
+            "description": submission.description or "",
+            "change_text": (
+                f"{request.user.email} submitted new business '{submission.name}': "
+                f"{submission.description or 'No description provided.'}"
+            ),
+            "content_url": _absolute_url(request, "cms:submission_detail", pk=submission.id),
+            "content_title": submission.name,
+        },
+        source_info="directory.api_submission_create",
+    )
+    return JsonResponse(
+        _serialize_submission_like(submission, kind="submission"),
+        status=201,
+    )
+
+
+@require_http_methods(["POST"])
+def api_suggest_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    if not request.user.is_authenticated:
+        return _api_auth_failure()
+
+    card = get_object_or_404(Card, pk=pk, approved=True)
+    payload = _request_payload(request)
+    try:
+        form = CardModificationForm(_form_payload(payload), request.FILES)
+    except ValueError as exc:
+        return _api_invalid_payload(str(exc))
+
+    if not form.is_valid():
+        return JsonResponse(
+            {"detail": "Invalid submission data", "errors": form.errors.get_json_data()},
+            status=400,
+        )
+
+    modification: CardModification = form.save(commit=False)
+    modification.card = card
+    modification.submitter = request.user
+    modification.status = CardSubmissionStatus.PENDING
+    modification.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
+    _save_submission_image_url(modification, payload)
+    modification.save()
+    changed_fields = modification_changed_fields(modification)
+    dispatch_event(
+        "modification.created",
+        {
+            "modification_id": modification.id,
+            "card_id": card.id,
+            "card_name": card.name,
+            "submitter_id": request.user.id,
+            "submitter_email": request.user.email,
+            "status": modification.status,
+            "change_text": (
+                f"{request.user.email} submitted {len(changed_fields)} change(s) "
+                f"for '{card.name}'."
+            ),
+            "changed_fields": changed_fields,
+            "content_url": _absolute_url(request, "cms:modification_detail", pk=modification.id),
+            "content_title": card.name,
+        },
+        source_info="directory.api_suggest_edit",
+    )
+    return JsonResponse(
+        _serialize_submission_like(modification, kind="modification"),
+        status=201,
+    )
 
 
 def card_detail(request: HttpRequest, pk: int, slug: str | None = None) -> HttpResponse:

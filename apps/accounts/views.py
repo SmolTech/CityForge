@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import secrets
 from datetime import timedelta
 from hashlib import sha256
+from datetime import datetime, timezone as datetime_timezone
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -20,13 +26,14 @@ from django.views.decorators.http import require_http_methods
 from apps.webhooks.service import dispatch_event
 
 from .forms import ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordForm
-from .models import PasswordResetToken, User
+from .models import PasswordResetToken, TokenBlacklist, User
 
 TOKEN_TTL_HOURS = 1
 EMAIL_VERIFICATION_TTL_HOURS = 48
 PASSWORD_RESET_LIMIT = 5
 PASSWORD_RESET_WINDOW_SECONDS = 3600
 CAPTCHA_SESSION_KEY_PREFIX = "accounts_captcha"
+MOBILE_AUTH_TOKEN_TTL = timedelta(days=7)
 
 
 def _client_ip(request: HttpRequest) -> str | None:
@@ -82,6 +89,249 @@ def _captcha_kwargs(request: HttpRequest, scope: str) -> dict[str, str]:
 def _admin_users_url(request: HttpRequest, email: str) -> str:
     query = urlencode({"q": email})
     return request.build_absolute_uri(f"{reverse('cms:users_list')}?{query}")
+
+
+def _serialize_user(user: User) -> dict[str, object]:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": user.full_name,
+        "role": user.role,
+        "is_admin": user.is_admin,
+        "is_supporter": user.is_support,
+        "is_supporter_flag": user.is_support,
+        "is_active": user.is_active,
+        "created_date": user.created_date.isoformat(),
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+
+
+def _auth_token_signing_key() -> bytes:
+    return settings.SECRET_KEY.encode()
+
+
+def _encode_auth_token(payload: dict[str, object]) -> str:
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+    signature = hmac.new(_auth_token_signing_key(), body.encode(), hashlib.sha256).hexdigest()
+    return f"{body}.{signature}"
+
+
+def _decode_auth_token(token: str) -> dict[str, object] | None:
+    try:
+        body, signature = token.split(".", 1)
+    except ValueError:
+        return None
+
+    expected = hmac.new(_auth_token_signing_key(), body.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return None
+
+    padding = "=" * (-len(body) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(f"{body}{padding}").decode())
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _issue_mobile_auth_token(user: User) -> str:
+    now = timezone.now()
+    payload = {
+        "sub": user.id,
+        "jti": secrets.token_urlsafe(16),
+        "iat": int(now.timestamp()),
+        "exp": int((now + MOBILE_AUTH_TOKEN_TTL).timestamp()),
+    }
+    return _encode_auth_token(payload)
+
+
+def _mobile_user_from_request(request: HttpRequest) -> User | None:
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+
+    token = auth_header.removeprefix("Bearer ").strip()
+    payload = _decode_auth_token(token)
+    if not payload:
+        return None
+
+    jti = payload.get("jti")
+    if not isinstance(jti, str):
+        return None
+
+    if TokenBlacklist.objects.filter(jti=jti).exists():
+        return None
+
+    exp = payload.get("exp")
+    if not isinstance(exp, int) or exp <= int(timezone.now().timestamp()):
+        return None
+
+    user_id = payload.get("sub")
+    if not isinstance(user_id, int):
+        return None
+
+    user = User.objects.filter(pk=user_id).first()
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
+def _require_mobile_user(request: HttpRequest) -> User | JsonResponse:
+    user = _mobile_user_from_request(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required."}, status=401)
+    return user
+
+
+def _mobile_auth_response(user: User) -> JsonResponse:
+    token = _issue_mobile_auth_token(user)
+    return JsonResponse({"access_token": token, "user": _serialize_user(user)})
+
+
+@require_http_methods(["POST"])
+def api_login(request: HttpRequest) -> HttpResponse:
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"detail": "Request body must be valid JSON."}, status=400)
+
+    email = str(payload.get("email") or "").strip().lower()
+    password = str(payload.get("password") or "")
+    if not email or not password:
+        return JsonResponse({"detail": "Email and password are required."}, status=400)
+
+    user = authenticate(request, username=email, password=password)
+    if user is None:
+        return JsonResponse({"detail": "Invalid email or password."}, status=401)
+    if not user.is_active:
+        return JsonResponse({"detail": "This account is disabled."}, status=403)
+    if not user.email_verified:
+        return JsonResponse({"detail": "Please verify your email before logging in."}, status=403)
+
+    user.last_login = timezone.now()
+    user.save(update_fields=["last_login"])
+    return _mobile_auth_response(user)
+
+
+@require_http_methods(["POST"])
+def api_register(request: HttpRequest) -> HttpResponse:
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"detail": "Request body must be valid JSON."}, status=400)
+
+    email = str(payload.get("email") or "").strip().lower()
+    password = str(payload.get("password") or "")
+    first_name = str(payload.get("first_name") or "").strip()
+    last_name = str(payload.get("last_name") or "").strip()
+    if not email or not password or not first_name or not last_name:
+        return JsonResponse({"detail": "All fields are required."}, status=400)
+    if User.objects.filter(email__iexact=email).exists():
+        return JsonResponse({"detail": "A user with that email already exists."}, status=409)
+
+    user = User.objects.create_user(
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        email_verified=True,
+    )
+    user.registration_ip_address = _client_ip(request)
+    user.save(update_fields=["registration_ip_address"])
+    return _mobile_auth_response(user)
+
+
+def api_me(request: HttpRequest) -> HttpResponse:
+    user = _mobile_user_from_request(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required."}, status=401)
+    return JsonResponse(_serialize_user(user))
+
+
+@require_http_methods(["POST"])
+def api_logout(request: HttpRequest) -> HttpResponse:
+    user = _mobile_user_from_request(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required."}, status=401)
+
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    payload = _decode_auth_token(token)
+    if isinstance(payload, dict):
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if isinstance(jti, str) and isinstance(exp, int):
+            TokenBlacklist.objects.get_or_create(
+                jti=jti,
+                defaults={
+                    "token_type": "access",
+                    "user": user,
+                    "revoked_at": timezone.now(),
+                    "expires_at": datetime.fromtimestamp(exp, tz=datetime_timezone.utc),
+                },
+            )
+    return JsonResponse({"detail": "Logged out."})
+
+
+@require_http_methods(["PUT"])
+def api_update_email(request: HttpRequest) -> HttpResponse:
+    user = _mobile_user_from_request(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required."}, status=401)
+
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"detail": "Request body must be valid JSON."}, status=400)
+
+    email = str(payload.get("email") or "").strip().lower()
+    if not email:
+        return JsonResponse({"detail": "Email is required."}, status=400)
+    if User.objects.exclude(pk=user.pk).filter(email__iexact=email).exists():
+        return JsonResponse({"detail": "A user with that email already exists."}, status=409)
+
+    user.email = email
+    user.email_verified = False
+    user.email_verification_token = secrets.token_urlsafe(32)
+    user.email_verification_sent_at = timezone.now()
+    user.save(
+        update_fields=[
+            "email",
+            "email_verified",
+            "email_verification_token",
+            "email_verification_sent_at",
+        ]
+    )
+    _send_verification_email(request, user)
+    return JsonResponse({"detail": "Email updated."})
+
+
+@require_http_methods(["PUT"])
+def api_update_password(request: HttpRequest) -> HttpResponse:
+    user = _mobile_user_from_request(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required."}, status=401)
+
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"detail": "Request body must be valid JSON."}, status=400)
+
+    current_password = str(payload.get("current_password") or "")
+    new_password = str(payload.get("new_password") or "")
+    if not current_password or not new_password:
+        return JsonResponse({"detail": "Current and new password are required."}, status=400)
+    if not user.check_password(current_password):
+        return JsonResponse({"detail": "Current password is incorrect."}, status=400)
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    return JsonResponse({"detail": "Password updated."})
 
 
 @require_http_methods(["GET", "POST"])
