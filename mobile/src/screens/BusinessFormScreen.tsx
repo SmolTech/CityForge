@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
@@ -30,6 +31,13 @@ function optionalValue(value: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function parseTags(input: string): string[] {
+  return input
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 export default function BusinessFormScreen() {
   const route = useRoute<BusinessFormRouteProp>();
   const navigation = useNavigation<BusinessFormNavigationProp>();
@@ -46,9 +54,8 @@ export default function BusinessFormScreen() {
   const [address, setAddress] = useState(card?.address ?? "");
   const [contactName, setContactName] = useState("");
   const [imageUrl, setImageUrl] = useState(card?.image_url ?? "");
-  const [tagsText, setTagsText] = useState(
-    card?.tags.map((tag) => tag.name).join(", ") ?? ""
-  );
+  const [tags, setTags] = useState(card?.tags.map((tag) => tag.name) ?? []);
+  const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const styles = useThemedStyles((colors) => ({
@@ -86,6 +93,33 @@ export default function BusinessFormScreen() {
       marginBottom: 16,
       fontSize: 16,
       color: colors.text,
+    } as const,
+    tagRow: {
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
+      gap: 8,
+      marginBottom: 12,
+    } as const,
+    tagChip: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      borderRadius: 999,
+      backgroundColor: colors.backgroundTertiary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    } as const,
+    tagChipText: {
+      color: colors.text,
+      fontSize: 14,
+    } as const,
+    tagRemove: {
+      color: colors.textMuted,
+      fontSize: 16,
+      fontWeight: "700" as const,
+      lineHeight: 16,
     } as const,
     textArea: {
       minHeight: 96,
@@ -133,8 +167,29 @@ export default function BusinessFormScreen() {
     address: optionalValue(address),
     contactName: optionalValue(contactName),
     imageUrl: optionalValue(imageUrl),
-    tagsText: optionalValue(tagsText),
+    tagsText: tags.length > 0 ? tags.join(", ") : undefined,
   });
+
+  const commitTagInput = () => {
+    const parsed = parseTags(tagInput);
+    if (parsed.length === 0) {
+      setTagInput("");
+      return;
+    }
+
+    setTags((current) => {
+      const next = new Set(current);
+      for (const tag of parsed) {
+        next.add(tag);
+      }
+      return Array.from(next);
+    });
+    setTagInput("");
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags((current) => current.filter((tag) => tag !== tagToRemove));
+  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -279,16 +334,36 @@ export default function BusinessFormScreen() {
         />
 
         <Text style={styles.label}>Tags</Text>
+        {tags.length > 0 && (
+          <View style={styles.tagRow}>
+            {tags.map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={styles.tagChip}
+                onPress={() => removeTag(tag)}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.tagChipText}>{tag}</Text>
+                <Text style={styles.tagRemove}>×</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <TextInput
           style={styles.input}
-          value={tagsText}
-          onChangeText={setTagsText}
-          placeholder="food, nonprofit, services"
+          value={tagInput}
+          onChangeText={setTagInput}
+          placeholder="Type a tag and press Enter"
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+          blurOnSubmit={false}
+          onSubmitEditing={commitTagInput}
+          onBlur={commitTagInput}
           editable={!isSubmitting}
         />
-        <Text style={styles.hint}>Separate multiple tags with commas.</Text>
+        <Text style={styles.hint}>Press Enter to turn each tag into a bubble. Tap a bubble to remove it.</Text>
 
         <TouchableOpacity
           style={[styles.button, isSubmitting && styles.buttonDisabled]}
