@@ -4,15 +4,16 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 import { useInstance } from "../contexts/InstanceContext";
+import ErrorMessage from "../components/ErrorMessage";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
 import {
@@ -44,6 +45,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [serverName, setServerName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const isSubmitting = isLoading || instancesLoading;
 
@@ -168,8 +170,10 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    setError(null);
+
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password");
+      setError("Please enter both email and password");
       return;
     }
 
@@ -177,11 +181,9 @@ export default function LoginScreen() {
       const targetInstance = await getLoginInstance();
       await login({ email, password }, targetInstance);
       // Navigation will happen automatically via AuthContext
-    } catch (error) {
-      Alert.alert(
-        "Login Failed",
-        error instanceof Error ? error.message : "An error occurred"
-      );
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(errorMsg);
     }
   };
 
@@ -199,6 +201,14 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>
             Choose your server and login to your account
           </Text>
+
+          {error && (
+            <ErrorMessage
+              error={error}
+              onDismiss={() => setError(null)}
+              onRetry={handleLogin}
+            />
+          )}
 
           <Text style={styles.sectionTitle}>Server</Text>
           <TextInput
@@ -254,9 +264,11 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={isSubmitting}
           >
-            <Text style={styles.buttonText}>
-              {isSubmitting ? "Logging in..." : "Login"}
-            </Text>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity

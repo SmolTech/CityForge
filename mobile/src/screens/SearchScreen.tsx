@@ -11,6 +11,9 @@ import {
 import { apiClient } from "../api/client";
 import { logger } from "../utils/logger";
 import type { SearchResult } from "../types/api";
+import EmptyState from "../components/EmptyState";
+import SkeletonLoader from "../components/SkeletonLoader";
+import ErrorMessage from "../components/ErrorMessage";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -20,6 +23,7 @@ export default function SearchScreen() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const styles = useThemedStyles((colors) => ({
     container: {
@@ -132,13 +136,16 @@ export default function SearchScreen() {
 
     setIsLoading(true);
     setHasSearched(true);
+    setError(null);
 
     try {
       const searchResults = await apiClient.search(query);
       setResults(searchResults);
-    } catch (error) {
-      logger.error("Search error:", error);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to search";
+      setError(errorMsg);
       setResults([]);
+      logger.error("Search error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -175,6 +182,7 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
@@ -185,6 +193,7 @@ export default function SearchScreen() {
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
+          placeholderTextColor={colors.textMuted}
         />
         <TouchableOpacity
           style={styles.searchButton}
@@ -200,7 +209,18 @@ export default function SearchScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Searching...</Text>
+          <Text style={styles.loadingText}>Searching businesses...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <ErrorMessage
+            error={error}
+            onRetry={handleSearch}
+            onDismiss={() => {
+              setError(null);
+              setHasSearched(false);
+            }}
+          />
         </View>
       ) : hasSearched ? (
         <FlatList
@@ -208,20 +228,35 @@ export default function SearchScreen() {
           renderItem={renderResult}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.resultsList}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No results found</Text>
-              <Text style={styles.emptySubtext}>
-                Try different keywords or browse the directory
+          ListHeaderComponent={
+            results.length > 0 ? (
+              <Text style={styles.placeholderText}>
+                Found {results.length} result{results.length !== 1 ? "s" : ""}
               </Text>
-            </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <EmptyState
+              title="No Results Found"
+              message={`No businesses match "${query}". Try different keywords or browse the directory.`}
+              action={{
+                label: "Clear Search",
+                onPress: () => {
+                  setQuery("");
+                  setResults([]);
+                  setHasSearched(false);
+                  setError(null);
+                },
+              }}
+            />
           }
         />
       ) : (
         <View style={styles.centered}>
-          <Text style={styles.placeholderText}>
-            Enter a search term to find businesses
-          </Text>
+          <EmptyState
+            title="Search Businesses"
+            message="Enter a keyword to find local businesses, categories, or locations."
+          />
         </View>
       )}
     </View>

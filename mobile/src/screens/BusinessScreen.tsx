@@ -14,6 +14,9 @@ import { apiClient } from "../api/client";
 import type { Card } from "../types/api";
 import type { RootStackParamList } from "../types/navigation";
 import ErrorScreen from "../components/ErrorScreen";
+import EmptyState from "../components/EmptyState";
+import SkeletonLoader from "../components/SkeletonLoader";
+import OfflineIndicator from "../components/OfflineIndicator";
 import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
@@ -150,7 +153,8 @@ export default function BusinessScreen() {
       setPage(pageNum);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load cards");
+      const errorMsg = err instanceof Error ? err.message : "Failed to load businesses";
+      setError(errorMsg);
     } finally {
       if (!refresh && pageNum === 1) {
         setIsLoading(false);
@@ -203,6 +207,11 @@ export default function BusinessScreen() {
                   <Text style={styles.tagText}>{tag.name}</Text>
                 </View>
               ))}
+              {item.tags.length > 3 && (
+                <View style={styles.tag}>
+                  <Text style={styles.tagText}>+{item.tags.length - 3}</Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -210,7 +219,91 @@ export default function BusinessScreen() {
     </TouchableOpacity>
   );
 
-  if (isLoading) {
+  const renderSkeletonCard = () => (
+    <View style={styles.card}>
+      <View style={{ ...cardImageStyle, backgroundColor: colors.surface }} />
+      <View style={styles.cardInfo}>
+        <SkeletonLoader width="70%" height={18} marginBottom={8} />
+        <SkeletonLoader width="100%" height={14} count={2} marginBottom={12} />
+        <View style={styles.tags}>
+          <SkeletonLoader width={60} height={20} borderRadius={12} />
+          <SkeletonLoader width={60} height={20} borderRadius={12} />
+        </View>
+      </View>
+    </View>
+  );
+
+  if (isLoading && cards.length === 0) {
+    return (
+      <View style={styles.container}>
+        <OfflineIndicator onRetry={() => loadCards(1)} />
+        <FlatList
+          data={[1, 2, 3]}
+          renderItem={renderSkeletonCard}
+          keyExtractor={(_, i) => `skeleton-${i}`}
+          scrollEnabled={false}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            isAuthenticated ? (
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={() => navigation.navigate("BusinessForm", { mode: "submit" })}
+              >
+                <Text style={styles.submitButtonText}>Submit a Business</Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      </View>
+    );
+  }
+
+  if (error && cards.length === 0) {
+    return (
+      <View style={styles.container}>
+        <OfflineIndicator onRetry={() => loadCards(1)} />
+        <View style={styles.centered}>
+          <EmptyState
+            title="Unable to Load Businesses"
+            message={error}
+            action={{
+              label: "Try Again",
+              onPress: () => loadCards(1),
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <View style={styles.container}>
+        <FlatList
+          data={[]}
+          renderItem={renderCard}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <EmptyState
+              title="No Businesses Found"
+              message="Be the first to submit a business to CityForge!"
+              action={
+                isAuthenticated
+                  ? {
+                      label: "Submit a Business",
+                      onPress: () => navigation.navigate("BusinessForm", { mode: "submit" }),
+                    }
+                  : undefined
+              }
+            />
+          }
+        />
+      </View>
+    );
+  }
+
+  if (isLoading && cards.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -230,6 +323,7 @@ export default function BusinessScreen() {
 
   return (
     <View style={styles.container}>
+      <OfflineIndicator onRetry={() => loadCards(1)} />
       <FlatList
         data={cards}
         renderItem={renderCard}
@@ -264,9 +358,19 @@ export default function BusinessScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No approved businesses are available yet.
-            </Text>
+            <EmptyState
+              title="No Businesses Found"
+              message="Be the first to submit a business to CityForge!"
+              action={
+                isAuthenticated
+                  ? {
+                      label: "Submit a Business",
+                      onPress: () =>
+                        navigation.navigate("BusinessForm", { mode: "submit" }),
+                    }
+                  : undefined
+              }
+            />
           </View>
         }
       />
