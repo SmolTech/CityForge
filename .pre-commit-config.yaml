@@ -49,3 +49,17 @@ repos:
           - --exclude=.venv
           - --exclude=node_modules
           - --exclude=staticfiles
+
+      - id: mobile-lint
+        name: mobile eslint
+        entry: bash -c 'cd mobile && npm run lint'
+        language: system
+        files: ^mobile/src/
+        stages: [pre-commit]
+
+      - id: mobile-type-check
+        name: mobile type check
+        entry: bash -c 'cd mobile && npm run type-check'
+        language: system
+        files: ^mobile/
+        stages: [pre-commit]
