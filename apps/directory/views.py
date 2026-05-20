@@ -130,7 +130,7 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
         opensearch_host = settings.OPENSEARCH_HOST
         opensearch_port = settings.OPENSEARCH_PORT
         opensearch_use_https = getattr(settings, "OPENSEARCH_USE_HTTPS", False)
-        
+
         client = OpenSearch(
             hosts=[
                 {
