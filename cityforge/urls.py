@@ -2,8 +2,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
-from apps.directory import views as directory_views
 from apps.core import views as core_views
+from apps.directory import views as directory_views
 
 urlpatterns = [
     path("api/health", core_views.health, name="health"),

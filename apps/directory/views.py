@@ -19,7 +19,6 @@ from apps.resources.models import ResourceItem
 from apps.webhooks.service import dispatch_event
 
 from .forms import CardModificationForm, CardSubmissionForm, ReviewForm
-from .modification_diff import modification_changed_fields
 from .models import (
     Card,
     CardModification,
@@ -28,6 +27,7 @@ from .models import (
     Review,
     Tag,
 )
+from .modification_diff import modification_changed_fields
 
 
 def _split_tags(text: str) -> list[str]:
