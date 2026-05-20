@@ -134,7 +134,9 @@ def _api_invalid_payload(message: str) -> JsonResponse:
     return JsonResponse({"detail": message}, status=400)
 
 
-def _save_submission_image_url(item: CardSubmission | CardModification, payload: dict[str, object]) -> None:
+def _save_submission_image_url(
+    item: CardSubmission | CardModification, payload: dict[str, object]
+) -> None:
     image_url = _payload_text(payload, "image_url", "imageUrl")
     if image_url:
         item.image_url = image_url
@@ -367,9 +369,9 @@ def api_submissions(request: HttpRequest) -> HttpResponse:
         ]
         modifications = [
             _serialize_submission_like(modification, kind="modification")
-            for modification in CardModification.objects.filter(
-                submitter=request.user
-            ).select_related("card").order_by("-created_date")
+            for modification in CardModification.objects.filter(submitter=request.user)
+            .select_related("card")
+            .order_by("-created_date")
         ]
         items = submissions + modifications
         items.sort(key=lambda item: item["created_date"], reverse=True)

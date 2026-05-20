@@ -5,16 +5,17 @@ import hashlib
 import hmac
 import json
 import secrets
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from datetime import datetime, timezone as datetime_timezone
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -272,7 +273,7 @@ def api_logout(request: HttpRequest) -> HttpResponse:
                     "token_type": "access",
                     "user": user,
                     "revoked_at": timezone.now(),
-                    "expires_at": datetime.fromtimestamp(exp, tz=datetime_timezone.utc),
+                    "expires_at": datetime.fromtimestamp(exp, tz=UTC),
                 },
             )
     return JsonResponse({"detail": "Logged out."})
@@ -328,6 +329,14 @@ def api_update_password(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"detail": "Current and new password are required."}, status=400)
     if not user.check_password(current_password):
         return JsonResponse({"detail": "Current password is incorrect."}, status=400)
+
+    try:
+        validate_password(new_password, user=user)
+    except ValidationError as exc:
+        return JsonResponse(
+            {"detail": " ".join(exc.messages)},
+            status=400,
+        )
 
     user.set_password(new_password)
     user.save(update_fields=["password"])
