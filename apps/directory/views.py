@@ -455,8 +455,7 @@ def api_suggest_edit(request: HttpRequest, pk: int) -> HttpResponse:
             "submitter_email": request.user.email,
             "status": modification.status,
             "change_text": (
-                f"{request.user.email} submitted {len(changed_fields)} change(s) "
-                f"for '{card.name}'."
+                f"{request.user.email} submitted {len(changed_fields)} change(s) for '{card.name}'."
             ),
             "changed_fields": changed_fields,
             "content_url": _absolute_url(request, "cms:modification_detail", pk=modification.id),
