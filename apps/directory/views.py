@@ -174,9 +174,7 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
             {"results": results, "total": total, "page": page_num, "size": page_size}
         )
     except Exception as e:
-        return JsonResponse(
-            {"detail": str(e), "results": [], "total": 0}, status=500
-        )
+        return JsonResponse({"detail": str(e), "results": [], "total": 0}, status=500)
 
 
 def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
