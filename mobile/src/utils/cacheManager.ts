@@ -116,7 +116,7 @@ class CacheManager {
       for (const key of cacheKeys) {
         const value = await AsyncStorage.getItem(key);
         if (value) {
-          totalSize += new Blob([value]).size;
+          totalSize += value.length; // Use string length instead of Blob API
         }
       }
 

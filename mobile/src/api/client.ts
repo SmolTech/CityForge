@@ -93,7 +93,8 @@ class ApiClient {
   ): Promise<T> {
     // Check if this is a cacheable GET request
     const isGetRequest = !options.method || options.method === "GET";
-    const cacheKey = `${endpoint}:${JSON.stringify(options)}`;
+    const cacheKey = endpoint;
+
 
     // For GET requests, try cache first if offline
     if (isGetRequest && networkManager.isOffline()) {
@@ -326,7 +327,7 @@ class ApiClient {
     if (params?.search) {
       queryParams.append("search", params.search);
     }
-    queryParams.append("limit", Math.min(page * perPage, 5000).toString());
+    queryParams.append("limit", perPage.toString());
     queryParams.append("offset", offset.toString());
     queryParams.append("share_urls", "true");
     queryParams.append("ratings", "true");
@@ -339,35 +340,14 @@ class ApiClient {
     const rawCards = response.cards ?? [];
     const normalizedCards = rawCards.map(normalizeCard);
 
-    const filteredByTag = params?.tag
-      ? normalizedCards.filter((card) =>
-          card.tags.some(
-            (tag) => tag.name.toLowerCase() === params.tag?.toLowerCase()
-          )
-        )
-      : normalizedCards;
-
-    const filteredCards = params?.search
-      ? filteredByTag.filter((card) => {
-          const needle = params.search?.toLowerCase() || "";
-          return (
-            card.name.toLowerCase().includes(needle) ||
-            (card.description || "").toLowerCase().includes(needle) ||
-            (card.address || "").toLowerCase().includes(needle)
-          );
-        })
-      : filteredByTag;
-
     const usesLegacyPagination =
       typeof (response as CardsApiResponse).total === "number" &&
       typeof (response as CardsApiResponse).limit === "number";
 
-    const items = usesLegacyPagination
-      ? filteredCards
-      : filteredCards.slice(offset, offset + perPage);
+    const items = normalizedCards;
     const total = usesLegacyPagination
       ? (response as CardsApiResponse).total
-      : filteredCards.length;
+      : normalizedCards.length;
     const responseLimit = usesLegacyPagination
       ? (response as CardsApiResponse).limit
       : perPage;

@@ -145,9 +145,17 @@ export default function SearchScreen() {
   };
 
   const handleResultPress = (url: string) => {
-    Linking.openURL(url).catch((err) =>
-      logger.error("Error opening URL:", err)
-    );
+    try {
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        logger.warn("Invalid URL scheme:", url);
+        return;
+      }
+      Linking.openURL(url).catch((err) =>
+        logger.error("Error opening URL:", err)
+      );
+    } catch (error) {
+      logger.error("Error in handleResultPress:", error);
+    }
   };
 
   const renderResult = ({ item }: { item: SearchResult }) => (

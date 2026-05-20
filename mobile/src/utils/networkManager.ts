@@ -14,6 +14,7 @@ class NetworkManager {
     type: null,
     isInternetReachable: null,
   };
+  private unsubscribeNetInfo?: () => void;
 
   constructor() {
     this.initialize();
@@ -25,8 +26,8 @@ class NetworkManager {
       const state = await NetInfo.fetch();
       this.updateState(state);
 
-      // Listen for network changes
-      NetInfo.addEventListener(this.handleNetworkChange);
+      // Listen for network changes with proper cleanup
+      this.unsubscribeNetInfo = NetInfo.addEventListener(this.handleNetworkChange);
     } catch (error) {
       logger.error("Error initializing network manager:", error);
     }
@@ -109,6 +110,14 @@ class NetworkManager {
    */
   removeAllListeners() {
     this.listeners = [];
+  }
+
+  /**
+   * Cleanup network subscription
+   */
+  destroy() {
+    this.unsubscribeNetInfo?.();
+    this.removeAllListeners();
   }
 
   /**

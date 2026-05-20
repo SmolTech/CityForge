@@ -236,14 +236,22 @@ export default function BusinessDetailScreen() {
   };
 
   const loadReviews = useCallback(async (cardId: number) => {
+    const currentCardId = cardId;
     setReviewsLoading(true);
     try {
       const data = await apiClient.getCardReviews(cardId, { limit: 10 });
-      setReviewsData(data);
+      // Only update if this is still the current card (prevents stale data)
+      if (currentCardId === cardId) {
+        setReviewsData(data);
+      }
     } catch (err) {
-      logger.error("Error loading reviews:", err);
+      if (currentCardId === cardId) {
+        logger.error("Error loading reviews:", err);
+      }
     } finally {
-      setReviewsLoading(false);
+      if (currentCardId === cardId) {
+        setReviewsLoading(false);
+      }
     }
   }, []);
 
@@ -272,19 +280,30 @@ export default function BusinessDetailScreen() {
   const ensureHttpUrl = (value: string) =>
     /^https?:\/\//i.test(value) ? value : `https://${value}`;
 
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return /^https?:\/\//.test(url);
+    } catch {
+      return false;
+    }
+  };
+
   const getSocialUrl = (
     service: "facebook" | "instagram" | "twitter",
     value: string
   ) => {
     const trimmedValue = value.trim();
     if (/^https?:\/\//i.test(trimmedValue)) {
-      return trimmedValue;
+      return isValidUrl(trimmedValue) ? trimmedValue : null;
     }
     if (trimmedValue.includes(".")) {
-      return ensureHttpUrl(trimmedValue);
+      const url = ensureHttpUrl(trimmedValue);
+      return isValidUrl(url) ? url : null;
     }
 
     const handle = trimmedValue.replace(/^@/, "");
+    if (!handle || handle.includes(" ")) return null;
     const host = service === "twitter" ? "twitter.com" : `${service}.com`;
     return `https://${host}/${encodeURIComponent(handle)}`;
   };
@@ -300,7 +319,7 @@ export default function BusinessDetailScreen() {
         )}`;
         break;
       case "phone":
-        url = `tel:${trimmedValue.replace(/[^\d+]/g, "")}`;
+        url = `tel:${trimmedValue}`;
         break;
       case "email":
         url = `mailto:${trimmedValue}`;
@@ -309,22 +328,28 @@ export default function BusinessDetailScreen() {
         url = ensureHttpUrl(trimmedValue);
         break;
       case "facebook":
-        url = getSocialUrl("facebook", trimmedValue);
-        break;
       case "instagram":
-        url = getSocialUrl("instagram", trimmedValue);
+      case "twitter": {
+        const socialUrl = getSocialUrl(type as "facebook" | "instagram" | "twitter", trimmedValue);
+        if (!socialUrl) {
+          Alert.alert("Invalid Social URL", `Could not create valid ${type} URL for: ${trimmedValue}`);
+          return;
+        }
+        url = socialUrl;
         break;
-      case "twitter":
-        url = getSocialUrl("twitter", trimmedValue);
-        break;
+      }
       default:
         return;
     }
 
-    Linking.openURL(url).catch((err) => {
-      logger.error("Error opening business detail link:", err);
-      Alert.alert("Error", "Cannot open this link");
-    });
+    if (isValidUrl(url) || url.startsWith("tel:") || url.startsWith("mailto:")) {
+      Linking.openURL(url).catch((err) => {
+        logger.error("Error opening URL:", err);
+        Alert.alert("Error", "Could not open the requested link");
+      });
+    } else {
+      Alert.alert("Invalid URL", `Could not open: ${url}`);
+    }
   };
 
   const renderStars = (rating: number, interactive = false) => (
