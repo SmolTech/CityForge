@@ -1,6 +1,7 @@
+import re
+
 from django.conf import settings
-from django.conf.urls.static import static
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from apps.core import views as core_views
 from apps.directory import views as directory_views
@@ -28,5 +29,8 @@ urlpatterns = [
     path("manage/", include(("apps.cms.urls", "cms"), namespace="cms")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+media_prefix = settings.MEDIA_URL.lstrip("/").rstrip("/")
+if media_prefix:
+    urlpatterns += [
+        re_path(rf"^{re.escape(media_prefix)}/(?P<path>.*)$", core_views.media_file, name="media"),
+    ]

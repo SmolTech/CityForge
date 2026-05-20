@@ -75,6 +75,28 @@ class CardSubmissionUploadTests(TestCase):
                 self.assertIn("submitted new business", payload["change_text"])
                 self.assertIn(str(submission.id), payload["content_url"])
 
+    def test_uploaded_submission_image_is_served_through_media_route(self) -> None:
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root, DEBUG=False):
+                self.client.force_login(self.user)
+                with patch("apps.directory.views.dispatch_event"):
+                    response = self.client.post(
+                        reverse("directory:card_submit"),
+                        {
+                            "name": "Served Business",
+                            "description": "Business with a photo",
+                            "tags_text": "coffee, bakery",
+                            "image": _uploaded_png(),
+                        },
+                    )
+
+                self.assertEqual(response.status_code, 302)
+                submission = CardSubmission.objects.get(name="Served Business")
+
+                image_response = self.client.get(submission.image_url)
+                self.assertEqual(image_response.status_code, 200)
+                self.assertEqual(image_response.headers["Content-Type"], "image/png")
+
     @override_settings(MEDIA_URL="/media/")
     def test_submission_approval_copies_uploaded_image_to_card(self) -> None:
         admin = User.objects.create_superuser(
