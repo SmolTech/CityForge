@@ -23,6 +23,7 @@ from apps.directory.models import (
     Tag,
 )
 from apps.directory.views import _safe_int, _split_tags, card_detail, home
+from apps.resources.models import ResourceItem
 
 
 def _uploaded_png() -> SimpleUploadedFile:
@@ -112,6 +113,14 @@ class DirectoryViewTests(TestCase):
         self.card_b = Card.objects.create(name="Beta Bakery", approved=True, featured=False)
         CardTag.objects.create(card=self.card_a, tag=self.tag_a)
         CardTag.objects.create(card=self.card_b, tag=self.tag_b)
+        self.resource = ResourceItem.objects.create(
+            title="Community Clinic",
+            url="https://clinic.example",
+            description="Free health services for residents.",
+            category="Health",
+            icon="hospital",
+            is_active=True,
+        )
 
     def test_helpers_split_tags_and_safe_int(self) -> None:
         self.assertEqual(_split_tags("a, b; c"), ["a", "b", "c"])
@@ -159,6 +168,17 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         card_names = [card.name for card in captured["cards"]]
         self.assertEqual(card_names, ["Alpha Coffee"])
+
+    def test_api_opensearch_falls_back_to_local_resources_when_search_unavailable(self) -> None:
+        with patch("apps.search.views._client", return_value=None):
+            response = self.client.get("/api/cards/search/", {"q": "clinic"})
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["total"], 1)
+        self.assertEqual(body["source"], "local")
+        self.assertEqual(body["results"][0]["title"], self.resource.title)
+        self.assertEqual(body["results"][0]["url"], self.resource.url)
 
     def test_card_detail_redirects_to_canonical_slug(self) -> None:
         response = self.client.get(reverse("directory:card_detail_short", args=[self.card_a.pk]))

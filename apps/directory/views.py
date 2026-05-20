@@ -15,9 +15,11 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 
+from apps.resources.models import ResourceItem
 from apps.webhooks.service import dispatch_event
 
 from .forms import CardModificationForm, CardSubmissionForm, ReviewForm
+from .modification_diff import modification_changed_fields
 from .models import (
     Card,
     CardModification,
@@ -26,7 +28,6 @@ from .models import (
     Review,
     Tag,
 )
-from .modification_diff import modification_changed_fields
 
 
 def _split_tags(text: str) -> list[str]:
@@ -128,9 +129,15 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
 
     client = _client()
     if client is None:
+        results, total = _fallback_resource_search(query, page_num, page_size)
         return JsonResponse(
-            {"detail": "Search is not configured.", "results": [], "total": 0},
-            status=503,
+            {
+                "results": results,
+                "total": total,
+                "page": page_num,
+                "size": page_size,
+                "source": "local",
+            }
         )
 
     try:
@@ -173,8 +180,69 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {"results": results, "total": total, "page": page_num, "size": page_size}
         )
-    except Exception as e:
-        return JsonResponse({"detail": str(e), "results": [], "total": 0}, status=500)
+    except Exception:
+        results, total = _fallback_resource_search(query, page_num, page_size)
+        return JsonResponse(
+            {
+                "results": results,
+                "total": total,
+                "page": page_num,
+                "size": page_size,
+                "source": "local",
+            }
+        )
+
+
+def _fallback_resource_search(
+    query: str, page_num: int, page_size: int
+) -> tuple[list[dict], int]:
+    qs = ResourceItem.objects.filter(is_active=True)
+    if query:
+        qs = qs.filter(
+            Q(title__icontains=query)
+            | Q(description__icontains=query)
+            | Q(category__icontains=query)
+            | Q(url__icontains=query)
+        )
+
+    offset = (page_num - 1) * page_size
+    items = list(
+        qs.order_by("display_order", "title").values(
+            "id",
+            "title",
+            "description",
+            "url",
+            "category",
+        )[offset : offset + page_size]
+    )
+
+    results: list[dict] = []
+    needle = query.lower()
+    for item in items:
+        title = item["title"] or ""
+        description = item["description"] or ""
+        category = item["category"] or ""
+        haystack = f"{title} {description} {category} {item['url']}".lower()
+        score = 0.5
+        if needle and needle in title.lower():
+            score = 1.0
+        elif needle and needle in description.lower():
+            score = 0.8
+        elif needle and needle in category.lower():
+            score = 0.7
+        elif needle and needle in haystack:
+            score = 0.6
+        results.append(
+            {
+                "id": f"resource-{item['id']}",
+                "card_id": item["id"],
+                "title": title,
+                "content": description,
+                "url": item["url"],
+                "score": score,
+            }
+        )
+    return results, qs.count()
 
 
 def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
