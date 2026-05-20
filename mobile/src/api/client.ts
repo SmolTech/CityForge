@@ -442,6 +442,10 @@ class ApiClient {
 
   // Search APIs
   async search(query: string): Promise<SearchResult[]> {
+    return this.searchCards(query);
+  }
+
+  async searchCards(query: string): Promise<SearchResult[]> {
     try {
       return await this.request<SearchResult[]>(
         `/api/search?q=${encodeURIComponent(query)}`
@@ -476,6 +480,19 @@ class ApiClient {
           };
         })
         .sort((a, b) => b.score - a.score);
+    }
+  }
+
+  async searchOpensearch(query: string): Promise<SearchResult[]> {
+    try {
+      const response = await this.request<{
+        results: SearchResult[];
+        total: number;
+      }>(`/api/cards/search/?q=${encodeURIComponent(query)}`);
+      return response.results || [];
+    } catch (error) {
+      logger.error("OpenSearch error:", error);
+      return [];
     }
   }
 

@@ -115,6 +115,81 @@ def api_cards(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"cards": list(cards)})
 
 
+def api_opensearch(request: HttpRequest) -> JsonResponse:
+    """Search OpenSearch index for resources content."""
+    from opensearchpy import OpenSearch
+
+    query = (request.GET.get("q") or "").strip()
+    page_num = _safe_int(request.GET.get("page"), default=1, minimum=1, maximum=10000)
+    page_size = _safe_int(request.GET.get("size"), default=20, minimum=1, maximum=100)
+
+    if not query:
+        return JsonResponse({"results": [], "total": 0})
+
+    try:
+        opensearch_host = settings.OPENSEARCH_HOST
+        opensearch_port = settings.OPENSEARCH_PORT
+        opensearch_use_https = getattr(settings, "OPENSEARCH_USE_HTTPS", False)
+        
+        client = OpenSearch(
+            hosts=[
+                {
+                    "host": opensearch_host,
+                    "port": opensearch_port,
+                    "scheme": "https" if opensearch_use_https else "http",
+                }
+            ],
+            use_ssl=opensearch_use_https,
+            verify_certs=opensearch_use_https,
+        )
+
+        index = f"{settings.OPENSEARCH_NAMESPACE}-resources"
+        response = client.search(
+            index=index,
+            body={
+                "query": {
+                    "multi_match": {
+                        "query": query,
+                        "fields": ["title^3", "description^2", "content", "category"],
+                        "type": "best_fields",
+                        "fuzziness": "AUTO",
+                    }
+                },
+                "from": (page_num - 1) * page_size,
+                "size": page_size,
+            },
+        )
+
+        hits = response.get("hits", {})
+        total_obj = hits.get("total", 0)
+        total = (
+            total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
+        )
+
+        results = []
+        for hit in hits.get("hits", []):
+            src = hit.get("_source", {})
+            content = src.get("content") or ""
+            excerpt = (content[:200] + "…") if len(content) > 200 else content
+            results.append(
+                {
+                    "id": hit.get("_id", ""),
+                    "title": src.get("title") or "",
+                    "content": excerpt,
+                    "url": src.get("page_url") or src.get("url") or "",
+                    "score": hit.get("_score") or 0,
+                }
+            )
+
+        return JsonResponse(
+            {"results": results, "total": total, "page": page_num, "size": page_size}
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": str(e), "results": [], "total": 0}, status=500
+        )
+
+
 def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
     try:
         parsed = int(value or default)

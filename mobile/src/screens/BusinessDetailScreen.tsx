@@ -31,7 +31,7 @@ export default function BusinessDetailScreen() {
   const route = useRoute<BusinessDetailRouteProp>();
   const navigation = useNavigation<BusinessDetailNavigationProp>();
   const { colors } = useTheme();
-  const { id, slug } = route.params;
+  const { id } = route.params;
 
   const [card, setCard] = useState<Card | null>(null);
   const [reviewsData, setReviewsData] = useState<CardReviewsResponse | null>(
@@ -271,7 +271,7 @@ export default function BusinessDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, loadReviews, slug]);
+  }, [id, loadReviews]);
 
   useEffect(() => {
     loadCardDetails();

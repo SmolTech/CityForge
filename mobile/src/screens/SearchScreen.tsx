@@ -18,8 +18,11 @@ import { useTheme } from "../contexts/ThemeContext";
 
 export default function SearchScreen() {
   const { colors } = useTheme();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [businessQuery, setBusinessQuery] = useState("");
+  const [contentQuery, setContentQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"business" | "content">("business");
+  const [businessResults, setBusinessResults] = useState<SearchResult[]>([]);
+  const [contentResults, setContentResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,12 +32,38 @@ export default function SearchScreen() {
       flex: 1,
       backgroundColor: colors.background,
     } as const,
-    searchBar: {
-      flexDirection: "row" as const,
-      padding: 16,
+    searchBarContainer: {
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+    } as const,
+    tabBar: {
+      flexDirection: "row" as const,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    } as const,
+    tab: {
+      flex: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: "center",
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+    } as const,
+    tabActive: {
+      borderBottomColor: colors.primary,
+    } as const,
+    tabText: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      color: colors.textSecondary,
+    } as const,
+    tabTextActive: {
+      color: colors.primary,
+    } as const,
+    searchBar: {
+      flexDirection: "row" as const,
+      padding: 16,
       gap: 8,
     } as const,
     searchInput: {
@@ -111,25 +140,10 @@ export default function SearchScreen() {
       fontSize: 12,
       color: colors.textMuted,
     } as const,
-    emptyContainer: {
-      padding: 40,
-      alignItems: "center",
-    } as const,
-    emptyText: {
-      fontSize: 18,
-      fontWeight: "600" as const,
-      color: colors.textSecondary,
-      marginBottom: 8,
-    } as const,
-    emptySubtext: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: "center",
-    } as const,
   }));
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
+  const handleBusinessSearch = async () => {
+    if (!businessQuery.trim()) {
       return;
     }
 
@@ -138,12 +152,34 @@ export default function SearchScreen() {
     setError(null);
 
     try {
-      const searchResults = await apiClient.search(query);
-      setResults(searchResults);
+      const searchResults = await apiClient.searchCards(businessQuery);
+      setBusinessResults(searchResults);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to search";
       setError(errorMsg);
-      setResults([]);
+      setBusinessResults([]);
+      logger.error("Search error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContentSearch = async () => {
+    if (!contentQuery.trim()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setHasSearched(true);
+    setError(null);
+
+    try {
+      const searchResults = await apiClient.searchOpensearch(contentQuery);
+      setContentResults(searchResults);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to search";
+      setError(errorMsg);
+      setContentResults([]);
       logger.error("Search error:", err);
     } finally {
       setIsLoading(false);
@@ -181,34 +217,79 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
+  const currentQuery = activeTab === "business" ? businessQuery : contentQuery;
+  const currentResults = activeTab === "business" ? businessResults : contentResults;
+  const handleSearch =
+    activeTab === "business" ? handleBusinessSearch : handleContentSearch;
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search businesses..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          placeholderTextColor={colors.textMuted}
-        />
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={handleSearch}
-          disabled={isLoading}
-        >
-          <Text style={styles.searchButtonText}>
-            {isLoading ? "..." : "Search"}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.searchBarContainer}>
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "business" && styles.tabActive]}
+            onPress={() => setActiveTab("business")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "business" && styles.tabTextActive,
+              ]}
+            >
+              Businesses
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "content" && styles.tabActive]}
+            onPress={() => setActiveTab("content")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "content" && styles.tabTextActive,
+              ]}
+            >
+              Content
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder={
+              activeTab === "business"
+                ? "Search businesses..."
+                : "Search content..."
+            }
+            value={currentQuery}
+            onChangeText={
+              activeTab === "business" ? setBusinessQuery : setContentQuery
+            }
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            placeholderTextColor={colors.textMuted}
+          />
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={handleSearch}
+            disabled={isLoading}
+          >
+            <Text style={styles.searchButtonText}>
+              {isLoading ? "..." : "Search"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Searching businesses...</Text>
+          <Text style={styles.loadingText}>
+            {activeTab === "business"
+              ? "Searching businesses..."
+              : "Searching content..."}
+          </Text>
         </View>
       ) : error ? (
         <View style={styles.centered}>
@@ -223,26 +304,32 @@ export default function SearchScreen() {
         </View>
       ) : hasSearched ? (
         <FlatList
-          data={results}
+          data={currentResults}
           renderItem={renderResult}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.resultsList}
           ListHeaderComponent={
-            results.length > 0 ? (
+            currentResults.length > 0 ? (
               <Text style={styles.placeholderText}>
-                Found {results.length} result{results.length !== 1 ? "s" : ""}
+                Found {currentResults.length} result
+                {currentResults.length !== 1 ? "s" : ""}
               </Text>
             ) : null
           }
           ListEmptyComponent={
             <EmptyState
               title="No Results Found"
-              message={`No businesses match "${query}". Try different keywords or browse the directory.`}
+              message={`No ${activeTab === "business" ? "businesses" : "content"} match "${currentQuery}". Try different keywords.`}
               action={{
                 label: "Clear Search",
                 onPress: () => {
-                  setQuery("");
-                  setResults([]);
+                  if (activeTab === "business") {
+                    setBusinessQuery("");
+                    setBusinessResults([]);
+                  } else {
+                    setContentQuery("");
+                    setContentResults([]);
+                  }
                   setHasSearched(false);
                   setError(null);
                 },
@@ -253,8 +340,16 @@ export default function SearchScreen() {
       ) : (
         <View style={styles.centered}>
           <EmptyState
-            title="Search Businesses"
-            message="Enter a keyword to find local businesses, categories, or locations."
+            title={
+              activeTab === "business"
+                ? "Search Businesses"
+                : "Search Content"
+            }
+            message={
+              activeTab === "business"
+                ? "Enter a keyword to find local businesses, categories, or locations."
+                : "Enter keywords to search helpful content and resources."
+            }
           />
         </View>
       )}
