@@ -10,7 +10,7 @@
     </div>
     <div class="event-actions">
       <a class="btn btn-secondary" href="{% url 'events:calendar' %}">Calendar view</a>
-      <a class="btn btn-secondary" href="{% url 'events:feed' %}">iCal feed</a>
+      <button class="btn btn-secondary" type="button" data-copy-url="{{ feed_url }}">iCal feed</button>
       {% if user.is_authenticated %}
         <a class="btn" href="{% url 'events:submit' %}">Submit event</a>
       {% endif %}
@@ -41,13 +41,15 @@
     </div>
     {% if page_obj.has_other_pages %}
       <nav class="pagination">
-        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}">Previous</a>{% endif %}
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}{% if month %}&month={{ month }}{% endif %}">Previous</a>{% endif %}
         <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}">Next</a>{% endif %}
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search|urlencode }}{% endif %}{% if month %}&month={{ month }}{% endif %}">Next</a>{% endif %}
       </nav>
     {% endif %}
   {% else %}
     <p class="muted">No approved events yet.</p>
   {% endif %}
+
+  {% include "events/_month_calendar.html" %}
 </section>
 {% endblock %}

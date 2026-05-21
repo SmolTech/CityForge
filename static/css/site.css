@@ -373,6 +373,13 @@ a:hover { text-decoration: underline; }
 .muted-day .calendar-event { opacity: .9; }
 .event-page-header h1 { margin: 0 0 4px; }
 .event-page-header p { margin: 0; }
+.event-calendar {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.event-calendar h2 { margin: 0 0 4px; }
+.event-calendar .calendar-nav { margin-top: 0; }
 .star-rating { display: flex; flex-wrap: wrap; gap: 8px; }
 .star-rating label {
   display: inline-flex; align-items: center; gap: 4px;
