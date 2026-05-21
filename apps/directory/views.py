@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
+from django.db.utils import OperationalError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -148,40 +149,45 @@ def home(request: HttpRequest) -> HttpResponse:
     tag_mode = (request.GET.get("tag_mode") or "or").lower()
     featured_only = request.GET.get("featured") == "1"
 
-    qs = Card.objects.filter(approved=True)
+    try:
+        qs = Card.objects.filter(approved=True)
 
-    if search:
-        qs = qs.filter(
-            Q(name__icontains=search)
-            | Q(description__icontains=search)
-            | Q(address__icontains=search)
-            | Q(contact_name__icontains=search)
+        if search:
+            qs = qs.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(address__icontains=search)
+                | Q(contact_name__icontains=search)
+            )
+
+        if featured_only:
+            qs = qs.filter(featured=True)
+
+        if selected_tags:
+            if tag_mode == "or":
+                qs = qs.filter(tags__name__in=selected_tags).distinct()
+            else:
+                for t in selected_tags:
+                    qs = qs.filter(tags__name=t)
+                qs = qs.distinct()
+
+        qs = (
+            qs.annotate(
+                avg_rating=Avg("reviews__rating", filter=Q(reviews__hidden=False)),
+                num_reviews=Count("reviews", filter=Q(reviews__hidden=False)),
+            )
+            .prefetch_related("tags")
+            .order_by("-featured", "name")
         )
 
-    if featured_only:
-        qs = qs.filter(featured=True)
-
-    if selected_tags:
-        if tag_mode == "or":
-            qs = qs.filter(tags__name__in=selected_tags).distinct()
-        else:
-            for t in selected_tags:
-                qs = qs.filter(tags__name=t)
-            qs = qs.distinct()
-
-    qs = (
-        qs.annotate(
-            avg_rating=Avg("reviews__rating", filter=Q(reviews__hidden=False)),
-            num_reviews=Count("reviews", filter=Q(reviews__hidden=False)),
-        )
-        .prefetch_related("tags")
-        .order_by("-featured", "name")
-    )
-
-    paginator = Paginator(qs, settings.PAGINATION_DEFAULT_LIMIT)
-    page = paginator.get_page(request.GET.get("page"))
-
-    tags = Tag.objects.annotate(used=Count("cards")).filter(used__gt=0).order_by("name")
+        paginator = Paginator(qs, settings.PAGINATION_DEFAULT_LIMIT)
+        page = paginator.get_page(request.GET.get("page"))
+        tags = Tag.objects.annotate(used=Count("cards")).filter(used__gt=0).order_by("name")
+    except OperationalError:
+        messages.error(request, "The directory is temporarily unavailable. Please try again.")
+        paginator = Paginator(Card.objects.none(), settings.PAGINATION_DEFAULT_LIMIT)
+        page = paginator.get_page(1)
+        tags = Tag.objects.none()
 
     ctx = {
         "page_obj": page,

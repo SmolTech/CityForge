@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.utils import OperationalError
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
@@ -191,6 +192,13 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         card_names = [card.name for card in captured["cards"]]
         self.assertEqual(card_names, ["Alpha Coffee"])
+
+    def test_home_gracefully_handles_database_outage(self) -> None:
+        with patch("apps.directory.views.Card.objects.filter", side_effect=OperationalError):
+            response = self.client.get(reverse("directory:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "temporarily unavailable")
 
     def test_api_opensearch_falls_back_to_local_resources_when_search_unavailable(self) -> None:
         with patch("apps.search.views._client", return_value=None):
