@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar as pycalendar
-from datetime import date, datetime, timedelta, timezone as dt_timezone
+from datetime import UTC, date, datetime, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -91,7 +91,7 @@ def _ical_escape(value: str) -> str:
 
 
 def _ical_dt(value: datetime) -> str:
-    return timezone.localtime(value).astimezone(dt_timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return timezone.localtime(value).astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _build_ics(events: list[Event], request: HttpRequest) -> str:
