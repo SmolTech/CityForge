@@ -9,7 +9,6 @@
       <p class="muted">Upcoming events submitted by the community.</p>
     </div>
     <div class="event-actions">
-      <a class="btn btn-secondary" href="{% url 'events:calendar' %}">Calendar view</a>
       <button class="btn btn-secondary" type="button" data-copy-url="{{ feed_url }}">iCal feed</button>
       {% if user.is_authenticated %}
         <a class="btn" href="{% url 'events:submit' %}">Submit event</a>

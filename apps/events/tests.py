@@ -42,8 +42,12 @@ class EventFeatureTests(TestCase):
         self.assertEqual(body["events"][0]["title"], "Neighborhood Potluck")
 
     def test_public_views_render_and_feed_includes_events(self) -> None:
-        self.assertEqual(self.client.get(reverse("events:home")).status_code, 200)
-        self.assertEqual(self.client.get(reverse("events:calendar")).status_code, 200)
+        home = self.client.get(reverse("events:home"))
+        self.assertEqual(home.status_code, 200)
+        self.assertIn("Browse community events by month.", home.content.decode())
+        self.assertIn('data-copy-url="', home.content.decode())
+        self.assertEqual(self.client.get("/events/calendar/").status_code, 404)
+
         feed = self.client.get(reverse("events:feed"))
         self.assertEqual(feed.status_code, 200)
         self.assertEqual(feed.headers["Content-Type"], "text/calendar; charset=utf-8")

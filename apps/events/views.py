@@ -79,6 +79,61 @@ def _approved_events_queryset():
     return Event.objects.filter(approved=True).order_by("start_at", "title")
 
 
+def _calendar_month_context(request: HttpRequest) -> dict[str, object]:
+    today = timezone.localdate()
+    month_param = (request.GET.get("month") or "").strip()
+    if month_param:
+        try:
+            current = datetime.strptime(month_param, "%Y-%m").date().replace(day=1)
+        except ValueError:
+            current = today.replace(day=1)
+    else:
+        current = today.replace(day=1)
+
+    month_start = current
+    month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    events = list(
+        _approved_events_queryset().filter(
+            Q(start_at__date__lte=month_end)
+            & (
+                Q(end_at__isnull=True, start_at__date__gte=month_start)
+                | Q(end_at__date__gte=month_start)
+            )
+        )
+    )
+    events_by_day: dict[date, list[Event]] = {}
+    for event in events:
+        for day in _event_dates(event):
+            if month_start <= day <= month_end:
+                events_by_day.setdefault(day, []).append(event)
+
+    cal = pycalendar.Calendar(firstweekday=6)
+    weeks = []
+    for week in cal.monthdatescalendar(current.year, current.month):
+        weeks.append(
+            [
+                {
+                    "date": day,
+                    "in_month": day.month == current.month,
+                    "is_today": day == today,
+                    "events": events_by_day.get(day, []),
+                }
+                for day in week
+            ]
+        )
+
+    prev_month = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
+    next_month = (month_end + timedelta(days=1)).replace(day=1)
+    return {
+        "current_month": current,
+        "weeks": weeks,
+        "prev_month": prev_month.strftime("%Y-%m"),
+        "next_month": next_month.strftime("%Y-%m"),
+        "month": current.strftime("%Y-%m"),
+        "today": today,
+    }
+
+
 def _ical_escape(value: str) -> str:
     return (
         value.replace("\\", "\\\\")
@@ -154,6 +209,7 @@ def events_home(request: HttpRequest) -> HttpResponse:
             | Q(location__icontains=search)
         )
     page = Paginator(qs, settings.PAGINATION_DEFAULT_LIMIT).get_page(request.GET.get("page"))
+    calendar_context = _calendar_month_context(request)
     return render(
         request,
         "events/home.html",
@@ -161,65 +217,9 @@ def events_home(request: HttpRequest) -> HttpResponse:
             "page_obj": page,
             "events": page.object_list,
             "search": search,
+            "feed_url": _absolute_url(request, "events:feed"),
+            **calendar_context,
             "total": qs.count(),
-        },
-    )
-
-
-def events_calendar(request: HttpRequest) -> HttpResponse:
-    today = timezone.localdate()
-    month_param = (request.GET.get("month") or "").strip()
-    if month_param:
-        try:
-            current = datetime.strptime(month_param, "%Y-%m").date().replace(day=1)
-        except ValueError:
-            current = today.replace(day=1)
-    else:
-        current = today.replace(day=1)
-
-    month_start = current
-    month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    events = list(
-        _approved_events_queryset().filter(
-            Q(start_at__date__lte=month_end)
-            & (
-                Q(end_at__isnull=True, start_at__date__gte=month_start)
-                | Q(end_at__date__gte=month_start)
-            )
-        )
-    )
-    events_by_day: dict[date, list[Event]] = {}
-    for event in events:
-        for day in _event_dates(event):
-            if month_start <= day <= month_end:
-                events_by_day.setdefault(day, []).append(event)
-
-    cal = pycalendar.Calendar(firstweekday=6)
-    weeks = []
-    for week in cal.monthdatescalendar(current.year, current.month):
-        weeks.append(
-            [
-                {
-                    "date": day,
-                    "in_month": day.month == current.month,
-                    "is_today": day == today,
-                    "events": events_by_day.get(day, []),
-                }
-                for day in week
-            ]
-        )
-
-    prev_month = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
-    next_month = (month_end + timedelta(days=1)).replace(day=1)
-    return render(
-        request,
-        "events/calendar.html",
-        {
-            "current_month": current,
-            "weeks": weeks,
-            "prev_month": prev_month.strftime("%Y-%m"),
-            "next_month": next_month.strftime("%Y-%m"),
-            "today": today,
         },
     )
 

@@ -4,7 +4,6 @@ from . import views
 
 urlpatterns = [
     path("", views.events_home, name="home"),
-    path("calendar/", views.events_calendar, name="calendar"),
     path("feed.ics", views.event_feed, name="feed"),
     path("submit/", views.event_submit, name="submit"),
     path("my/submissions/", views.my_event_submissions, name="my_submissions"),
