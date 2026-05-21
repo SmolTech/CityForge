@@ -28,4 +28,3 @@ class EventSubmissionForm(forms.ModelForm):
         if start_at and end_at and end_at < start_at:
             raise forms.ValidationError("End time must be after start time.")
         return cleaned
-
