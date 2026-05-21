@@ -122,6 +122,52 @@
   </script>
   <script>
     (function () {
+      document.addEventListener("click", async function (event) {
+        const button = event.target.closest("[data-copy-url]");
+        if (!button) return;
+
+        event.preventDefault();
+        const url = button.getAttribute("data-copy-url");
+        if (!url) return;
+
+        const originalLabel = button.textContent;
+
+        async function copyText(value) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(value);
+            return true;
+          }
+
+          const field = document.createElement("textarea");
+          field.value = value;
+          field.setAttribute("readonly", "");
+          field.style.position = "absolute";
+          field.style.left = "-9999px";
+          document.body.appendChild(field);
+          field.select();
+          const copied = document.execCommand("copy");
+          document.body.removeChild(field);
+          return copied;
+        }
+
+        try {
+          const copied = await copyText(url);
+          if (copied) {
+            button.textContent = "Copied";
+            window.setTimeout(function () {
+              button.textContent = originalLabel;
+            }, 1500);
+          } else {
+            window.prompt("Copy this URL", url);
+          }
+        } catch (error) {
+          window.prompt("Copy this URL", url);
+        }
+      });
+    })();
+  </script>
+  <script>
+    (function () {
       const header = document.querySelector(".site-header");
       const toggle = document.getElementById("mobile-nav-toggle");
       const nav = document.getElementById("primary-nav");
