@@ -15,8 +15,10 @@ def get_site_config() -> dict[str, str]:
     try:
         from apps.resources.models import ResourceConfig
 
-        rows = ResourceConfig.objects.filter(key__in=[SITE_NAME_KEY, SITE_TAGLINE_KEY]).values_list(
-            "key", "value"
+        rows = list(
+            ResourceConfig.objects.filter(key__in=[SITE_NAME_KEY, SITE_TAGLINE_KEY]).values_list(
+                "key", "value"
+            )
         )
     except (OperationalError, ProgrammingError):
         return values

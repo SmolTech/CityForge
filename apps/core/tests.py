@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+from collections.abc import Iterator
 from io import StringIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -44,6 +45,10 @@ from apps.resources.models import QuickAccessItem, ResourceCategory, ResourceCon
 
 
 class SiteConfigTests(TestCase):
+    class _BrokenRows:
+        def __iter__(self) -> Iterator[tuple[str, str]]:
+            raise OperationalError
+
     def test_get_site_config_uses_database_values(self) -> None:
         set_site_config("Configured Name", "Configured Tagline")
         config = get_site_config()
@@ -55,6 +60,14 @@ class SiteConfigTests(TestCase):
             "apps.resources.models.ResourceConfig.objects.filter", side_effect=OperationalError
         ):
             config = get_site_config()
+        self.assertIn("SITE_NAME", config)
+        self.assertIn("SITE_TAGLINE", config)
+
+    def test_get_site_config_falls_back_when_query_eval_fails(self) -> None:
+        with patch("apps.resources.models.ResourceConfig.objects.filter") as mocked_filter:
+            mocked_filter.return_value.values_list.return_value = self._BrokenRows()
+            config = get_site_config()
+
         self.assertIn("SITE_NAME", config)
         self.assertIn("SITE_TAGLINE", config)
 
