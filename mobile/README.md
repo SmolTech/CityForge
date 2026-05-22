@@ -75,8 +75,11 @@ Build a local installable Android APK on your machine:
 npm run android:build:local
 ```
 
-**Note:** Requires Java, Android SDK, and EAS CLI. The command uses the `preview`
-profile and produces an APK without sending the build to Expo's cloud.
+**Note:** Requires **Java 21 JDK**, Android SDK, and EAS CLI. The command uses
+the `preview` profile, rewrites the Android wrapper to Gradle 9.5.1 during
+prebuild, and produces an APK without sending the build to Expo's cloud. EAS
+versioning is set to `local`, so `android.versionCode` and `ios.buildNumber`
+stay in the app config.
 
 ### Run on Web (for testing)
 

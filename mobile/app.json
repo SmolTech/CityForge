@@ -64,6 +64,7 @@
           "calendarPermission": "Allow CityForge to sync approved community events to your calendar."
         }
       ],
+      "./plugins/withLatestGradle",
       "expo-font"
     ],
     "extra": {
