@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import logging
 from collections.abc import Iterator
 from io import StringIO
 from pathlib import Path
@@ -15,6 +16,7 @@ from django.test import RequestFactory, TestCase
 from apps.accounts.models import TokenBlacklist, User
 from apps.classifieds.models import HelpWantedComment, HelpWantedPost
 from apps.core.context_processors import site
+from apps.core.logging import JsonFormatter
 from apps.core.management.commands.fix_imported_passwords import (
     Command as FixPasswordsCommand,
 )
@@ -76,6 +78,41 @@ class SiteConfigTests(TestCase):
         values = site(request)
         self.assertIn("SITE_NAME", values)
         self.assertIn("SITE_TAGLINE", values)
+
+
+class LoggingTests(TestCase):
+    def test_request_logging_sets_request_id_response_header(self) -> None:
+        response = self.client.get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers["X-Request-ID"])
+
+    def test_request_logging_respects_forwarded_request_id(self) -> None:
+        response = self.client.get("/api/health", HTTP_X_REQUEST_ID="req-123")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Request-ID"], "req-123")
+
+    def test_json_formatter_serializes_expected_fields(self) -> None:
+        formatter = JsonFormatter()
+        record = logging.LogRecord(
+            name="apps.core.tests",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="log-message",
+            args=(),
+            exc_info=None,
+        )
+        record.request_id = "req-123"
+        record.method = "GET"
+        record.path = "/api/health"
+        record.status_code = 200
+        payload = json.loads(formatter.format(record))
+
+        self.assertEqual(payload["message"], "log-message")
+        self.assertEqual(payload["request_id"], "req-123")
+        self.assertEqual(payload["method"], "GET")
+        self.assertEqual(payload["path"], "/api/health")
+        self.assertEqual(payload["status_code"], 200)
 
 
 class TemplateTagTests(TestCase):

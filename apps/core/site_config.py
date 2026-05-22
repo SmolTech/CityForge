@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 
 SITE_NAME_KEY = "site_name"
 SITE_TAGLINE_KEY = "site_tagline"
+logger = logging.getLogger(__name__)
 
 
 def get_site_config() -> dict[str, str]:
@@ -20,7 +23,8 @@ def get_site_config() -> dict[str, str]:
                 "key", "value"
             )
         )
-    except (OperationalError, ProgrammingError):
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("site_config.db_unavailable: %s", exc)
         return values
 
     for key, value in rows:

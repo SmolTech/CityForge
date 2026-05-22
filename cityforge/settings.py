@@ -58,6 +58,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.core.logging.RequestLoggingMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -177,9 +178,45 @@ if not DEBUG:
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
+LOG_LEVEL = env("LOG_LEVEL", default="INFO").upper()
+DB_LOG_LEVEL = env("DB_LOG_LEVEL", default="WARNING").upper()
+LOG_FORMAT = env("LOG_FORMAT", default="pretty" if DEBUG else "json").lower()
+_console_formatter = "json" if LOG_FORMAT == "json" else "pretty"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
+    "filters": {
+        "request_context": {
+            "()": "apps.core.logging.RequestContextFilter",
+        }
+    },
+    "formatters": {
+        "pretty": {
+            "format": "%(asctime)s %(levelname)s [%(name)s] [request_id=%(request_id)s] %(message)s"
+        },
+        "json": {
+            "()": "apps.core.logging.JsonFormatter",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_context"],
+            "formatter": _console_formatter,
+        }
+    },
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {
+        "apps": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "apps.request": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": DB_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
 }

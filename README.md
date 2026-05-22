@@ -102,6 +102,9 @@ See `.env.example`. Key variables:
 | `DJANGO_SECRET_KEY` | Required in production |
 | `DJANGO_DEBUG` | `True`/`False` |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated host list |
+| `LOG_LEVEL` | App/framework log level (default: `INFO`) |
+| `DB_LOG_LEVEL` | SQL logger level (default: `WARNING`) |
+| `LOG_FORMAT` | `pretty` for text logs or `json` for structured logs |
 | `DATABASE_URL` | Postgres DSN; falls back to sqlite |
 | `OPENSEARCH_HOST` / `_PORT` / `_NAMESPACE` | OpenSearch connection |
 | `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` for dev |
