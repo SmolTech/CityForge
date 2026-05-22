@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,9 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import type { ImageStyle } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
 import { apiClient } from "../api/client";
 import type { BusinessSubmissionInput } from "../types/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -38,6 +41,12 @@ function parseTags(input: string): string[] {
     .filter(Boolean);
 }
 
+type PickedImage = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 export default function BusinessFormScreen() {
   const route = useRoute<BusinessFormRouteProp>();
   const navigation = useNavigation<BusinessFormNavigationProp>();
@@ -53,7 +62,7 @@ export default function BusinessFormScreen() {
   const [email, setEmail] = useState(card?.email ?? "");
   const [address, setAddress] = useState(card?.address ?? "");
   const [contactName, setContactName] = useState("");
-  const [imageUrl, setImageUrl] = useState(card?.image_url ?? "");
+  const [selectedImage, setSelectedImage] = useState<PickedImage | null>(null);
   const [tags, setTags] = useState(card?.tags.map((tag) => tag.name) ?? []);
   const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +141,33 @@ export default function BusinessFormScreen() {
       marginTop: -8,
       marginBottom: 16,
     } as const,
+    imagePreview: {
+      width: "100%" as const,
+      aspectRatio: 16 / 9,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      marginBottom: 12,
+    } as const,
+    imageButtonsRow: {
+      flexDirection: "row" as const,
+      gap: 12,
+      marginBottom: 16,
+    } as const,
+    secondaryButton: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+    } as const,
+    secondaryButtonText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: "500" as const,
+    } as const,
     button: {
       backgroundColor: colors.primary,
       borderRadius: 8,
@@ -157,6 +193,7 @@ export default function BusinessFormScreen() {
       fontWeight: "500" as const,
     } as const,
   }));
+  const imagePreviewStyle = styles.imagePreview as ImageStyle;
 
   const buildPayload = (): BusinessSubmissionInput => ({
     name: name.trim(),
@@ -166,9 +203,39 @@ export default function BusinessFormScreen() {
     email: optionalValue(email),
     address: optionalValue(address),
     contactName: optionalValue(contactName),
-    imageUrl: optionalValue(imageUrl),
+    image: selectedImage ?? undefined,
     tagsText: tags.length > 0 ? tags.join(", ") : undefined,
   });
+
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission needed",
+        "Please allow photo library access to upload business images."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    const fallbackExt = asset.uri.split(".").pop() || "jpg";
+    const mimeType = asset.mimeType || `image/${fallbackExt.toLowerCase()}`;
+    setSelectedImage({
+      uri: asset.uri,
+      name: asset.fileName || `business-image.${fallbackExt}`,
+      type: mimeType,
+    });
+  };
 
   const commitTagInput = () => {
     const parsed = parseTags(tagInput);
@@ -320,18 +387,37 @@ export default function BusinessFormScreen() {
           editable={!isSubmitting}
         />
 
-        <Text style={styles.label}>Image URL</Text>
-        <TextInput
-          style={styles.input}
-          value={imageUrl}
-          onChangeText={setImageUrl}
-          placeholder="https://example.com/image.jpg"
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          editable={!isSubmitting}
-        />
+        <Text style={styles.label}>Business Image</Text>
+        {(selectedImage?.uri || card?.image_url) && (
+          <Image
+            style={imagePreviewStyle}
+            source={{ uri: selectedImage?.uri || card?.image_url }}
+            resizeMode="contain"
+          />
+        )}
+        <View style={styles.imageButtonsRow}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={pickImage}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.secondaryButtonText}>
+              {selectedImage ? "Change image" : "Choose image"}
+            </Text>
+          </TouchableOpacity>
+          {selectedImage && (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => setSelectedImage(null)}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.secondaryButtonText}>Remove</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text style={styles.hint}>
+          Select an image from your device. Images are uploaded with your submission.
+        </Text>
 
         <Text style={styles.label}>Tags</Text>
         {tags.length > 0 && (

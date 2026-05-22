@@ -57,7 +57,27 @@ type RawCard = Omit<Card, "tags"> & {
   review_count?: number;
 };
 
-function normalizeCard(card: RawCard): Card {
+function toAbsoluteUrl(url: string | undefined, baseUrl: string): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  if (/^(https?:|data:|file:|content:)/i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+
+  try {
+    return new URL(url, baseUrl).toString();
+  } catch {
+    return url;
+  }
+}
+
+function normalizeCard(card: RawCard, baseUrl: string): Card {
   const fallbackSlug = (card.name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -68,6 +88,8 @@ function normalizeCard(card: RawCard): Card {
     slug: card.slug || fallbackSlug,
     website: card.website ?? card.website_url,
     phone: card.phone ?? card.phone_number,
+    image_url: toAbsoluteUrl(card.image_url, baseUrl),
+    logo_url: toAbsoluteUrl(card.logo_url, baseUrl),
     tags: (card.tags ?? []).map((tag, index) =>
       typeof tag === "string" ? { id: index, name: tag } : tag
     ),
@@ -116,8 +138,11 @@ class ApiClient {
     const authToken =
       token !== undefined ? token : await tokenStorage.getToken();
 
+    const isFormDataBody =
+      typeof globalThis.FormData !== "undefined" &&
+      options.body instanceof globalThis.FormData;
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
       ...(options.headers as Record<string, string>),
     };
 
@@ -343,7 +368,7 @@ class ApiClient {
     );
 
     const rawCards = response.cards ?? [];
-    const normalizedCards = rawCards.map(normalizeCard);
+    const normalizedCards = rawCards.map((card) => normalizeCard(card, this.baseUrl));
 
     const usesLegacyPagination =
       typeof (response as CardsApiResponse).total === "number" &&
@@ -397,6 +422,42 @@ class ApiClient {
 
   // Submissions APIs
   async submitCard(data: BusinessSubmissionInput): Promise<CardSubmission> {
+    if (data.image) {
+      const formData = new globalThis.FormData();
+      formData.append("name", data.name);
+      if (data.description) {
+        formData.append("description", data.description);
+      }
+      if (data.websiteUrl) {
+        formData.append("websiteUrl", data.websiteUrl);
+      }
+      if (data.phoneNumber) {
+        formData.append("phoneNumber", data.phoneNumber);
+      }
+      if (data.email) {
+        formData.append("email", data.email);
+      }
+      if (data.address) {
+        formData.append("address", data.address);
+      }
+      if (data.contactName) {
+        formData.append("contactName", data.contactName);
+      }
+      if (data.tagsText) {
+        formData.append("tagsText", data.tagsText);
+      }
+      formData.append("image", {
+        uri: data.image.uri,
+        name: data.image.name,
+        type: data.image.type,
+      } as unknown as Blob);
+
+      return this.request<CardSubmission>("/api/submissions", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
     return this.request<CardSubmission>("/api/submissions", {
       method: "POST",
       body: JSON.stringify(data),
@@ -416,6 +477,42 @@ class ApiClient {
     cardId: number,
     data: BusinessSubmissionInput
   ): Promise<CardSubmission> {
+    if (data.image) {
+      const formData = new globalThis.FormData();
+      formData.append("name", data.name);
+      if (data.description) {
+        formData.append("description", data.description);
+      }
+      if (data.websiteUrl) {
+        formData.append("websiteUrl", data.websiteUrl);
+      }
+      if (data.phoneNumber) {
+        formData.append("phoneNumber", data.phoneNumber);
+      }
+      if (data.email) {
+        formData.append("email", data.email);
+      }
+      if (data.address) {
+        formData.append("address", data.address);
+      }
+      if (data.contactName) {
+        formData.append("contactName", data.contactName);
+      }
+      if (data.tagsText) {
+        formData.append("tagsText", data.tagsText);
+      }
+      formData.append("image", {
+        uri: data.image.uri,
+        name: data.image.name,
+        type: data.image.type,
+      } as unknown as Blob);
+
+      return this.request(`/api/cards/${cardId}/suggest-edit`, {
+        method: "POST",
+        body: formData,
+      });
+    }
+
     return this.request(`/api/cards/${cardId}/suggest-edit`, {
       method: "POST",
       body: JSON.stringify(data),

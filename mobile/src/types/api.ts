@@ -78,7 +78,11 @@ export interface BusinessSubmissionInput {
   email?: string;
   address?: string;
   contactName?: string;
-  imageUrl?: string;
+  image?: {
+    uri: string;
+    name: string;
+    type: string;
+  };
   tagsText?: string;
 }
 

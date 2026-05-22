@@ -50,7 +50,7 @@ def _request_payload(request: HttpRequest) -> dict[str, object]:
         if not isinstance(payload, dict):
             raise ValueError("Request body must be a JSON object.")
         return payload
-    return dict(request.POST)
+    return request.POST.dict()
 
 
 def _payload_text(payload: dict[str, object], *keys: str) -> str:
@@ -141,6 +141,18 @@ def _save_submission_image_url(
     image_url = _payload_text(payload, "image_url", "imageUrl")
     if image_url:
         item.image_url = image_url
+
+
+def _save_submission_image(
+    item: CardSubmission | CardModification,
+    form: CardSubmissionForm | CardModificationForm,
+    payload: dict[str, object],
+) -> None:
+    image = form.cleaned_data.get("image")
+    if image:
+        item.image_url = _save_business_image(image)
+        return
+    _save_submission_image_url(item, payload)
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -399,7 +411,7 @@ def api_submissions(request: HttpRequest) -> HttpResponse:
     submission.submitter = request.user
     submission.status = CardSubmissionStatus.PENDING
     submission.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
-    _save_submission_image_url(submission, payload)
+    _save_submission_image(submission, form, payload)
     submission.save()
     dispatch_event(
         "submission.created",
@@ -448,7 +460,7 @@ def api_suggest_edit(request: HttpRequest, pk: int) -> HttpResponse:
     modification.submitter = request.user
     modification.status = CardSubmissionStatus.PENDING
     modification.tags_text = ", ".join(_split_tags(form.cleaned_data.get("tags_text", "")))
-    _save_submission_image_url(modification, payload)
+    _save_submission_image(modification, form, payload)
     modification.save()
     changed_fields = modification_changed_fields(modification)
     dispatch_event(

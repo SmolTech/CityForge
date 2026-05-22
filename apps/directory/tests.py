@@ -405,3 +405,24 @@ class DirectoryViewTests(TestCase):
         self.assertEqual([item["kind"] for item in history], ["modification", "submission"])
         self.assertEqual(history[0]["name"], "Alpha Coffee Roasters")
         self.assertEqual(history[1]["name"], "Mobile Submission")
+
+    def test_api_submissions_accepts_multipart_image_upload(self) -> None:
+        self.client.force_login(self.user)
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root, MEDIA_URL="/media/"):
+                with patch("apps.directory.views.dispatch_event"):
+                    response = self.client.post(
+                        "/api/submissions",
+                        {
+                            "name": "Mobile Upload",
+                            "description": "Sent with image file",
+                            "tagsText": "coffee,local",
+                            "image": _uploaded_png(),
+                        },
+                    )
+
+                self.assertEqual(response.status_code, 201)
+                submission = CardSubmission.objects.get(name="Mobile Upload")
+                self.assertTrue(submission.image_url.startswith("/media/business-submissions/"))
+                saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
+                self.assertTrue(saved_path.exists())
