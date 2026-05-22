@@ -162,9 +162,12 @@ class ApiClient {
         headers,
       });
 
-      // Handle 401 Unauthorized - token might be expired
+      // Handle 401 Unauthorized. Only clear local token for auth endpoints so
+      // transient/public-endpoint 401s don't force-log the user out.
       if (response.status === 401) {
-        await tokenStorage.removeToken();
+        if (endpoint.startsWith("/api/auth/")) {
+          await tokenStorage.removeToken();
+        }
         throw new Error("Unauthorized - please login again");
       }
 

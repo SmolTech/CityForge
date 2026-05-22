@@ -61,6 +61,12 @@ export default function TagsScreen() {
       gap: 8,
       alignItems: "center",
     } as const,
+    tagHint: {
+      color: colors.textMuted,
+      fontSize: 12,
+      textAlign: "center" as const,
+      marginBottom: 6,
+    } as const,
     tagChip: {
       paddingHorizontal: 14,
       paddingVertical: 7,
@@ -251,12 +257,15 @@ export default function TagsScreen() {
         }
         ListHeaderComponent={
           <>
+            {tags.length > 1 ? (
+              <Text style={styles.tagHint}>↔ Swipe left/right to see more tags</Text>
+            ) : null}
             <FlatList
               data={tags}
               renderItem={renderTag}
               keyExtractor={(item) => item.id.toString()}
               horizontal
-              showsHorizontalScrollIndicator={false}
+              showsHorizontalScrollIndicator
               contentContainerStyle={styles.tagListContent}
               style={styles.tagList}
             />
