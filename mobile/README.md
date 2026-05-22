@@ -76,7 +76,7 @@ npm run android:build:local
 ```
 
 **Note:** Requires **Java 21 JDK**, Android SDK, and EAS CLI. The command uses
-the `preview` profile, rewrites the Android wrapper to Gradle 9.5.1 during
+the `preview` profile, rewrites the Android wrapper to Gradle 8.14.5 during
 prebuild, and produces an APK without sending the build to Expo's cloud. EAS
 versioning is set to `local`, so `android.versionCode` and `ios.buildNumber`
 stay in the app config.
