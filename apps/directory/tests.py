@@ -174,6 +174,15 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["cards"]), 2)
 
+    def test_cards_api_includes_tags_and_supports_tag_filter(self) -> None:
+        response = self.client.get("/api/cards", {"tags": "coffee"})
+
+        self.assertEqual(response.status_code, 200)
+        cards = response.json()["cards"]
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]["name"], "Alpha Coffee")
+        self.assertEqual(cards[0]["tags"], ["coffee"])
+
     def test_home_filters_by_featured_and_tags(self) -> None:
         request = RequestFactory().get("/", {"featured": "1", "tag": ["coffee"]})
         request.user = self.user

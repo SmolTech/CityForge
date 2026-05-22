@@ -216,26 +216,41 @@ def home(request: HttpRequest) -> HttpResponse:
 
 def api_cards(request: HttpRequest) -> JsonResponse:
     limit = _safe_int(request.GET.get("limit"), default=1000, minimum=1, maximum=5000)
-    cards = (
-        Card.objects.filter(approved=True)
-        .order_by("id")
-        .values(
-            "id",
-            "name",
-            "description",
-            "website_url",
-            "phone_number",
-            "email",
-            "address",
-            "address_override_url",
-            "contact_name",
-            "featured",
-            "image_url",
-            "created_date",
-            "updated_date",
-        )[:limit]
-    )
-    return JsonResponse({"cards": list(cards)})
+    search = (request.GET.get("search") or "").strip()
+    selected_tags = request.GET.getlist("tags")
+
+    qs = Card.objects.filter(approved=True)
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(address__icontains=search)
+            | Q(contact_name__icontains=search)
+        )
+    if selected_tags:
+        qs = qs.filter(tags__name__in=selected_tags).distinct()
+
+    cards = []
+    for card in qs.prefetch_related("tags").order_by("id")[:limit]:
+        cards.append(
+            {
+                "id": card.id,
+                "name": card.name,
+                "description": card.description,
+                "website_url": card.website_url,
+                "phone_number": card.phone_number,
+                "email": card.email,
+                "address": card.address,
+                "address_override_url": card.address_override_url,
+                "contact_name": card.contact_name,
+                "featured": card.featured,
+                "image_url": card.image_url,
+                "created_date": card.created_date,
+                "updated_date": card.updated_date,
+                "tags": list(card.tags.values_list("name", flat=True)),
+            }
+        )
+    return JsonResponse({"cards": cards})
 
 
 def api_opensearch(request: HttpRequest) -> JsonResponse:
