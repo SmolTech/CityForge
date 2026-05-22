@@ -17,6 +17,7 @@ import {
   updateInstanceToken,
   updateInstanceUser,
 } from "../utils/instanceStorage";
+import { cacheManager } from "../utils/cacheManager";
 
 interface InstanceContextType {
   instances: Instance[];
@@ -130,6 +131,9 @@ export function InstanceProvider({ children }: InstanceProviderProps) {
   }
 
   async function switchInstance(instanceId: string) {
+    if (activeInstanceId !== instanceId) {
+      await cacheManager.clear();
+    }
     await setActiveInstanceId(instanceId);
     setActiveInstanceIdState(instanceId);
 

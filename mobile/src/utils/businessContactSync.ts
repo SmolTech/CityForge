@@ -61,6 +61,11 @@ function buildFingerprint(cards: Card[]): string {
 
 function buildContact(card: Card): Contacts.Contact {
   const urlAddresses: Contacts.UrlAddress[] = [];
+  const contact: Contacts.Contact = {
+    contactType: Contacts.ContactTypes.Company,
+    name: card.name,
+    company: card.name,
+  };
 
   if (card.website) {
     urlAddresses.push({ label: "website", url: normalizeUrl(card.website) });
@@ -70,19 +75,20 @@ function buildContact(card: Card): Contacts.Contact {
     urlAddresses.push({ label: "map", url: normalizeUrl(card.address_override_url) });
   }
 
-  return {
-    contactType: Contacts.ContactTypes.Company,
-    name: card.name,
-    company: card.name,
-    phoneNumbers: card.phone
-      ? [{ label: "work", number: card.phone }]
-      : undefined,
-    emails: card.email ? [{ label: "work", email: card.email }] : undefined,
-    addresses: card.address
-      ? [{ label: "work", street: card.address }]
-      : undefined,
-    urlAddresses: urlAddresses.length > 0 ? urlAddresses : undefined,
-  };
+  if (card.phone) {
+    contact.phoneNumbers = [{ label: "work", number: card.phone }];
+  }
+  if (card.email) {
+    contact.emails = [{ label: "work", email: card.email }];
+  }
+  if (card.address) {
+    contact.addresses = [{ label: "work", street: card.address }];
+  }
+  if (urlAddresses.length > 0) {
+    contact.urlAddresses = urlAddresses;
+  }
+
+  return contact;
 }
 
 async function loadState(instanceId: string): Promise<SyncState> {
