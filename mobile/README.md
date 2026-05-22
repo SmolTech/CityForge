@@ -67,6 +67,17 @@ npm run android
 
 **Note:** Requires Android Studio and Android SDK installed.
 
+### Local Android Build
+
+Build a local installable Android APK on your machine:
+
+```bash
+npm run android:build:local
+```
+
+**Note:** Requires Java, Android SDK, and EAS CLI. The command uses the `preview`
+profile and produces an APK without sending the build to Expo's cloud.
+
 ### Run on Web (for testing)
 
 ```bash
@@ -136,6 +147,9 @@ The mobile app uses token-based authentication:
 ```bash
 # Android APK (can install directly)
 eas build --platform android --profile preview
+
+# Local Android APK build (uses your machine)
+npm run android:build:local
 
 # iOS Simulator build (Mac only)
 eas build --platform ios --profile preview

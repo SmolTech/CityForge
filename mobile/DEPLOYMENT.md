@@ -136,7 +136,7 @@ Add to GitHub repository secrets (Settings → Secrets → Actions):
 **Android:**
 
 ```bash
-eas build --platform android --profile preview
+npm run android:build:local
 ```
 
 **iOS:**

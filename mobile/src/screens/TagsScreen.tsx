@@ -15,6 +15,7 @@ import type { RootStackParamList } from "../types/navigation";
 import EmptyState from "../components/EmptyState";
 import ErrorScreen from "../components/ErrorScreen";
 import OfflineIndicator from "../components/OfflineIndicator";
+import BusinessThumbnail from "../components/BusinessThumbnail";
 import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
 import { useTheme } from "../contexts/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
@@ -90,6 +91,12 @@ export default function TagsScreen() {
       marginBottom: 16,
       borderWidth: 1,
       borderColor: colors.border,
+      overflow: "hidden",
+    } as const,
+    cardContent: {
+      overflow: "hidden",
+    } as const,
+    cardInfo: {
       padding: 16,
     } as const,
     cardName: {
@@ -195,10 +202,15 @@ export default function TagsScreen() {
         navigation.navigate("BusinessDetail", { id: item.id, slug: item.slug })
       }
     >
-      <Text style={styles.cardName}>{item.name}</Text>
-      <Text style={styles.cardDescription} numberOfLines={3}>
-        {item.description}
-      </Text>
+      <View style={styles.cardContent}>
+        <BusinessThumbnail uri={item.image_url} alt={item.name} height={120} />
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName}>{item.name}</Text>
+          <Text style={styles.cardDescription} numberOfLines={3}>
+            {item.description}
+          </Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 

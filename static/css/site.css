@@ -296,6 +296,15 @@ a:hover { text-decoration: underline; }
 .card .desc { margin: 8px 0; flex: 1; }
 .card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .card .rating { color: var(--warning); font-size: .9rem; }
+.card-thumbnail {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  border-radius: calc(var(--radius) - 2px);
+  margin: 8px 0 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
 
 .pagination { display: flex; gap: 8px; justify-content: center; margin: 24px 0; }
 .pagination a, .pagination span {

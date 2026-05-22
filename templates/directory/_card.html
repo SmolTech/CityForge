@@ -3,6 +3,14 @@
   <h3>
     <a class="stretched-link" href="{% url 'directory:card_detail' pk=card.pk slug=card.slug %}">{{ card.name }}</a>
   </h3>
+  {% if card.image_url %}
+    {% with image_url=card.image_url|safe_external_url %}
+      {% if image_url %}
+        {# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}
+        <img src="{{ image_url }}" alt="" class="card-thumbnail" loading="lazy" decoding="async">
+      {% endif %}
+    {% endwith %}
+  {% endif %}
   {% if card.featured %}<small class="badge badge-pending">Featured</small>{% endif %}
   {% if card.contact_name %}<div class="meta">{{ card.contact_name }}</div>{% endif %}
   {% if card.description %}<p class="desc">{{ card.description|truncatechars:140 }}</p>{% endif %}

@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -17,6 +16,7 @@ import ErrorScreen from "../components/ErrorScreen";
 import EmptyState from "../components/EmptyState";
 import SkeletonLoader from "../components/SkeletonLoader";
 import OfflineIndicator from "../components/OfflineIndicator";
+import BusinessThumbnail from "../components/BusinessThumbnail";
 import { useNetworkRefresh } from "../hooks/useNetworkRefresh";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useTheme } from "../contexts/ThemeContext";
@@ -129,11 +129,6 @@ export default function BusinessScreen() {
     } as const,
   }));
 
-  const cardImageStyle = {
-    width: "100%" as const,
-    height: 160,
-  };
-
   const loadCards = async (pageNum = 1, refresh = false) => {
     if (!refresh && pageNum === 1) {
       setIsLoading(true);
@@ -187,24 +182,17 @@ export default function BusinessScreen() {
 
   const renderCard = ({ item }: { item: Card }) => (
     <TouchableOpacity
-      style={styles.card}
-      onPress={() =>
-        navigation.navigate("BusinessDetail", { id: item.id, slug: item.slug })
-      }
+    style={styles.card}
+    onPress={() =>
+      navigation.navigate("BusinessDetail", { id: item.id, slug: item.slug })
+    }
     >
-      <View style={styles.cardContent}>
-        {item.image_url && (
-          <Image
-            source={{ uri: item.image_url }}
-            style={cardImageStyle}
-            resizeMode="cover"
-            alt={item.name}
-          />
-        )}
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>{item.name}</Text>
-          <Text style={styles.cardDescription} numberOfLines={2}>
-            {item.description}
+    <View style={styles.cardContent}>
+      <BusinessThumbnail uri={item.image_url} alt={item.name} height={140} />
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardName}>{item.name}</Text>
+        <Text style={styles.cardDescription} numberOfLines={2}>
+          {item.description}
           </Text>
           {item.tags.length > 0 && (
             <View style={styles.tags}>
@@ -227,7 +215,13 @@ export default function BusinessScreen() {
 
   const renderSkeletonCard = () => (
     <View style={styles.card}>
-      <View style={{ ...cardImageStyle, backgroundColor: colors.surface }} />
+      <View
+        style={{
+          width: "100%",
+          height: 140,
+          backgroundColor: colors.backgroundTertiary,
+        }}
+      />
       <View style={styles.cardInfo}>
         <SkeletonLoader width="70%" height={18} marginBottom={8} />
         <SkeletonLoader width="100%" height={14} count={2} marginBottom={12} />

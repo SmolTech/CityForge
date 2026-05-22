@@ -200,6 +200,25 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "temporarily unavailable")
 
+    def test_home_renders_scaled_business_image_thumbnail(self) -> None:
+        self.card_a.image_url = "https://images.example/alpha.jpg"
+        self.card_a.save(update_fields=["image_url"])
+
+        response = self.client.get(reverse("directory:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="card-thumbnail"', html=False)
+        self.assertContains(response, 'src="https://images.example/alpha.jpg"', html=False)
+
+    def test_home_ignores_unsafe_business_image_url(self) -> None:
+        self.card_a.image_url = "javascript:alert(1)"
+        self.card_a.save(update_fields=["image_url"])
+
+        response = self.client.get(reverse("directory:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'src="javascript:alert(1)"', html=False)
+
     def test_api_opensearch_falls_back_to_local_resources_when_search_unavailable(self) -> None:
         with patch("apps.search.views._client", return_value=None):
             response = self.client.get("/api/cards/search/", {"q": "clinic"})
