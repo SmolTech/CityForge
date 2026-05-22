@@ -7,7 +7,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user
 from django.core.cache import cache
 from django.http import HttpResponse
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -267,6 +267,42 @@ class AccountHelperTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
         sender.assert_not_called()
+
+
+class MobileAuthApiCsrfTests(TestCase):
+    def setUp(self) -> None:
+        self.client = Client(enforce_csrf_checks=True)
+        self.user = User.objects.create_user(
+            email="mobile@example.com",
+            password="M0bilePass!123",
+            first_name="Mobile",
+            last_name="User",
+            email_verified=True,
+        )
+
+    def test_api_login_does_not_require_csrf_token(self) -> None:
+        response = self.client.post(
+            "/api/auth/login",
+            data=json.dumps({"email": self.user.email, "password": "wrong"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(
+            response.content.decode(),
+            {"detail": "Invalid email or password."},
+        )
+
+    def test_api_logout_does_not_require_csrf_token(self) -> None:
+        response = self.client.post(
+            "/api/auth/logout",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(
+            response.content.decode(),
+            {"detail": "Authentication required."},
+        )
 
 
 class MobileAuthApiTests(TestCase):
