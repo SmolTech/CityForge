@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -348,6 +349,22 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleOpenAdminDashboard = () => {
+    if (!activeInstance?.apiUrl) {
+      Alert.alert("No instance selected", "Choose a CityForge server first.");
+      return;
+    }
+
+    const baseUrl = activeInstance.apiUrl.endsWith("/")
+      ? activeInstance.apiUrl
+      : `${activeInstance.apiUrl}/`;
+    const adminUrl = new URL("manage/", baseUrl).toString();
+
+    Linking.openURL(adminUrl).catch(() => {
+      Alert.alert("Unable to open link", "Could not open the admin dashboard.");
+    });
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -520,7 +537,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Admin</Text>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleOpenAdminDashboard}>
             <Text style={styles.menuItemText}>Admin Dashboard</Text>
             <Text style={styles.menuItemArrow}>→</Text>
           </TouchableOpacity>
