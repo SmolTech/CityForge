@@ -53,13 +53,30 @@ jobs:
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Trivy image tag
+        id: trivy_image
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:trivy-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Build (and push on non-PR)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ steps.trivy_image.outputs.image }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trivy scan image
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: ${{ steps.trivy_image.outputs.image }}
+          format: table
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          exit-code: "1"
