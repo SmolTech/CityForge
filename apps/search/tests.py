@@ -47,23 +47,29 @@ class SearchViewTests(TestCase):
     def test_search_parses_hits(self, client_factory: Mock) -> None:
         fake_client = Mock()
         fake_client.search.return_value = {
+            "aggregations": {"resource_count": {"value": 1}},
             "hits": {
-                "total": {"value": 1},
+                "total": {"value": 2},
                 "hits": [
                     {
                         "_score": 3.2,
                         "_source": {
+                            "business_name": "Result Company",
                             "title": "Result Title",
                             "description": "Desc",
+                            "page_description": "Meta description",
                             "content": "Body content",
                             "url": "https://example.com",
                             "domain": "example.com",
                             "category": "guides",
                         },
-                        "highlight": {"title": ["<em>Result</em> Title"]},
+                        "highlight": {
+                            "title": ["<em>Result</em> Title"],
+                            "page_description": ["Meta <em>description</em>"],
+                        },
                     }
                 ],
-            }
+            },
         }
         client_factory.return_value = fake_client
 
@@ -80,6 +86,19 @@ class SearchViewTests(TestCase):
         self.assertEqual(captured["total"], 1)
         self.assertEqual(len(captured["results"]), 1)
         self.assertEqual(captured["results"][0]["title"], "Result Title")
+        self.assertEqual(
+            captured["results"][0]["highlight"]["page_description"],
+            ["Meta <em>description</em>"],
+        )
+
+        body = fake_client.search.call_args.kwargs["body"]
+        self.assertEqual(body["collapse"], {"field": "resource_id"})
+        self.assertEqual(body["aggs"]["resource_count"]["cardinality"]["field"], "resource_id")
+        self.assertEqual(body["sort"][0], {"_score": "desc"})
+        self.assertEqual(
+            body["query"]["function_score"]["functions"][0]["filter"],
+            {"term": {"is_homepage": True}},
+        )
 
     @patch("apps.search.views._client")
     def test_search_prefers_page_url_when_present(self, client_factory: Mock) -> None:
@@ -117,6 +136,41 @@ class SearchViewTests(TestCase):
             response = search(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(captured["results"][0]["url"], "https://example.com/about")
+
+    @patch("apps.search.views._client")
+    def test_search_uses_business_name_when_title_missing(self, client_factory: Mock) -> None:
+        fake_client = Mock()
+        fake_client.search.return_value = {
+            "aggregations": {"resource_count": {"value": 1}},
+            "hits": {
+                "total": {"value": 1},
+                "hits": [
+                    {
+                        "_score": 2.7,
+                        "_source": {
+                            "business_name": "Result Company",
+                            "description": "Desc",
+                            "content": "Body content",
+                            "url": "https://example.com/",
+                        },
+                        "highlight": {"business_name": ["<em>Result</em> Company"]},
+                    }
+                ],
+            },
+        }
+        client_factory.return_value = fake_client
+
+        captured: dict = {}
+
+        def fake_render(_request, _template, context):
+            captured.update(context)
+            return HttpResponse("ok")
+
+        request = RequestFactory().get("/search/", {"q": "result"})
+        with patch("apps.search.views.render", side_effect=fake_render):
+            response = search(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["results"][0]["title"], "Result Company")
 
     @patch("apps.search.views._client")
     def test_search_handles_backend_exception(self, client_factory: Mock) -> None:

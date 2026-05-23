@@ -255,7 +255,7 @@ def api_cards(request: HttpRequest) -> JsonResponse:
 
 def api_opensearch(request: HttpRequest) -> JsonResponse:
     """Search OpenSearch index for resources content."""
-    from apps.search.views import _client
+    from apps.search.views import _client, _search_results
 
     query = (request.GET.get("q") or "").strip()
     page_num = _safe_int(request.GET.get("page"), default=1, minimum=1, maximum=10000)
@@ -278,39 +278,22 @@ def api_opensearch(request: HttpRequest) -> JsonResponse:
         )
 
     try:
-        index = f"{settings.OPENSEARCH_NAMESPACE}-resources"
-        response = client.search(
-            index=index,
-            body={
-                "query": {
-                    "multi_match": {
-                        "query": query,
-                        "fields": ["title^3", "description^2", "content", "category"],
-                        "type": "best_fields",
-                        "fuzziness": "AUTO",
-                    }
-                },
-                "from": (page_num - 1) * page_size,
-                "size": page_size,
-            },
+        raw_results, total = _search_results(
+            client,
+            query,
+            page_num,
+            page_size,
+            include_highlight=False,
+            excerpt_length=200,
         )
-
-        hits = response.get("hits", {})
-        total_obj = hits.get("total", 0)
-        total = total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
-
         results = []
-        for hit in hits.get("hits", []):
-            src = hit.get("_source", {})
-            content = src.get("content") or ""
-            excerpt = (content[:200] + "…") if len(content) > 200 else content
+        for item in raw_results:
             results.append(
                 {
-                    "id": hit.get("_id", ""),
-                    "title": src.get("title") or "",
-                    "content": excerpt,
-                    "url": src.get("page_url") or src.get("url") or "",
-                    "score": hit.get("_score") or 0,
+                    "title": item["title"],
+                    "content": item["excerpt"],
+                    "url": item["url"],
+                    "score": item["score"],
                 }
             )
 

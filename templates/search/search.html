@@ -19,11 +19,13 @@
   {% for r in results %}
     <article class="search-result">
       <h3>
-        {% if r.url %}{% with safe_url=r.url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">{{ r.title|default:r.url }}</a>{% else %}{{ r.title|default:r.url }}{% endif %}{% endwith %}
+        {% if r.url %}{% with safe_url=r.url|safe_external_url %}{% if safe_url %}{# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}<a href="{{ safe_url }}" rel="noopener">{% if r.highlight.title %}{% for h in r.highlight.title %}{{ h|highlight_safe }}{% endfor %}{% elif r.highlight.business_name %}{% for h in r.highlight.business_name %}{{ h|highlight_safe }}{% endfor %}{% else %}{{ r.title|default:r.url }}{% endif %}</a>{% else %}{{ r.title|default:r.url }}{% endif %}{% endwith %}
         {% else %}{{ r.title }}{% endif %}
       </h3>
       {% if r.url %}<div class="url">{{ r.url }}</div>{% endif %}
-      {% if r.highlight.description %}
+      {% if r.highlight.page_description %}
+        <p>{% for h in r.highlight.page_description %}{{ h|highlight_safe }}{% endfor %}</p>
+      {% elif r.highlight.description %}
         <p>{% for h in r.highlight.description %}{{ h|highlight_safe }}{% endfor %}</p>
       {% elif r.description %}
         <p>{{ r.description|truncatechars:240 }}</p>

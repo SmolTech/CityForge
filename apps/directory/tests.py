@@ -239,6 +239,41 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(body["results"][0]["title"], self.resource.title)
         self.assertEqual(body["results"][0]["url"], self.resource.url)
 
+    def test_api_opensearch_collapses_results_by_business(self) -> None:
+        with patch("apps.search.views._client") as client_factory:
+            client_factory.return_value.search.return_value = {
+                "aggregations": {"resource_count": {"value": 1}},
+                "hits": {
+                    "total": {"value": 2},
+                    "hits": [
+                        {
+                            "_score": 5.1,
+                            "_source": {
+                                "business_name": "Alpha Coffee",
+                                "title": "About Alpha Coffee",
+                                "content": "Fresh coffee and pastries all day",
+                                "page_url": "https://alpha.example/about",
+                            },
+                        }
+                    ],
+                },
+            }
+
+            response = self.client.get("/api/cards/search/", {"q": "alpha"})
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["total"], 1)
+        self.assertEqual(body["results"][0]["title"], "About Alpha Coffee")
+        self.assertEqual(body["results"][0]["url"], "https://alpha.example/about")
+
+        search_body = client_factory.return_value.search.call_args.kwargs["body"]
+        self.assertEqual(search_body["collapse"], {"field": "resource_id"})
+        self.assertEqual(
+            search_body["aggs"]["resource_count"]["cardinality"]["field"],
+            "resource_id",
+        )
+
     def test_card_detail_redirects_to_canonical_slug(self) -> None:
         response = self.client.get(reverse("directory:card_detail_short", args=[self.card_a.pk]))
         self.assertEqual(response.status_code, 302)

@@ -4,6 +4,25 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+SEARCH_FIELDS = [
+    "business_name^8",
+    "title^7",
+    "tags^6",
+    "description^5",
+    "page_description^4",
+    "contact_name^3",
+    "address^2",
+    "content",
+]
+PHRASE_MATCH_FIELDS = [
+    "business_name^10",
+    "title^8",
+    "tags^7",
+    "description^4",
+    "page_description^3",
+]
+
+
 try:
     from opensearchpy import OpenSearch
 except ImportError:  # pragma: no cover
@@ -32,6 +51,128 @@ def _client():
     )
 
 
+def _build_search_body(
+    query: str, page_num: int, page_size: int, *, include_highlight: bool
+) -> dict:
+    body = {
+        "track_total_hits": True,
+        "query": {
+            "function_score": {
+                "query": {
+                    "bool": {
+                        "should": [
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": PHRASE_MATCH_FIELDS,
+                                    "type": "phrase",
+                                    "slop": 1,
+                                    "boost": 8,
+                                }
+                            },
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": SEARCH_FIELDS,
+                                    "type": "cross_fields",
+                                    "operator": "and",
+                                    "boost": 4,
+                                }
+                            },
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": SEARCH_FIELDS,
+                                    "type": "best_fields",
+                                    "fuzziness": "AUTO",
+                                    "prefix_length": 1,
+                                    "max_expansions": 20,
+                                    "boost": 0.8,
+                                }
+                            },
+                        ],
+                        "minimum_should_match": 1,
+                    }
+                },
+                "functions": [
+                    {"filter": {"term": {"is_homepage": True}}, "weight": 1.2},
+                    {"filter": {"term": {"featured": True}}, "weight": 1.05},
+                ],
+                "score_mode": "sum",
+                "boost_mode": "multiply",
+            }
+        },
+        "collapse": {"field": "resource_id"},
+        "aggs": {
+            "resource_count": {
+                "cardinality": {"field": "resource_id", "precision_threshold": 40000}
+            }
+        },
+        "sort": [{"_score": "desc"}, {"is_homepage": "desc"}, {"indexed_at": "desc"}],
+        "from": (page_num - 1) * page_size,
+        "size": page_size,
+    }
+    if include_highlight:
+        body["highlight"] = {
+            "fields": {
+                "business_name": {},
+                "title": {},
+                "description": {},
+                "page_description": {},
+                "content": {"fragment_size": 300, "number_of_fragments": 3},
+            }
+        }
+    return body
+
+
+def _response_total(response: dict) -> int:
+    resource_count = response.get("aggregations", {}).get("resource_count", {}).get("value")
+    if isinstance(resource_count, int | float):
+        return int(resource_count)
+    hits = response.get("hits", {})
+    total_obj = hits.get("total", 0)
+    return total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
+
+
+def _parse_hit(hit: dict, *, excerpt_length: int) -> dict:
+    src = hit.get("_source", {})
+    content = src.get("content") or ""
+    excerpt = (content[:excerpt_length] + "…") if len(content) > excerpt_length else content
+    highlight = hit.get("highlight") or {}
+    return {
+        "title": src.get("title") or src.get("business_name") or "",
+        "business_name": src.get("business_name") or "",
+        "description": src.get("page_description") or src.get("description") or "",
+        "excerpt": excerpt,
+        "url": src.get("page_url") or src.get("url") or "",
+        "domain": src.get("domain") or "",
+        "category": src.get("category") or "",
+        "score": hit.get("_score") or 0,
+        "highlight": highlight,
+    }
+
+
+def _search_results(
+    client,
+    query: str,
+    page_num: int,
+    page_size: int,
+    *,
+    include_highlight: bool,
+    excerpt_length: int,
+) -> tuple[list[dict], int]:
+    index = f"{settings.OPENSEARCH_NAMESPACE}-resources"
+    response = client.search(
+        index=index,
+        body=_build_search_body(query, page_num, page_size, include_highlight=include_highlight),
+    )
+    results = [
+        _parse_hit(hit, excerpt_length=excerpt_length)
+        for hit in response.get("hits", {}).get("hits", [])
+    ]
+    return results, _response_total(response)
+
+
 def search(request: HttpRequest) -> HttpResponse:
     query = (request.GET.get("q") or "").strip()
     page_num = _safe_int(request.GET.get("page"), default=1, minimum=1, maximum=10000)
@@ -41,7 +182,6 @@ def search(request: HttpRequest) -> HttpResponse:
         return render(request, "search/search.html", {"query": "", "results": None})
 
     client = _client()
-    index = f"{settings.OPENSEARCH_NAMESPACE}-resources"
     results: list[dict] = []
     total = 0
     error: str | None = None
@@ -50,47 +190,14 @@ def search(request: HttpRequest) -> HttpResponse:
         error = "Search is not configured (opensearch client unavailable)."
     else:
         try:
-            response = client.search(
-                index=index,
-                body={
-                    "query": {
-                        "multi_match": {
-                            "query": query,
-                            "fields": ["title^3", "description^2", "content", "category"],
-                            "type": "best_fields",
-                            "fuzziness": "AUTO",
-                        }
-                    },
-                    "highlight": {
-                        "fields": {
-                            "title": {},
-                            "description": {},
-                            "content": {"fragment_size": 300, "number_of_fragments": 3},
-                        }
-                    },
-                    "from": (page_num - 1) * page_size,
-                    "size": page_size,
-                },
+            results, total = _search_results(
+                client,
+                query,
+                page_num,
+                page_size,
+                include_highlight=True,
+                excerpt_length=800,
             )
-            hits = response.get("hits", {})
-            total_obj = hits.get("total", 0)
-            total = total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
-            for hit in hits.get("hits", []):
-                src = hit.get("_source", {})
-                content = src.get("content") or ""
-                excerpt = (content[:800] + "…") if len(content) > 800 else content
-                results.append(
-                    {
-                        "title": src.get("title") or "",
-                        "description": src.get("page_description") or src.get("description") or "",
-                        "excerpt": excerpt,
-                        "url": src.get("page_url") or src.get("url") or "",
-                        "domain": src.get("domain") or "",
-                        "category": src.get("category") or "",
-                        "score": hit.get("_score") or 0,
-                        "highlight": hit.get("highlight") or {},
-                    }
-                )
         except Exception as exc:  # pragma: no cover - network failure
             error = f"Search backend unavailable: {exc}"
 

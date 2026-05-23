@@ -108,6 +108,28 @@ class ResourceIndexer:
 
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
+    @staticmethod
+    def _index_properties():
+        return {
+            "resource_id": {"type": "integer"},
+            "business_name": {"type": "text"},
+            "title": {"type": "text"},
+            "description": {"type": "text"},
+            "page_description": {"type": "text"},
+            "content": {"type": "text"},
+            "tags": {"type": "text"},
+            "contact_name": {"type": "text"},
+            "url": {"type": "keyword"},
+            "page_url": {"type": "keyword"},
+            "category": {"type": "keyword"},
+            "phone": {"type": "keyword"},
+            "address": {"type": "text"},
+            "domain": {"type": "keyword"},
+            "featured": {"type": "boolean"},
+            "is_homepage": {"type": "boolean"},
+            "indexed_at": {"type": "date"},
+        }
+
     def get_robots_parser(self, base_domain):
         """Get or create a robots.txt parser for the given domain"""
         if base_domain in self.robots_cache:
@@ -385,16 +407,20 @@ class ResourceIndexer:
                 is_homepage = page_url == normalized_website_url
                 document = {
                     "resource_id": card_id,
+                    "business_name": name,
                     "title": page.get("page_title") or name,
                     "description": card.get("description", ""),
                     "page_description": page.get("page_description", ""),
                     "content": page.get("content", ""),
+                    "tags": card.get("tags", []),
+                    "contact_name": card.get("contact_name", ""),
                     "url": normalized_website_url,
                     "page_url": page_url,
                     "category": "",  # Cards don't have categories in the new schema
                     "phone": card.get("phone_number", ""),
                     "address": card.get("address", ""),
                     "domain": domain,
+                    "featured": card.get("featured", False),
                     "is_homepage": is_homepage,
                     "indexed_at": datetime.now(UTC).isoformat(),
                 }
@@ -412,7 +438,9 @@ class ResourceIndexer:
 
     def create_index(self):
         """Create the OpenSearch index if it doesn't exist"""
+        properties = self._index_properties()
         if self.client.indices.exists(index=self.index_name):
+            self.client.indices.put_mapping(index=self.index_name, body={"properties": properties})
             logger.info(f"Index {self.index_name} already exists")
             return
 
@@ -423,23 +451,7 @@ class ResourceIndexer:
                 "number_of_replicas": 1,
                 "analysis": {"analyzer": {"default": {"type": "standard"}}},
             },
-            "mappings": {
-                "properties": {
-                    "resource_id": {"type": "integer"},
-                    "title": {"type": "text"},
-                    "description": {"type": "text"},
-                    "page_description": {"type": "text"},
-                    "content": {"type": "text"},
-                    "url": {"type": "keyword"},
-                    "page_url": {"type": "keyword"},
-                    "category": {"type": "keyword"},
-                    "phone": {"type": "keyword"},
-                    "address": {"type": "text"},
-                    "domain": {"type": "keyword"},
-                    "is_homepage": {"type": "boolean"},
-                    "indexed_at": {"type": "date"},
-                }
-            },
+            "mappings": {"properties": properties},
         }
 
         self.client.indices.create(index=self.index_name, body=index_body)

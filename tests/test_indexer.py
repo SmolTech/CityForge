@@ -148,8 +148,11 @@ def test_index_resource_indexes_each_crawled_page_with_page_url() -> None:
                 "name": "Example Co",
                 "description": "Directory description",
                 "website_url": "https://example.com/",
+                "contact_name": "Taylor Owner",
                 "phone_number": "555-0100",
                 "address": "123 Main St",
+                "tags": ["coffee", "bakery"],
+                "featured": True,
             }
         )
 
@@ -165,6 +168,10 @@ def test_index_resource_indexes_each_crawled_page_with_page_url() -> None:
     assert homepage_call.kwargs["id"] == "resource_42"
     assert homepage_call.kwargs["body"]["page_url"] == "https://example.com/"
     assert homepage_call.kwargs["body"]["url"] == "https://example.com/"
+    assert homepage_call.kwargs["body"]["business_name"] == "Example Co"
+    assert homepage_call.kwargs["body"]["contact_name"] == "Taylor Owner"
+    assert homepage_call.kwargs["body"]["tags"] == ["coffee", "bakery"]
+    assert homepage_call.kwargs["body"]["featured"] is True
     assert homepage_call.kwargs["body"]["is_homepage"] is True
 
     subpage_call = indexer.client.index.call_args_list[1]
@@ -172,3 +179,17 @@ def test_index_resource_indexes_each_crawled_page_with_page_url() -> None:
     assert subpage_call.kwargs["body"]["page_url"] == "https://example.com/about"
     assert subpage_call.kwargs["body"]["url"] == "https://example.com/"
     assert subpage_call.kwargs["body"]["is_homepage"] is False
+
+
+def test_create_index_updates_mapping_when_index_exists() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+    indexer.client = Mock()
+    indexer.client.indices.exists.return_value = True
+
+    indexer.create_index()
+
+    indexer.client.indices.put_mapping.assert_called_once()
+    mapping_body = indexer.client.indices.put_mapping.call_args.kwargs["body"]
+    assert "business_name" in mapping_body["properties"]
+    assert "tags" in mapping_body["properties"]
