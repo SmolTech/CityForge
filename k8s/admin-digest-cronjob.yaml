@@ -80,6 +80,21 @@ spec:
                     configMapKeyRef:
                       name: cityforge-config
                       key: NEXT_PUBLIC_SITE_URL
+                - name: REDIS_DEFAULT_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: REDIS_DEFAULT_URL
+                - name: REDIS_CARDS_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: REDIS_CARDS_URL
+                - name: REDIS_SEARCH_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cityforge-config
+                      key: REDIS_SEARCH_URL
                 - name: WEBHOOKS_ENABLED
                   value: "true"
                 - name: MAILGUN_API_KEY

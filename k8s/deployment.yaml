@@ -187,6 +187,21 @@ spec:
               value: "9200"
             - name: OPENSEARCH_NAMESPACE
               value: "cityforge"
+            - name: REDIS_DEFAULT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cityforge-config
+                  key: REDIS_DEFAULT_URL
+            - name: REDIS_CARDS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cityforge-config
+                  key: REDIS_CARDS_URL
+            - name: REDIS_SEARCH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cityforge-config
+                  key: REDIS_SEARCH_URL
             # Webhooks configuration
             - name: WEBHOOKS_ENABLED
               value: "true"

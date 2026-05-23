@@ -119,6 +119,10 @@ See `.env.example`. Key variables:
 | `DB_POOL_WARNING_UTILIZATION_PERCENT` | Warn when DB connections reach this utilization percentage |
 | `DB_POOL_WARNING_WAITING_CONNECTIONS` | Warn when waiting Postgres connections reach this count |
 | `OPENSEARCH_HOST` / `_PORT` / `_NAMESPACE` | OpenSearch connection |
+| `REDIS_URL` | Optional shared Redis URL for all Django caches |
+| `REDIS_DEFAULT_URL` | Redis URL for the default cache backend |
+| `REDIS_CARDS_URL` | Redis URL for card/detail caching |
+| `REDIS_SEARCH_URL` | Redis URL for search-result caching |
 | `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` for dev |
 | `SITE_NAME`, `SITE_TAGLINE` | Branding shown in templates |
 

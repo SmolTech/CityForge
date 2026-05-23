@@ -267,10 +267,23 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Redis Caching
+REDIS_DEFAULT_URL = env(
+    "REDIS_DEFAULT_URL",
+    default=env("REDIS_URL", default="redis://localhost:6379/0"),
+)
+REDIS_CARDS_URL = env(
+    "REDIS_CARDS_URL",
+    default=env("REDIS_URL", default="redis://localhost:6379/1"),
+)
+REDIS_SEARCH_URL = env(
+    "REDIS_SEARCH_URL",
+    default=env("REDIS_URL", default="redis://localhost:6379/2"),
+)
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "LOCATION": REDIS_DEFAULT_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "PARSER_KWARGS": {},
@@ -288,7 +301,7 @@ CACHES = {
     },
     "cards": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/1"),
+        "LOCATION": REDIS_CARDS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "POOL_KWARGS": {"max_connections": 50},
@@ -301,7 +314,7 @@ CACHES = {
     },
     "search": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/2"),
+        "LOCATION": REDIS_SEARCH_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "POOL_KWARGS": {"max_connections": 50},
