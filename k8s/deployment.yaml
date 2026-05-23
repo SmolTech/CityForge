@@ -6,7 +6,7 @@ metadata:
   labels:
     app: cityforge
 spec:
-  replicas: 2 # Can scale horizontally with S3 storage (no shared filesystem needed)
+  replicas: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
