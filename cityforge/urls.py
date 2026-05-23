@@ -2,12 +2,22 @@ import re
 
 from django.conf import settings
 from django.urls import include, path, re_path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 from apps.core import views as core_views
 from apps.directory import views as directory_views
 from apps.events import views as events_views
 
 urlpatterns = [
+    # OpenAPI Schema & Documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    # Health & API endpoints
     path("api/health", core_views.health, name="health"),
     path("api/auth/", include(("apps.accounts.urls_api", "accounts_api"))),
     path("api/cards", include(("apps.directory.urls_api", "directory_api"))),

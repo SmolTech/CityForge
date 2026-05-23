@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Third-party
+    "drf_spectacular",
     # Local apps
     "apps.core",
     "apps.accounts",
@@ -220,5 +222,85 @@ LOGGING = {
             "level": DB_LOG_LEVEL,
             "propagate": False,
         },
+    },
+}
+
+# Django REST Framework & OpenAPI/Swagger
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": PAGINATION_DEFAULT_LIMIT,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "CityForge API",
+    "DESCRIPTION": "Community directory and management API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"/api",
+    "SERVERS": [
+        {"url": "http://localhost:8000", "description": "Local development"},
+        {"url": "https://api.cityforge.local", "description": "Production"},
+    ],
+    "CONTACT": {
+        "name": "CityForge Support",
+        "url": "https://cityforge.local",
+        "email": "support@cityforge.local",
+    },
+    "LICENSE": {"name": "MIT"},
+    "AUTHENTICATION_FLOWS": {
+        "tokenAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Bearer token authentication",
+        }
+    },
+    "TAGS_SORTER": "alphanumeric",
+    "ENUM_ADD_EXPLICIT_BLANK_NULLABLE_FIELD": True,
+}
+
+# Redis Caching
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PARSER_KWARGS": {},
+            "POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            },
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": OPENSEARCH_NAMESPACE,
+        "TIMEOUT": 300,  # Default 5 minutes
+    },
+    "cards": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "POOL_KWARGS": {"max_connections": 50},
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:cards",
+        "TIMEOUT": 600,  # 10 minutes for card data
+    },
+    "search": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/2"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "POOL_KWARGS": {"max_connections": 50},
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:search",
+        "TIMEOUT": 3600,  # 1 hour for search results
     },
 }

@@ -23,6 +23,9 @@ Pillow = ">=10.0"
 gunicorn = ">=21.2"
 whitenoise = ">=6.6"
 bcrypt = "^5.0.0"
+drf-spectacular = "^0.29.0"
+redis = "^7.4.0"
+django-redis = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"

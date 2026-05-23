@@ -1,0 +1,18 @@
+openapi: 3.0.3
+info:
+  title: CityForge API
+  version: 1.0.0
+  description: Community directory and management API
+  contact:
+    name: CityForge Support
+    url: https://smoltech.us
+    email: gregory@smoltech.us
+  license:
+    name: MIT
+paths: {}
+components: {}
+servers:
+- url: http://localhost:8000
+  description: Local development
+- url: https://api.cityforge.local
+  description: Production
