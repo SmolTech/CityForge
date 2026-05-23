@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cityforge"
-version = "2.0.8"
+version = "2.0.9"
 description = "Community platform: business directory, forums, classifieds, and resources built on Django."
 authors = ["CityForge contributors"]
 license = "See LICENSE"
