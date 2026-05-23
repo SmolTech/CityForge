@@ -6,14 +6,37 @@ from django.http import HttpResponse
 from django.test import TestCase
 from django.test.client import RequestFactory
 
-from apps.search.views import _safe_int, search
+from apps.search.views import _build_search_body, _fuzzy_prefix_length, _safe_int, search
 
 
 class SearchViewTests(TestCase):
+    def test_fuzzy_prefix_length_grows_with_query_length(self) -> None:
+        self.assertEqual(_fuzzy_prefix_length("cat"), 1)
+        self.assertEqual(_fuzzy_prefix_length("burger"), 3)
+        self.assertEqual(_fuzzy_prefix_length("local burger"), 3)
+
     def test_safe_int_bounds(self) -> None:
         self.assertEqual(_safe_int("9", default=1, minimum=1, maximum=5), 5)
         self.assertEqual(_safe_int("-3", default=1, minimum=1, maximum=5), 1)
         self.assertEqual(_safe_int("bad", default=4, minimum=1, maximum=5), 4)
+
+    def test_search_body_uses_stricter_fuzzy_matching(self) -> None:
+        body = _build_search_body("burger", 1, 20, include_highlight=False)
+
+        fuzzy_clause = body["query"]["function_score"]["query"]["bool"]["should"][2]["multi_match"]
+        self.assertEqual(
+            fuzzy_clause["fields"],
+            [
+                "business_name^6",
+                "title^5",
+                "tags^4",
+                "description^3",
+                "page_description^2",
+            ],
+        )
+        self.assertEqual(fuzzy_clause["fuzziness"], 1)
+        self.assertEqual(fuzzy_clause["prefix_length"], 3)
+        self.assertEqual(fuzzy_clause["max_expansions"], 10)
 
     def test_search_without_query_returns_empty_state(self) -> None:
         captured: dict = {}

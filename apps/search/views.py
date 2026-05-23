@@ -21,6 +21,13 @@ PHRASE_MATCH_FIELDS = [
     "description^4",
     "page_description^3",
 ]
+FUZZY_SEARCH_FIELDS = [
+    "business_name^6",
+    "title^5",
+    "tags^4",
+    "description^3",
+    "page_description^2",
+]
 
 
 try:
@@ -54,6 +61,7 @@ def _client():
 def _build_search_body(
     query: str, page_num: int, page_size: int, *, include_highlight: bool
 ) -> dict:
+    fuzzy_prefix_length = _fuzzy_prefix_length(query)
     body = {
         "track_total_hits": True,
         "query": {
@@ -82,12 +90,12 @@ def _build_search_body(
                             {
                                 "multi_match": {
                                     "query": query,
-                                    "fields": SEARCH_FIELDS,
+                                    "fields": FUZZY_SEARCH_FIELDS,
                                     "type": "best_fields",
-                                    "fuzziness": "AUTO",
-                                    "prefix_length": 1,
-                                    "max_expansions": 20,
-                                    "boost": 0.8,
+                                    "fuzziness": 1,
+                                    "prefix_length": fuzzy_prefix_length,
+                                    "max_expansions": 10,
+                                    "boost": 0.35,
                                 }
                             },
                         ],
@@ -123,6 +131,15 @@ def _build_search_body(
             }
         }
     return body
+
+
+def _fuzzy_prefix_length(query: str) -> int:
+    longest_term = max((len(term) for term in query.split()), default=0)
+    if longest_term >= 6:
+        return 3
+    if longest_term >= 4:
+        return 2
+    return 1
 
 
 def _response_total(response: dict) -> int:
