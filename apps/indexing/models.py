@@ -2,9 +2,18 @@ from django.db import models
 from django.utils import timezone
 
 
+class IndexingJobStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    RUNNING = "running", "Running"
+    COMPLETED = "completed", "Completed"
+    FAILED = "failed", "Failed"
+
+
 class IndexingJob(models.Model):
     resource_id = models.IntegerField()
-    status = models.CharField(max_length=20)
+    status = models.CharField(
+        max_length=20, choices=IndexingJobStatus.choices, default=IndexingJobStatus.PENDING
+    )
     pages_indexed = models.IntegerField(blank=True, null=True)
     total_pages = models.IntegerField(blank=True, null=True)
     last_error = models.TextField(blank=True, null=True)

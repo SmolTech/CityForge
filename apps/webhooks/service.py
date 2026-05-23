@@ -8,7 +8,7 @@ from typing import Any
 import requests
 from django.utils import timezone
 
-from .models import WebhookDelivery, WebhookEndpoint, WebhookEvent
+from .models import WebhookDelivery, WebhookDeliveryStatus, WebhookEndpoint, WebhookEvent
 
 DEFAULT_MAX_RETRIES = 3
 
@@ -149,7 +149,7 @@ def dispatch_event(
             webhook_endpoint=endpoint,
             event=event,
             event_type=event_type,
-            status="pending",
+            status=WebhookDeliveryStatus.PENDING,
             max_retries=max_retries,
         )
         deliveries += 1
@@ -161,16 +161,20 @@ def dispatch_event(
                 headers=_delivery_headers(endpoint),
                 timeout=endpoint.timeout_seconds or 30,
             )
-            delivery.status = "sent" if 200 <= response.status_code < 300 else "failed"
+            delivery.status = (
+                WebhookDeliveryStatus.SENT
+                if 200 <= response.status_code < 300
+                else WebhookDeliveryStatus.FAILED
+            )
             delivery.attempt = 1
             delivery.last_attempt_at = timezone.now()
             delivery.response_status = response.status_code
             delivery.response_headers = json.dumps(dict(response.headers))
             delivery.response_body = response.text[:4000]
-            if delivery.status == "failed" and max_retries > 1:
+            if delivery.status == WebhookDeliveryStatus.FAILED and max_retries > 1:
                 delivery.next_retry_at = timezone.now() + timedelta(minutes=5)
         except requests.RequestException as exc:
-            delivery.status = "failed"
+            delivery.status = WebhookDeliveryStatus.FAILED
             delivery.attempt = 1
             delivery.last_attempt_at = timezone.now()
             delivery.error_message = str(exc)

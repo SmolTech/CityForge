@@ -3,6 +3,18 @@ from django.db import models
 from django.utils import timezone
 
 
+class ForumCategoryRequestStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
+class ForumReportStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
 class ForumCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -30,7 +42,11 @@ class ForumCategoryRequest(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     justification = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, default="pending")
+    status = models.CharField(
+        max_length=20,
+        choices=ForumCategoryRequestStatus.choices,
+        default=ForumCategoryRequestStatus.PENDING,
+    )
     requester = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -137,7 +153,9 @@ class ForumReport(models.Model):
     )
     reason = models.CharField(max_length=50)
     details = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, default="pending")
+    status = models.CharField(
+        max_length=20, choices=ForumReportStatus.choices, default=ForumReportStatus.PENDING
+    )
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

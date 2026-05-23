@@ -8,6 +8,12 @@ def _cuid() -> str:
     return uuid.uuid4().hex
 
 
+class WebhookDeliveryStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SENT = "sent", "Sent"
+    FAILED = "failed", "Failed"
+
+
 class WebhookEndpoint(models.Model):
     id = models.CharField(primary_key=True, max_length=32, default=_cuid, editable=False)
     name = models.CharField(max_length=255)
@@ -59,7 +65,9 @@ class WebhookDelivery(models.Model):
         related_name="deliveries",
     )
     event_type = models.CharField(max_length=100)
-    status = models.CharField(max_length=20)
+    status = models.CharField(
+        max_length=20, choices=WebhookDeliveryStatus.choices, default=WebhookDeliveryStatus.PENDING
+    )
     attempt = models.IntegerField(default=0)
     max_retries = models.IntegerField()
     next_retry_at = models.DateTimeField(blank=True, null=True)

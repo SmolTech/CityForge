@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Count
 
 from apps.accounts.models import User
-from apps.classifieds.models import HelpWantedPost
+from apps.classifieds.models import HelpWantedPost, HelpWantedPostStatus
 from apps.directory.models import Card, CardSubmission, CardSubmissionStatus, Review
 from apps.forums.models import ForumThread
 from apps.resources.models import ResourceItem
@@ -35,7 +35,9 @@ class Command(BaseCommand):
             ).count(),
             "reviews_24h": Review.objects.filter(created_date__gte=since).count(),
             "new_forum_threads_24h": ForumThread.objects.filter(created_date__gte=since).count(),
-            "open_help_posts": HelpWantedPost.objects.filter(status="open").count(),
+            "open_help_posts": HelpWantedPost.objects.filter(
+                status=HelpWantedPostStatus.OPEN
+            ).count(),
             "active_resources": ResourceItem.objects.filter(is_active=True).count(),
             "new_users_24h": User.objects.filter(created_date__gte=since).count(),
         }

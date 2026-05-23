@@ -3,11 +3,24 @@ from django.db import models
 from django.utils import timezone
 
 
+class HelpWantedPostStatus(models.TextChoices):
+    OPEN = "open", "Open"
+    CLOSED = "closed", "Closed"
+
+
+class HelpWantedReportStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
 class HelpWantedPost(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=50)
-    status = models.CharField(max_length=20, default="open")
+    status = models.CharField(
+        max_length=20, choices=HelpWantedPostStatus.choices, default=HelpWantedPostStatus.OPEN
+    )
     location = models.CharField(max_length=255, blank=True, null=True)
     budget = models.CharField(max_length=100, blank=True, null=True)
     contact_preference = models.CharField(max_length=50, blank=True, null=True)
@@ -63,7 +76,11 @@ class HelpWantedReport(models.Model):
     post = models.ForeignKey(HelpWantedPost, on_delete=models.CASCADE, related_name="reports")
     reason = models.CharField(max_length=50)
     details = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, default="pending")
+    status = models.CharField(
+        max_length=20,
+        choices=HelpWantedReportStatus.choices,
+        default=HelpWantedReportStatus.PENDING,
+    )
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
