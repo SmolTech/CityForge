@@ -58,6 +58,12 @@ poetry run pre-commit run --all-files
 The hook config runs `ruff`, `ruff-format`, and `semgrep` (with the `p/python`,
 `p/django`, and `p/security-audit` rule packs) on every commit.
 
+### Run E2E tests
+
+```bash
+poetry run pytest tests/e2e -m e2e --no-cov
+```
+
 Visit:
 
 - `/` — public business directory
