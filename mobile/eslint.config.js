@@ -64,12 +64,13 @@ module.exports = [
     },
   },
   {
-    files: ["eslint.config.js"],
+    files: ["eslint.config.js", "metro.config.js"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {
         require: "readonly",
         module: "readonly",
+        __dirname: "readonly",
       },
     },
   },
