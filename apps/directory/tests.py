@@ -326,6 +326,27 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(captured["card"].image_url, "https://images.example/alpha.jpg")
         self.assertEqual(list(captured["card"].tags.values_list("name", flat=True)), ["coffee"])
 
+    def test_card_detail_renders_image_before_about_section(self) -> None:
+        self.card_a.description = "Specialty coffee and pastries"
+        self.card_a.image_url = "https://images.example/alpha.jpg"
+        self.card_a.save(update_fields=["description", "image_url"])
+
+        response = self.client.get(
+            reverse("directory:card_detail", args=[self.card_a.pk, self.card_a.slug])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'src="https://images.example/alpha.jpg"',
+            html=False,
+        )
+        self.assertContains(response, "<h2>About</h2>", html=False)
+        self.assertLess(
+            response.content.decode().index('src="https://images.example/alpha.jpg"'),
+            response.content.decode().index("<h2>About</h2>"),
+        )
+
     def test_submit_review_creates_review(self) -> None:
         self.client.force_login(self.user)
         with patch("apps.directory.views.dispatch_event") as mocked_dispatch:

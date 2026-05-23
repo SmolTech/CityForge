@@ -11,6 +11,14 @@
 
   <div class="business-detail-grid">
     <div class="business-description">
+      {% if card.image_url %}
+        {% with image_url=card.image_url|safe_external_url %}
+          {% if image_url %}
+            {# nosemgrep: generic.html-templates.security.var-in-href.var-in-href #}
+            <img src="{{ image_url }}" alt="" class="business-image" loading="lazy" decoding="async">
+          {% endif %}
+        {% endwith %}
+      {% endif %}
       {% if card.description %}
         <h2>About</h2>
         <p>{{ card.description|linebreaksbr }}</p>
@@ -24,7 +32,6 @@
       {% elif not user.is_authenticated %}
         <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in</a> to suggest an update.</p>
       {% endif %}
-      {% if card.image_url %}<img src="{{ card.image_url }}" alt="" class="business-image">{% endif %}
       {% if card.tags.all %}
         <div class="tags business-tags">
           {% for tag in card.tags.all %}<a class="tag-chip" href="{% url 'directory:home' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>{% endfor %}
