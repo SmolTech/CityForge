@@ -90,8 +90,8 @@ class AccountFlowTests(TestCase):
             response = self.client.post(
                 reverse("accounts:reset_password", args=[token.token]),
                 {
-                    "password1": "N3wPass!234",
-                    "password2": "N3wPass!234",
+                    "password1": "N3wPa$$w0rd123",
+                    "password2": "N3wPa$$w0rd123",
                     "captcha_answer": self._captcha_answer("reset_password"),
                 },
             )
@@ -100,7 +100,7 @@ class AccountFlowTests(TestCase):
         token.refresh_from_db()
         self.user.refresh_from_db()
         self.assertTrue(token.used)
-        self.assertTrue(self.user.check_password("N3wPass!234"))
+        self.assertTrue(self.user.check_password("N3wPa$$w0rd123"))
         mocked_dispatch.assert_called_once()
         self.assertEqual(mocked_dispatch.call_args.args[0], "password_reset.completed")
         payload = mocked_dispatch.call_args.args[1]
