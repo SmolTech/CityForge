@@ -5,6 +5,7 @@ metadata:
   namespace: cityforge
   labels:
     app: cityforge
+    component: web
 spec:
   replicas: 3
   strategy:
@@ -15,10 +16,12 @@ spec:
   selector:
     matchLabels:
       app: cityforge
+      component: web
   template:
     metadata:
       labels:
         app: cityforge
+        component: web
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/api/metrics"

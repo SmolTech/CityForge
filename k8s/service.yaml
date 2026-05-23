@@ -5,9 +5,11 @@ metadata:
   namespace: cityforge
   labels:
     app: cityforge
+    component: web
 spec:
   selector:
     app: cityforge
+    component: web
   ports:
     - port: 80
       targetPort: 3000

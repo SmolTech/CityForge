@@ -4,18 +4,18 @@ metadata:
   name: cityforge-redis
   namespace: cityforge
   labels:
-    app: cityforge
+    app: cityforge-redis
     component: redis
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cityforge
+      app: cityforge-redis
       component: redis
   template:
     metadata:
       labels:
-        app: cityforge
+        app: cityforge-redis
         component: redis
     spec:
       containers:
@@ -57,11 +57,11 @@ metadata:
   name: cityforge-redis
   namespace: cityforge
   labels:
-    app: cityforge
+    app: cityforge-redis
     component: redis
 spec:
   selector:
-    app: cityforge
+    app: cityforge-redis
     component: redis
   ports:
     - name: redis
