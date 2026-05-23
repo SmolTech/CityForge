@@ -43,7 +43,7 @@ services:
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-local-compose-change-me}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,cityforge-web}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,cityforge-web,web}
       SECURE_SSL_REDIRECT: "False"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/community_db
       OPENSEARCH_HOST: opensearch
@@ -78,7 +78,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: cityforge-indexer
-    entrypoint: ["python", "indexer/indexer.py"]
+    entrypoint: ["poetry", "run", "python", "indexer/indexer.py"]
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200

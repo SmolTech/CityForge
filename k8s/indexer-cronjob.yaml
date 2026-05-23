@@ -21,7 +21,7 @@ spec:
             - name: indexer
               image: ghcr.io/smoltech/cityforge
               imagePullPolicy: Always
-              command: ["python", "indexer/indexer.py"]
+              command: ["poetry", "run", "python", "indexer/indexer.py"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: false

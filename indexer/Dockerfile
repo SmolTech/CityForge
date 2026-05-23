@@ -1,28 +1,45 @@
-FROM python:3.13-slim
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VERSION=2.1.1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
 WORKDIR /app
 
-# Update package indexes and upgrade all packages to get latest security patches
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    libxml2-dev \
-    libxslt1-dev \
-    libffi-dev \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install "poetry==${POETRY_VERSION}"
+
+COPY pyproject.toml poetry.lock* /app/
+RUN poetry install --only main --no-root --no-ansi
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy indexer requirements and install dependencies with upgraded pip
-COPY indexer/requirements.txt .
-RUN pip install --upgrade pip==25.3 && \
-    pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy indexer code
-COPY indexer/ .
+COPY indexer/ /app/
 
-# Create non-root user (Debian style)
-RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
-RUN chown -R appuser:appuser /app
+RUN groupadd -r appuser --gid 1001 && useradd --no-log-init -r -g appuser --uid 1001 appuser \
+    && chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["python", "indexer.py"]
+CMD ["poetry", "run", "python", "indexer.py"]

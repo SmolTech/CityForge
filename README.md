@@ -36,6 +36,8 @@ static/        Site CSS / JS
 indexer/       Python crawler service (unchanged from upstream)
 ```
 
+The indexer uses the same Poetry-managed dependencies from the root `pyproject.toml`.
+
 ## Quickstart (local)
 
 ```bash
