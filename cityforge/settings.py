@@ -92,6 +92,13 @@ WSGI_APPLICATION = "cityforge.wsgi.application"
 # Database — DATABASE_URL preferred (matches existing infra); fall back to sqlite.
 DATABASE_URL = env("DATABASE_URL", default="sqlite:///" + str(BASE_DIR / "db.sqlite3"))
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+DB_APPLICATION_NAME = env("DB_APPLICATION_NAME", default="cityforge-web")
+if DATABASES["default"]["ENGINE"].endswith("postgresql"):
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"].setdefault("application_name", DB_APPLICATION_NAME)
+DB_POOL_WARNING_UTILIZATION_PERCENT = env.int("DB_POOL_WARNING_UTILIZATION_PERCENT", default=80)
+DB_POOL_WARNING_WAITING_CONNECTIONS = env.int("DB_POOL_WARNING_WAITING_CONNECTIONS", default=1)
 
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "accounts:login"

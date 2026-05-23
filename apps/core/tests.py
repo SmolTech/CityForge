@@ -16,6 +16,7 @@ from django.test import RequestFactory, TestCase
 from apps.accounts.models import TokenBlacklist, User
 from apps.classifieds.models import HelpWantedComment, HelpWantedPost
 from apps.core.context_processors import site
+from apps.core.db_monitoring import get_database_health
 from apps.core.logging import JsonFormatter
 from apps.core.management.commands.fix_imported_passwords import (
     Command as FixPasswordsCommand,
@@ -113,6 +114,95 @@ class LoggingTests(TestCase):
         self.assertEqual(payload["method"], "GET")
         self.assertEqual(payload["path"], "/api/health")
         self.assertEqual(payload["status_code"], 200)
+
+
+class DatabaseMonitoringTests(TestCase):
+    def test_health_endpoint_includes_database_metrics(self) -> None:
+        response = self.client.get("/api/health")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "ok")
+        self.assertTrue(payload["database"]["healthy"])
+        self.assertEqual(payload["database"]["alias"], "default")
+        self.assertIn("pool", payload["database"])
+
+    def test_health_endpoint_returns_503_when_database_is_unhealthy(self) -> None:
+        unhealthy = {
+            "alias": "default",
+            "vendor": "postgresql",
+            "engine": "django.db.backends.postgresql",
+            "connection_age_limit_seconds": 600,
+            "healthy": False,
+            "usable": False,
+            "error": "database unavailable",
+            "pool": {"supported": True, "status": "error"},
+        }
+        with patch("apps.core.views.get_database_health", return_value=unhealthy):
+            response = self.client.get("/api/health")
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "error")
+        self.assertEqual(response.json()["database"]["error"], "database unavailable")
+
+    def test_get_database_health_reports_postgres_pool_metrics(self) -> None:
+        class FakeCursor:
+            description = [
+                ("database_name",),
+                ("backend_pid",),
+                ("max_connections",),
+                ("reserved_connections",),
+                ("total_connections",),
+                ("active_connections",),
+                ("idle_connections",),
+                ("waiting_connections",),
+            ]
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def execute(self, _query: str) -> None:
+                return None
+
+            def fetchone(self) -> tuple[object, ...]:
+                return ("community_db", 3210, 100, 3, 80, 12, 68, 2)
+
+        class FakeConnection:
+            alias = "default"
+            vendor = "postgresql"
+            settings_dict = {
+                "ENGINE": "django.db.backends.postgresql",
+                "CONN_MAX_AGE": 600,
+            }
+
+            def ensure_connection(self) -> None:
+                return None
+
+            def is_usable(self) -> bool:
+                return True
+
+            def cursor(self) -> FakeCursor:
+                return FakeCursor()
+
+        with (
+            patch("apps.core.db_monitoring.connections", {"default": FakeConnection()}),
+            self.settings(
+                DB_POOL_WARNING_UTILIZATION_PERCENT=75,
+                DB_POOL_WARNING_WAITING_CONNECTIONS=1,
+            ),
+        ):
+            health = get_database_health()
+
+        self.assertTrue(health["healthy"])
+        self.assertTrue(health["pool"]["supported"])
+        self.assertEqual(health["pool"]["status"], "warning")
+        self.assertEqual(health["pool"]["database_name"], "community_db")
+        self.assertEqual(health["pool"]["waiting_connections"], 2)
+        self.assertEqual(health["pool"]["available_connections"], 97)
+        self.assertEqual(health["pool"]["utilization_percent"], 82.47)
 
 
 class TemplateTagTests(TestCase):
@@ -400,6 +490,7 @@ class BootstrapModuleTests(TestCase):
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
+        self.assertIn("database", response.json())
 
 
 class FixImportedPasswordsTests(TestCase):

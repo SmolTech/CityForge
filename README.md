@@ -72,6 +72,7 @@ Visit:
 - `/search/` — OpenSearch search
 - `/accounts/login/`, `/accounts/register/`
 - `/manage/` — staff CMS (requires `is_staff` or role `admin`/`support`)
+- `/api/health` — readiness endpoint with database health and Postgres pool metrics
 
 ## Docker
 
@@ -114,6 +115,9 @@ See `.env.example`. Key variables:
 | `DB_LOG_LEVEL` | SQL logger level (default: `WARNING`) |
 | `LOG_FORMAT` | `pretty` for text logs or `json` for structured logs |
 | `DATABASE_URL` | Postgres DSN; falls back to sqlite |
+| `DB_APPLICATION_NAME` | PostgreSQL `application_name` used for connection monitoring |
+| `DB_POOL_WARNING_UTILIZATION_PERCENT` | Warn when DB connections reach this utilization percentage |
+| `DB_POOL_WARNING_WAITING_CONNECTIONS` | Warn when waiting Postgres connections reach this count |
 | `OPENSEARCH_HOST` / `_PORT` / `_NAMESPACE` | OpenSearch connection |
 | `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` for dev |
 | `SITE_NAME`, `SITE_TAGLINE` | Branding shown in templates |
