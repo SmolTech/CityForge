@@ -152,7 +152,7 @@ The mobile app uses token-based authentication:
 eas build --platform android --profile preview
 
 # Local Android APK build (uses your machine)
-npm run android:build:local
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk npm run android:build:local
 
 # iOS Simulator build (Mac only)
 eas build --platform ios --profile preview
