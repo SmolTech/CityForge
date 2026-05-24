@@ -492,6 +492,11 @@ class BootstrapModuleTests(TestCase):
         self.assertEqual(response.json()["status"], "ok")
         self.assertIn("database", response.json())
 
+    def test_favicon_redirects_to_static_asset(self) -> None:
+        response = self.client.get("/favicon.ico")
+        self.assertEqual(response.status_code, 301)
+        self.assertIn("/static/favicon", response["Location"])
+
 
 class FixImportedPasswordsTests(TestCase):
     def test_collect_password_hashes_from_nested_relations(self) -> None:

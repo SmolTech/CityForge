@@ -1,7 +1,9 @@
 import re
 
 from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, re_path
+from django.views.generic.base import RedirectView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -13,6 +15,11 @@ from apps.directory import views as directory_views
 from apps.events import views as events_views
 
 urlpatterns = [
+    path(
+        "favicon.ico",
+        RedirectView.as_view(url=staticfiles_storage.url("favicon.ico"), permanent=True),
+        name="favicon",
+    ),
     # OpenAPI Schema & Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
