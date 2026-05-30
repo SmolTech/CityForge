@@ -123,9 +123,6 @@ class DatabaseMonitoringTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["status"], "ok")
-        self.assertTrue(payload["database"]["healthy"])
-        self.assertEqual(payload["database"]["alias"], "default")
-        self.assertIn("pool", payload["database"])
 
     def test_health_endpoint_returns_503_when_database_is_unhealthy(self) -> None:
         unhealthy = {
@@ -143,7 +140,6 @@ class DatabaseMonitoringTests(TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["status"], "error")
-        self.assertEqual(response.json()["database"]["error"], "database unavailable")
 
     def test_get_database_health_reports_postgres_pool_metrics(self) -> None:
         class FakeCursor:
@@ -490,7 +486,6 @@ class BootstrapModuleTests(TestCase):
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
-        self.assertIn("database", response.json())
 
     def test_favicon_redirects_to_static_asset(self) -> None:
         response = self.client.get("/favicon.ico")

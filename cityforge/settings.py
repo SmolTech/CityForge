@@ -1,5 +1,6 @@
 """Django settings for CityForge."""
 
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -8,20 +9,20 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Detect if running tests so we can swap cache backends.
+TESTING = "test" in sys.argv or "pytest" in sys.argv[0]
+
 env = environ.Env(
-    DEBUG=(bool, True),
-    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "testserver"]),
+    DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "0.0.0.0"]),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
-SECRET_KEY = env(
-    "DJANGO_SECRET_KEY",
-    default="django-insecure-dev-only-change-me",
-)
-DEBUG = env.bool("DJANGO_DEBUG", default=True)
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list(
     "DJANGO_ALLOWED_HOSTS",
-    default=["localhost", "127.0.0.1", "testserver"],
+    default=["localhost", "127.0.0.1", "0.0.0.0"],
 )
 
 if not DEBUG:
@@ -172,7 +173,10 @@ OPENSEARCH_PASSWORD = env("OPENSEARCH_PASSWORD", default="")
 
 # Security
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False  # Allows AJAX
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 1209600  # 2 weeks (default); consider reducing for higher security
+CSRF_COOKIE_HTTPONLY = False  # Allows AJAX; CSRF tokens are verified server-side
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
@@ -280,47 +284,66 @@ REDIS_SEARCH_URL = env(
     default=env("REDIS_URL", default="redis://localhost:6379/2"),
 )
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_DEFAULT_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PARSER_KWARGS": {},
-            "POOL_KWARGS": {
-                "max_connections": 50,
-                "retry_on_timeout": True,
+
+if TESTING:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "KEY_PREFIX": OPENSEARCH_NAMESPACE,
+        },
+        "cards": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:cards",
+        },
+        "search": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:search",
+        },
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_DEFAULT_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "PARSER_KWARGS": {},
+                "POOL_KWARGS": {
+                    "max_connections": 50,
+                    "retry_on_timeout": True,
+                },
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+                "IGNORE_EXCEPTIONS": False,
             },
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True,
+            "KEY_PREFIX": OPENSEARCH_NAMESPACE,
+            "TIMEOUT": 300,  # Default 5 minutes
         },
-        "KEY_PREFIX": OPENSEARCH_NAMESPACE,
-        "TIMEOUT": 300,  # Default 5 minutes
-    },
-    "cards": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_CARDS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "POOL_KWARGS": {"max_connections": 50},
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
-            "IGNORE_EXCEPTIONS": True,
+        "cards": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_CARDS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "POOL_KWARGS": {"max_connections": 50},
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "IGNORE_EXCEPTIONS": True,
+            },
+            "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:cards",
+            "TIMEOUT": 600,  # 10 minutes for card data
         },
-        "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:cards",
-        "TIMEOUT": 600,  # 10 minutes for card data
-    },
-    "search": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_SEARCH_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "POOL_KWARGS": {"max_connections": 50},
-            "IGNORE_EXCEPTIONS": True,
+        "search": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_SEARCH_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "POOL_KWARGS": {"max_connections": 50},
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "IGNORE_EXCEPTIONS": True,
+            },
+            "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:search",
+            "TIMEOUT": 3600,  # 1 hour for search results
         },
-        "KEY_PREFIX": f"{OPENSEARCH_NAMESPACE}:search",
-        "TIMEOUT": 3600,  # 1 hour for search results
-    },
-}
+    }

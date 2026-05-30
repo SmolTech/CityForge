@@ -179,7 +179,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **opts):
-        path = Path(opts["path"])
+        path = Path(opts["path"]).resolve()
+        if ".." in path.parts:
+            raise CommandError(f"Path traversal is not allowed: {path}")
         if not path.is_file():
             raise CommandError(f"File not found: {path}")
         data = json.loads(path.read_text())

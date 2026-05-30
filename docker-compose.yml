@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: community_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Ports exposed only for local development convenience.
+    # Remove in shared environments or use Docker networks exclusively.
     ports:
       - "5432:5432"
     healthcheck:
@@ -25,6 +27,8 @@ services:
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
       - opensearch_data:/usr/share/opensearch/data
+    # Ports exposed only for local development convenience.
+    # Remove in shared environments or use Docker networks exclusively.
     ports:
       - "9200:9200"
       - "9600:9600"
@@ -41,8 +45,8 @@ services:
       dockerfile: Dockerfile
     container_name: cityforge-web
     environment:
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-local-compose-change-me}
-      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,cityforge-web,web}
       SECURE_SSL_REDIRECT: "False"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/community_db

@@ -57,8 +57,8 @@ spec:
               value: "single-node"
             - name: OPENSEARCH_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
-            - name: DISABLE_SECURITY_PLUGIN
-              value: "true"
+            # Security plugin is enabled by default. Configure credentials via
+            # OPENSEARCH_USERNAME and OPENSEARCH_PASSWORD environment variables.
             - name: bootstrap.memory_lock
               value: "true"
           resources:

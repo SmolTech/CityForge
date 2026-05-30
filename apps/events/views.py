@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -62,6 +63,14 @@ def _event_span_start(event: Event) -> datetime:
 
 def _event_span_end(event: Event) -> datetime:
     return timezone.localtime(event.end_at or event.start_at)
+
+
+def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value or default)
+    except (TypeError, ValueError):
+        return default
+    return min(max(parsed, minimum), maximum)
 
 
 def _event_dates(event: Event) -> list[date]:
@@ -190,9 +199,12 @@ def _build_ics(events: list[Event], request: HttpRequest) -> str:
             lines.append(f"DESCRIPTION:{_ical_escape(event.description)}")
         if event.location:
             lines.append(f"LOCATION:{_ical_escape(event.location)}")
-        lines.append(
-            f"URL:{_ical_escape(event.url or _absolute_url(request, 'events:event_detail', pk=event.pk, slug=event.slug))}"
+        event_url = event.url or _absolute_url(
+            request, "events:event_detail", pk=event.pk, slug=event.slug
         )
+        if event_url and not event_url.startswith(("http://", "https://")):
+            event_url = _absolute_url(request, "events:event_detail", pk=event.pk, slug=event.slug)
+        lines.append(f"URL:{_ical_escape(event_url)}")
         lines.append("STATUS:CONFIRMED")
         lines.append("END:VEVENT")
     lines.append("END:VCALENDAR")
@@ -276,14 +288,22 @@ def my_event_submissions(request: HttpRequest) -> HttpResponse:
     return render(request, "events/my_submissions.html", {"submissions": submissions})
 
 
+@login_required
 def event_submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
     submission = get_object_or_404(EventSubmission.objects.select_related("submitter"), pk=pk)
+    if submission.submitter != request.user and not request.user.is_staff:
+        messages.error(request, "You do not have permission to view this submission.")
+        return redirect("events:home")
     return render(request, "events/submission_detail.html", {"submission": submission})
 
 
 def api_events(request: HttpRequest) -> JsonResponse:
-    events = [_serialize_event(event) for event in _approved_events_queryset()]
-    return JsonResponse({"events": events})
+    limit = _safe_int(request.GET.get("limit"), default=100, minimum=1, maximum=500)
+    offset = _safe_int(request.GET.get("offset"), default=0, minimum=0, maximum=10000)
+    qs = _approved_events_queryset()
+    total = qs.count()
+    events = [_serialize_event(event) for event in qs[offset : offset + limit]]
+    return JsonResponse({"events": events, "total": total, "limit": limit, "offset": offset})
 
 
 def event_feed(request: HttpRequest) -> HttpResponse:

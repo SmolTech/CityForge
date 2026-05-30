@@ -50,6 +50,8 @@ urlpatterns = [
     path("manage/", include(("apps.cms.urls", "cms"), namespace="cms")),
 ]
 
+# WARNING: In production, configure your reverse proxy or CDN to serve
+# MEDIA_ROOT directly. Do not rely on Django's development file server.
 media_prefix = settings.MEDIA_URL.lstrip("/").rstrip("/")
 if media_prefix:
     urlpatterns += [

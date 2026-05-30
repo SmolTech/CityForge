@@ -22,6 +22,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from apps.webhooks.service import dispatch_event
@@ -38,10 +40,42 @@ MOBILE_AUTH_TOKEN_TTL = timedelta(days=7)
 
 
 def _client_ip(request: HttpRequest) -> str | None:
+    """Return the client IP, preferring REMOTE_ADDR and validating proxies."""
+    remote_addr = request.META.get("REMOTE_ADDR")
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
+    # Only trust X-Forwarded-For when the request came through a known proxy.
+    if (
+        forwarded
+        and remote_addr
+        and (
+            remote_addr.startswith(
+                (
+                    "10.",
+                    "172.16.",
+                    "172.17.",
+                    "172.18.",
+                    "172.19.",
+                    "172.20.",
+                    "172.21.",
+                    "172.22.",
+                    "172.23.",
+                    "172.24.",
+                    "172.25.",
+                    "172.26.",
+                    "172.27.",
+                    "172.28.",
+                    "172.29.",
+                    "172.30.",
+                    "172.31.",
+                    "192.168.",
+                    "127.",
+                )
+            )
+        )
+    ):
+        # Use the last IP in the chain (closest proxy) to avoid spoofing.
+        return forwarded.split(",")[-1].strip()
+    return remote_addr
 
 
 def _reset_rate_key(request: HttpRequest, email: str) -> str:
@@ -52,11 +86,15 @@ def _reset_rate_key(request: HttpRequest, email: str) -> str:
 
 def _allow_password_reset_request(request: HttpRequest, email: str) -> bool:
     key = _reset_rate_key(request, email)
-    count = cache.get(key, 0)
-    if count >= PASSWORD_RESET_LIMIT:
-        return False
-    cache.set(key, count + 1, PASSWORD_RESET_WINDOW_SECONDS)
-    return True
+    # Atomic increment using cache.add + incr to avoid race conditions.
+    try:
+        cache.add(key, 0, PASSWORD_RESET_WINDOW_SECONDS)
+        count = cache.incr(key)
+    except ValueError:
+        # Backend doesn't support incr; fall back to get/set.
+        count = cache.get(key, 0) + 1
+        cache.set(key, count, PASSWORD_RESET_WINDOW_SECONDS)
+    return count <= PASSWORD_RESET_LIMIT
 
 
 def _captcha_session_keys(scope: str) -> tuple[str, str]:
@@ -195,8 +233,32 @@ def _mobile_auth_response(user: User) -> JsonResponse:
     return JsonResponse({"access_token": token, "user": _serialize_user(user)})
 
 
+def _auth_rate_limit_key(request: HttpRequest, identifier: str) -> str:
+    ip = _client_ip(request) or "unknown"
+    return f"auth-rate:{identifier}:{ip}"
+
+
+def _is_rate_limited(
+    request: HttpRequest, identifier: str, limit: int = 10, window: int = 300
+) -> bool:
+    key = _auth_rate_limit_key(request, identifier)
+    try:
+        cache.add(key, 0, window)
+        count = cache.incr(key)
+    except ValueError:
+        count = cache.get(key, 0) + 1
+        cache.set(key, count, window)
+    return count > limit
+
+
+@csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["POST"])
 def api_login(request: HttpRequest) -> HttpResponse:
+    if _is_rate_limited(request, "login", limit=10, window=300):
+        return JsonResponse(
+            {"detail": "Too many login attempts. Please try again later."}, status=429
+        )
+
     try:
         payload = json.loads(request.body.decode() or "{}")
     except json.JSONDecodeError:
@@ -220,8 +282,14 @@ def api_login(request: HttpRequest) -> HttpResponse:
     return _mobile_auth_response(user)
 
 
+@csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["POST"])
 def api_register(request: HttpRequest) -> HttpResponse:
+    if _is_rate_limited(request, "register", limit=5, window=3600):
+        return JsonResponse(
+            {"detail": "Too many registration attempts. Please try again later."}, status=429
+        )
+
     try:
         payload = json.loads(request.body.decode() or "{}")
     except json.JSONDecodeError:
@@ -233,19 +301,44 @@ def api_register(request: HttpRequest) -> HttpResponse:
     last_name = str(payload.get("last_name") or "").strip()
     if not email or not password or not first_name or not last_name:
         return JsonResponse({"detail": "All fields are required."}, status=400)
+
+    # Avoid user enumeration by returning a generic message when the email exists.
     if User.objects.filter(email__iexact=email).exists():
-        return JsonResponse({"detail": "A user with that email already exists."}, status=409)
+        return JsonResponse(
+            {
+                "detail": "If this email is not already registered, you will receive a verification message."
+            },
+            status=200,
+        )
+
+    # Enforce password complexity (same as web registration).
+    try:
+        validate_password(password)
+    except ValidationError as exc:
+        return JsonResponse({"detail": " ".join(exc.messages)}, status=400)
 
     user = User.objects.create_user(
         email=email,
         password=password,
         first_name=first_name,
         last_name=last_name,
-        email_verified=True,
+        email_verified=False,
     )
     user.registration_ip_address = _client_ip(request)
-    user.save(update_fields=["registration_ip_address"])
-    return _mobile_auth_response(user)
+    user.email_verification_token = secrets.token_urlsafe(32)
+    user.email_verification_sent_at = timezone.now()
+    user.save(
+        update_fields=[
+            "registration_ip_address",
+            "email_verification_token",
+            "email_verification_sent_at",
+        ]
+    )
+    _send_verification_email(request, user)
+    return JsonResponse(
+        {"detail": "Account created. Please check your email to verify your address."},
+        status=201,
+    )
 
 
 def api_me(request: HttpRequest) -> HttpResponse:
@@ -255,6 +348,7 @@ def api_me(request: HttpRequest) -> HttpResponse:
     return JsonResponse(_serialize_user(user))
 
 
+@csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["POST"])
 def api_logout(request: HttpRequest) -> HttpResponse:
     user = _mobile_user_from_request(request)
@@ -279,6 +373,7 @@ def api_logout(request: HttpRequest) -> HttpResponse:
     return JsonResponse({"detail": "Logged out."})
 
 
+@csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["PUT"])
 def api_update_email(request: HttpRequest) -> HttpResponse:
     user = _mobile_user_from_request(request)
@@ -312,6 +407,7 @@ def api_update_email(request: HttpRequest) -> HttpResponse:
     return JsonResponse({"detail": "Email updated."})
 
 
+@csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["PUT"])
 def api_update_password(request: HttpRequest) -> HttpResponse:
     user = _mobile_user_from_request(request)
@@ -397,9 +493,17 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Invalid email or password.")
             elif not user.is_active:
                 messages.error(request, "This account is disabled.")
+            elif not user.email_verified:
+                messages.error(request, "Please verify your email before logging in.")
             else:
                 login(request, user)
-                next_url = request.GET.get("next") or reverse("directory:home")
+                next_url = request.GET.get("next")
+                if not url_has_allowed_host_and_scheme(
+                    next_url,
+                    allowed_hosts={request.get_host()},
+                    require_https=request.is_secure(),
+                ):
+                    next_url = reverse("directory:home")
                 return redirect(next_url)
     else:
         form = LoginForm()

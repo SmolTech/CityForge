@@ -72,6 +72,8 @@ class AccountFlowTests(TestCase):
         self.assertIn(reverse("cms:users_list"), payload["content_url"])
 
     def test_login_success_redirects_home(self) -> None:
+        self.user.email_verified = True
+        self.user.save(update_fields=["email_verified"])
         response = self.client.post(
             reverse("accounts:login"),
             {"email": self.user.email, "password": self.password},
@@ -175,7 +177,8 @@ class AccountHelperTests(TestCase):
             HTTP_X_FORWARDED_FOR="203.0.113.10,10.0.0.1",
             REMOTE_ADDR="127.0.0.1",
         )
-        self.assertEqual(_client_ip(request), "203.0.113.10")
+        # Returns the last IP in the chain (closest proxy) to prevent spoofing.
+        self.assertEqual(_client_ip(request), "10.0.0.1")
 
     def test_password_reset_rate_limit_respects_limit(self) -> None:
         cache.clear()
@@ -377,7 +380,6 @@ class MobileAuthApiTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
         body = response.json()
-        self.assertIn("access_token", body)
-        self.assertEqual(body["user"]["email"], "newmobile@example.com")
+        self.assertIn("Account created", body["detail"])

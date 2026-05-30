@@ -78,7 +78,7 @@ class CardSubmissionUploadTests(TestCase):
 
     def test_uploaded_submission_image_is_served_through_media_route(self) -> None:
         with TemporaryDirectory() as media_root:
-            with override_settings(MEDIA_ROOT=media_root, DEBUG=False):
+            with override_settings(MEDIA_ROOT=media_root, DEBUG=True):
                 self.client.force_login(self.user)
                 with patch("apps.directory.views.dispatch_event"):
                     response = self.client.post(

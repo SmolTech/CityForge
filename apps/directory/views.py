@@ -215,7 +215,7 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 def api_cards(request: HttpRequest) -> JsonResponse:
-    limit = _safe_int(request.GET.get("limit"), default=1000, minimum=1, maximum=5000)
+    limit = _safe_int(request.GET.get("limit"), default=100, minimum=1, maximum=500)
     search = (request.GET.get("search") or "").strip()
     selected_tags = request.GET.getlist("tags")
 
@@ -660,10 +660,24 @@ def card_update_submit(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+# Allowed image extensions and their corresponding content-type prefixes.
+_ALLOWED_IMAGE_TYPES = {
+    ".jpg": ("image/jpeg",),
+    ".jpeg": ("image/jpeg",),
+    ".png": ("image/png",),
+    ".gif": ("image/gif",),
+    ".webp": ("image/webp",),
+}
+
+
 def _save_business_image(image) -> str:
     suffix = Path(image.name).suffix.lower()
-    if suffix not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
-        suffix = ".jpg"
+    allowed = suffix in _ALLOWED_IMAGE_TYPES
+    content_type = getattr(image, "content_type", "")
+    if allowed:
+        allowed = any(content_type.startswith(t) for t in _ALLOWED_IMAGE_TYPES[suffix])
+    if not allowed:
+        raise ValueError("Invalid image file. Only JPEG, PNG, GIF, and WebP are allowed.")
     name = default_storage.save(f"business-submissions/{uuid4().hex}{suffix}", image)
     return f"{settings.MEDIA_URL}{name}"
 

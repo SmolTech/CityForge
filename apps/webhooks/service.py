@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 from datetime import timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from django.utils import timezone
@@ -11,6 +13,53 @@ from django.utils import timezone
 from .models import WebhookDelivery, WebhookDeliveryStatus, WebhookEndpoint, WebhookEvent
 
 DEFAULT_MAX_RETRIES = 3
+
+
+# Private/internal IP ranges that should be blocked for webhook URLs.
+_BLOCKED_NETWORKS = [
+    "127.",
+    "10.",
+    "172.16.",
+    "172.17.",
+    "172.18.",
+    "172.19.",
+    "172.20.",
+    "172.21.",
+    "172.22.",
+    "172.23.",
+    "172.24.",
+    "172.25.",
+    "172.26.",
+    "172.27.",
+    "172.28.",
+    "172.29.",
+    "172.30.",
+    "172.31.",
+    "192.168.",
+    "169.254.",
+    "0.",
+    "::1",
+    "fc00:",
+    "fe80:",
+]
+
+
+def _is_safe_webhook_url(url: str) -> bool:
+    """Prevent SSRF by rejecting internal URLs and non-HTTPS endpoints."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        return False
+    hostname = parsed.hostname or ""
+    try:
+        # Resolve hostname to check for internal IPs.
+        resolved = socket.getaddrinfo(hostname, None)[0][4][0]
+        if any(resolved.startswith(net) for net in _BLOCKED_NETWORKS):
+            return False
+    except socket.gaierror:
+        pass
+    if any(hostname.startswith(net) for net in _BLOCKED_NETWORKS):
+        return False
+    return True
 
 
 def _parse_json(value: str | None, fallback: Any) -> Any:
@@ -153,6 +202,14 @@ def dispatch_event(
             max_retries=max_retries,
         )
         deliveries += 1
+
+        if not _is_safe_webhook_url(endpoint.url):
+            delivery.status = WebhookDeliveryStatus.FAILED
+            delivery.attempt = 1
+            delivery.last_attempt_at = timezone.now()
+            delivery.error_message = "Webhook URL is not allowed (must use HTTPS and not resolve to an internal address)."
+            delivery.save()
+            continue
 
         try:
             response = requests.post(

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from django import forms
+from django.core.validators import URLValidator
 
 from .models import Card, CardModification, CardSubmission, Review
 
 
+class SafeUrlField(forms.URLField):
+    """URL field that only permits http and https schemes."""
+
+    default_validators = [URLValidator(schemes=["http", "https"])]
+
+
 class CardSubmissionForm(forms.ModelForm):
+    website_url = SafeUrlField(required=False)
+    address_override_url = SafeUrlField(required=False)
     image = forms.ImageField(
         required=False,
         help_text="Upload a JPG, PNG, GIF, or WebP image up to 5 MB.",
@@ -44,6 +53,8 @@ class CardSubmissionForm(forms.ModelForm):
 
 
 class CardModificationForm(forms.ModelForm):
+    website_url = SafeUrlField(required=False)
+    address_override_url = SafeUrlField(required=False)
     image = forms.ImageField(
         required=False,
         help_text="Upload a JPG, PNG, GIF, or WebP image up to 5 MB.",
@@ -82,6 +93,8 @@ class CardModificationForm(forms.ModelForm):
 
 
 class CardModerationForm(forms.ModelForm):
+    website_url = SafeUrlField(required=False)
+    address_override_url = SafeUrlField(required=False)
     tags_text = forms.CharField(required=False, label="Tags (comma-separated)")
 
     class Meta:

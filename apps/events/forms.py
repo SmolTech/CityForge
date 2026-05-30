@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from django import forms
+from django.core.validators import URLValidator
 
 from .models import EventSubmission
 
 
+class SafeUrlField(forms.URLField):
+    """URL field that only permits http and https schemes."""
+
+    default_validators = [URLValidator(schemes=["http", "https"])]
+
+
 class EventSubmissionForm(forms.ModelForm):
+    url = SafeUrlField(required=False)
     start_at = forms.DateTimeField(
         widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
         input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"],
