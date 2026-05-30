@@ -30,7 +30,7 @@ class EventSubmissionForm(forms.ModelForm):
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
     def clean(self):
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         start_at = cleaned.get("start_at")
         end_at = cleaned.get("end_at")
         if start_at and end_at and end_at < start_at:

@@ -13,8 +13,9 @@ def _load_indexer_module():
         spec = importlib.util.spec_from_file_location(
             "cityforge_indexer", indexer_dir / "indexer.py"
         )
+        assert spec is not None
         module = importlib.util.module_from_spec(spec)
-        assert spec and spec.loader
+        assert spec.loader is not None
         spec.loader.exec_module(module)
         return module
     finally:

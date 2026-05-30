@@ -146,6 +146,7 @@ def users_list(request: HttpRequest) -> HttpResponse:
 @admin_required
 @require_http_methods(["POST"])
 def user_toggle_active(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     user = get_object_or_404(User, pk=pk)
     if user.pk == request.user.pk:
         messages.error(request, "You cannot deactivate your own account.")
@@ -179,6 +180,7 @@ def user_toggle_active(request: HttpRequest, pk: int) -> HttpResponse:
 @admin_required
 @require_http_methods(["POST"])
 def user_set_role(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     user = get_object_or_404(User, pk=pk)
     role = request.POST.get("role", User.Role.USER)
     if role not in {r.value for r in User.Role}:
@@ -240,6 +242,7 @@ def cards_list(request: HttpRequest) -> HttpResponse:
 
 @staff_required
 def card_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     card = get_object_or_404(Card, pk=pk)
     if request.method == "POST":
         form = CardModerationForm(request.POST, instance=card)
@@ -286,6 +289,7 @@ def card_edit(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def card_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     card = get_object_or_404(Card, pk=pk)
     payload = {
         "card_id": card.id,
@@ -359,6 +363,7 @@ def event_submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def event_submission_approve(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     submission = get_object_or_404(EventSubmission, pk=pk)
     if submission.status != EventSubmissionStatus.PENDING:
         messages.error(request, "Event submission already reviewed.")
@@ -411,6 +416,7 @@ def event_submission_approve(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def event_submission_reject(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     submission = get_object_or_404(EventSubmission, pk=pk)
     if submission.status != EventSubmissionStatus.PENDING:
         messages.error(request, "Event submission already reviewed.")
@@ -478,6 +484,7 @@ def modification_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def submission_approve(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     sub = get_object_or_404(CardSubmission, pk=pk)
     if sub.status != CardSubmissionStatus.PENDING:
         messages.error(request, "Submission already reviewed.")
@@ -534,6 +541,7 @@ def submission_approve(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def submission_reject(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     sub = get_object_or_404(CardSubmission, pk=pk)
     if sub.status != CardSubmissionStatus.PENDING:
         messages.error(request, "Submission already reviewed.")
@@ -568,6 +576,7 @@ def submission_reject(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def modification_approve(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     mod = get_object_or_404(CardModification.objects.select_related("card"), pk=pk)
     if mod.status != CardSubmissionStatus.PENDING:
         messages.error(request, "Modification already reviewed.")
@@ -622,6 +631,7 @@ def modification_approve(request: HttpRequest, pk: int) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def modification_reject(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     mod = get_object_or_404(CardModification, pk=pk)
     if mod.status != CardSubmissionStatus.PENDING:
         messages.error(request, "Modification already reviewed.")
@@ -688,6 +698,7 @@ def reviews_list(request: HttpRequest) -> HttpResponse:
 @staff_required
 @require_http_methods(["POST"])
 def review_toggle_hidden(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     review = get_object_or_404(Review, pk=pk)
     review.hidden = not review.hidden
     review.save(update_fields=["hidden"])

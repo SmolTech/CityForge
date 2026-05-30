@@ -53,7 +53,8 @@ def _is_safe_webhook_url(url: str) -> bool:
     try:
         # Resolve hostname to check for internal IPs.
         resolved = socket.getaddrinfo(hostname, None)[0][4][0]
-        if any(resolved.startswith(net) for net in _BLOCKED_NETWORKS):
+        resolved_str = str(resolved)
+        if any(resolved_str.startswith(net) for net in _BLOCKED_NETWORKS):
             return False
     except socket.gaierror:
         pass
@@ -83,7 +84,7 @@ def _delivery_max_retries(endpoint: WebhookEndpoint) -> int:
     if isinstance(policy, dict):
         raw = policy.get("max_retries", policy.get("maxRetries", DEFAULT_MAX_RETRIES))
         try:
-            return max(0, int(raw))
+            return max(0, int(str(raw) if raw is not None else DEFAULT_MAX_RETRIES))
         except (TypeError, ValueError):
             return DEFAULT_MAX_RETRIES
     return DEFAULT_MAX_RETRIES
@@ -183,7 +184,7 @@ def dispatch_event(
         type=event_type,
         data=json.dumps(data),
         timestamp=timezone.now(),
-        environment=environment or os.getenv("DEPLOY_ENV", "production"),
+        environment=str(environment or os.getenv("DEPLOY_ENV", "production")),
         source_info=source_info,
     )
 

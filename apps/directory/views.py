@@ -50,7 +50,7 @@ def _request_payload(request: HttpRequest) -> dict[str, object]:
         if not isinstance(payload, dict):
             raise ValueError("Request body must be a JSON object.")
         return payload
-    return request.POST.dict()
+    return dict(request.POST)
 
 
 def _payload_text(payload: dict[str, object], *keys: str) -> str:
@@ -64,7 +64,7 @@ def _payload_text(payload: dict[str, object], *keys: str) -> str:
     return ""
 
 
-def _form_payload(payload: dict[str, object]) -> dict[str, str]:
+def _form_payload(payload: dict[str, object]) -> dict[str, object]:
     return {
         "name": _payload_text(payload, "name"),
         "description": _payload_text(payload, "description"),
@@ -197,9 +197,9 @@ def home(request: HttpRequest) -> HttpResponse:
         tags = Tag.objects.annotate(used=Count("cards")).filter(used__gt=0).order_by("name")
     except OperationalError:
         messages.error(request, "The directory is temporarily unavailable. Please try again.")
-        paginator = Paginator(Card.objects.none(), settings.PAGINATION_DEFAULT_LIMIT)
+        paginator = Paginator(Card.objects.none(), settings.PAGINATION_DEFAULT_LIMIT)  # type: ignore[arg-type]
         page = paginator.get_page(1)
-        tags = Tag.objects.none()
+        tags = Tag.objects.none()  # type: ignore[assignment]
 
     ctx = {
         "page_obj": page,
@@ -375,6 +375,7 @@ def _safe_int(value: str | None, *, default: int, minimum: int, maximum: int) ->
 def api_submissions(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return _api_auth_failure()
+    assert request.user.is_authenticated
 
     if request.method == "GET":
         submissions = [
@@ -390,7 +391,10 @@ def api_submissions(request: HttpRequest) -> HttpResponse:
             .order_by("-created_date")
         ]
         items = submissions + modifications
-        items.sort(key=lambda item: item["created_date"], reverse=True)
+        from datetime import datetime
+        from typing import cast
+
+        items.sort(key=lambda item: cast(datetime, item["created_date"]), reverse=True)
         return JsonResponse(items, safe=False)
 
     payload = _request_payload(request)
@@ -439,6 +443,7 @@ def api_submissions(request: HttpRequest) -> HttpResponse:
 def api_suggest_edit(request: HttpRequest, pk: int) -> HttpResponse:
     if not request.user.is_authenticated:
         return _api_auth_failure()
+    assert request.user.is_authenticated
 
     card = get_object_or_404(Card, pk=pk, approved=True)
     payload = _request_payload(request)
@@ -519,6 +524,7 @@ def card_detail(request: HttpRequest, pk: int, slug: str | None = None) -> HttpR
 @login_required
 @require_http_methods(["POST"])
 def submit_review(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     card = get_object_or_404(Card, pk=pk, approved=True)
     if Review.objects.filter(card=card, user=request.user).exists():
         messages.error(request, "You have already reviewed this business.")
@@ -561,6 +567,7 @@ def submit_review(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def card_submit(request: HttpRequest) -> HttpResponse:
+    assert request.user.is_authenticated
     if request.method == "POST":
         form = CardSubmissionForm(request.POST, request.FILES)
         if form.is_valid():
@@ -599,6 +606,7 @@ def card_submit(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def card_update_submit(request: HttpRequest, pk: int) -> HttpResponse:
+    assert request.user.is_authenticated
     card = get_object_or_404(Card, pk=pk, approved=True)
     if request.method == "POST":
         form = CardModificationForm(request.POST, request.FILES)
@@ -685,6 +693,7 @@ def _save_business_image(image) -> str:
 def my_submissions(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("accounts:login")
+    assert request.user.is_authenticated
     subs = CardSubmission.objects.filter(submitter=request.user).order_by("-created_date")
     modifications = (
         CardModification.objects.filter(submitter=request.user)

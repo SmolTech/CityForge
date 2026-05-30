@@ -33,7 +33,7 @@ FUZZY_SEARCH_FIELDS = [
 try:
     from opensearchpy import OpenSearch
 except ImportError:  # pragma: no cover
-    OpenSearch = None
+    OpenSearch = None  # type: ignore[misc,assignment]
 
 
 def _client():
@@ -146,9 +146,9 @@ def _response_total(response: dict) -> int:
     resource_count = response.get("aggregations", {}).get("resource_count", {}).get("value")
     if isinstance(resource_count, int | float):
         return int(resource_count)
-    hits = response.get("hits", {})
-    total_obj = hits.get("total", 0)
-    return total_obj.get("value", 0) if isinstance(total_obj, dict) else total_obj
+    hits: dict = response.get("hits", {})
+    total_obj: dict | int = hits.get("total", 0)
+    return int(total_obj.get("value", 0)) if isinstance(total_obj, dict) else int(total_obj)
 
 
 def _parse_hit(hit: dict, *, excerpt_length: int) -> dict:

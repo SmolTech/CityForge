@@ -67,6 +67,7 @@ class CardSubmissionUploadTests(TestCase):
                 self.assertEqual(response.headers["Location"], reverse("directory:home"))
                 submission = CardSubmission.objects.get(name="Uploaded Business")
                 self.assertEqual(submission.status, CardSubmissionStatus.PENDING)
+                assert submission.image_url is not None
                 self.assertTrue(submission.image_url.startswith("/media/business-submissions/"))
                 saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
                 self.assertTrue(saved_path.exists())
@@ -94,6 +95,7 @@ class CardSubmissionUploadTests(TestCase):
                 self.assertEqual(response.status_code, 302)
                 submission = CardSubmission.objects.get(name="Served Business")
 
+                assert submission.image_url is not None
                 image_response = self.client.get(submission.image_url)
                 self.assertEqual(image_response.status_code, 200)
                 self.assertEqual(image_response.headers["Content-Type"], "image/png")
@@ -119,6 +121,7 @@ class CardSubmissionUploadTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("cms:submissions_list"))
         submission.refresh_from_db()
+        assert submission.card is not None
         self.assertEqual(submission.card.image_url, "/media/business-submissions/example.png")
 
 
@@ -488,6 +491,7 @@ class DirectoryViewTests(TestCase):
 
                 self.assertEqual(response.status_code, 201)
                 submission = CardSubmission.objects.get(name="Mobile Upload")
+                assert submission.image_url is not None
                 self.assertTrue(submission.image_url.startswith("/media/business-submissions/"))
                 saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
                 self.assertTrue(saved_path.exists())

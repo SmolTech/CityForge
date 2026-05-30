@@ -10,6 +10,13 @@ from typing import Any
 from django.core.cache import cache
 
 
+def _get_cache(name: str):
+    backend = cache
+    if hasattr(cache, "get_client"):
+        return cache.get_client(name)
+    return backend
+
+
 def cache_key(*args, **kwargs) -> str:
     """Generate a cache key from arguments."""
     key_parts = list(args) + [f"{k}={v}" for k, v in sorted(kwargs.items())]
@@ -42,7 +49,7 @@ def cache_result(
         @wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             # Build cache key
-            cache_obj = cache.get_client(cache_name)
+            cache_obj = _get_cache(cache_name)
             prefix = key_prefix or func.__name__
             key = f"{prefix}:{cache_key(*args, **kwargs)}"
 
@@ -71,10 +78,10 @@ def invalidate_cache(pattern: str, cache_name: str = "default") -> int:
     Returns:
         Number of keys deleted
     """
-    cache_obj = cache.get_client(cache_name)
+    cache_obj = _get_cache(cache_name)
     keys = cache_obj.keys(pattern)
     if keys:
-        return cache_obj.delete(*keys)
+        return int(cache_obj.delete(*keys))
     return 0
 
 
@@ -95,7 +102,7 @@ def get_or_set_cache(
     Returns:
         Cached or computed value
     """
-    cache_obj = cache.get_client(cache_name)
+    cache_obj = _get_cache(cache_name)
     result = cache_obj.get(key)
     if result is not None:
         return result
@@ -130,7 +137,7 @@ def cache_page_conditional(
             if request.method != "GET" or request.GET:
                 return view_func(request, *args, **kwargs)
 
-            cache_obj = cache.get_client(cache_name)
+            cache_obj = _get_cache(cache_name)
             cache_key_str = f"view:{request.path}:{request.GET.urlencode()}"
             cached = cache_obj.get(cache_key_str)
             if cached is not None:

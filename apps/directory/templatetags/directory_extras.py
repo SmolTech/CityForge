@@ -66,7 +66,7 @@ def highlight_safe(value):
     if value is None:
         return ""
     escaped = escape(str(value))
-    escaped = escaped.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
+    highlighted = escaped.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
     return mark_safe(  # nosemgrep: python.django.security.audit.avoid-mark-safe.avoid-mark-safe
-        escaped
+        highlighted
     )

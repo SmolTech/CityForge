@@ -32,7 +32,7 @@ class AccountFlowTests(TestCase):
         )
 
     def _captcha_answer(self, scope: str) -> str:
-        return self.client.session[f"accounts_captcha:{scope}:answer"]
+        return str(self.client.session[f"accounts_captcha:{scope}:answer"])
 
     def _set_captcha(self, scope: str, answer: str = "7") -> None:
         session = self.client.session
@@ -346,7 +346,7 @@ class MobileAuthApiTests(TestCase):
         )
         token = login_response.json()["access_token"]
 
-        response = self.client.get("/api/auth/me", **self._auth_header(token))
+        response = self.client.get("/api/auth/me", **self._auth_header(token))  # type: ignore[arg-type]
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["email"], self.user.email)
@@ -359,11 +359,11 @@ class MobileAuthApiTests(TestCase):
         )
         token = login_response.json()["access_token"]
 
-        response = self.client.post("/api/auth/logout", **self._auth_header(token))
+        response = self.client.post("/api/auth/logout", **self._auth_header(token))  # type: ignore[arg-type]
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TokenBlacklist.objects.count(), 1)
-        me_response = self.client.get("/api/auth/me", **self._auth_header(token))
+        me_response = self.client.get("/api/auth/me", **self._auth_header(token))  # type: ignore[arg-type]
         self.assertEqual(me_response.status_code, 401)
 
     def test_register_returns_access_token(self) -> None:
