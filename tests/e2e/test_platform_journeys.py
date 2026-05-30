@@ -70,6 +70,14 @@ class AccountsAndAuthE2ETests(TestCase):
         logout = self.client.post(reverse("accounts:logout"))
         self.assertEqual(logout.status_code, 302)
 
+        # Email verification is now required before login.
+        verify = self.client.get(
+            reverse("accounts:verify_email", args=[user.email_verification_token])
+        )
+        self.assertEqual(verify.status_code, 302)
+        user.refresh_from_db()
+        self.assertTrue(user.email_verified)
+
         login = self.client.post(
             reverse("accounts:login"),
             {"email": user.email, "password": "InitialPass!123"},
