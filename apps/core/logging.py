@@ -55,7 +55,7 @@ class RequestLoggingMiddleware:
     def _user_id(request) -> int | None:
         user = getattr(request, "user", None)
         if user is not None and getattr(user, "is_authenticated", False):
-            return user.pk
+            return int(user.pk)
         return None
 
     def __call__(self, request):

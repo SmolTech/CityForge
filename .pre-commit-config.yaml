@@ -33,6 +33,13 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
+      - id: mypy
+        name: mypy type check
+        entry: poetry run mypy apps cityforge indexer tests
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: semgrep-local
         name: semgrep (python & django)
         entry: poetry run semgrep

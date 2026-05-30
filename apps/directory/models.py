@@ -51,7 +51,9 @@ class Card(models.Model):
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(auto_now=True)
 
-    tags = models.ManyToManyField(Tag, through="CardTag", related_name="cards")
+    tags: models.ManyToManyField[Tag, CardTag] = models.ManyToManyField(
+        Tag, through="CardTag", related_name="cards"
+    )
 
     class Meta:
         db_table = "cards"

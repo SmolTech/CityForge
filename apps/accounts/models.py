@@ -15,7 +15,7 @@ class UserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         # Called from createsuperuser / data import; AUTH_PASSWORD_VALIDATORS
         # are not applied for these admin-driven flows by design.
-        user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+        user.set_password(  # type: ignore[attr-defined]  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
             password
         )
         user.save(using=self._db)

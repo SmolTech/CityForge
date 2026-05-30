@@ -4,6 +4,7 @@ import json
 from datetime import timedelta
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -43,7 +44,7 @@ def _set_captcha(client, scope: str, answer: str = "7") -> str:
     return answer
 
 
-def _auth_header(token: str) -> dict[str, str]:
+def _auth_header(token: str) -> dict[str, Any]:
     return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
 
@@ -256,6 +257,7 @@ class DirectoryAndCmsE2ETests(TestCase):
                 submission = CardSubmission.objects.get(name="Journey Cafe")
                 self.assertEqual(submission.status, CardSubmissionStatus.PENDING)
 
+                assert submission.image_url is not None
                 uploaded = self.client.get(submission.image_url)
                 self.assertEqual(uploaded.status_code, 200)
                 self.assertEqual(uploaded.headers["Content-Type"], "image/png")

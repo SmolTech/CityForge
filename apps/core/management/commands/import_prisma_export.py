@@ -254,7 +254,7 @@ class Command(BaseCommand):
             User.objects.update_or_create(
                 pk=pk,
                 defaults={
-                    "email": d.get("email"),
+                    "email": str(d.get("email") or ""),
                     "first_name": d.get("first_name") or "",
                     "last_name": d.get("last_name") or "",
                     "role": role,

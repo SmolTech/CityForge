@@ -106,7 +106,8 @@ class CriticalJourneyE2ETests(TestCase):
                 self.assertEqual(submit.headers["Location"], reverse("directory:home"))
                 submission = CardSubmission.objects.get(name="Flow Submission")
                 self.assertEqual(submission.status, CardSubmissionStatus.PENDING)
-                saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
+                image_url = submission.image_url or ""
+                saved_path = Path(media_root) / image_url.removeprefix("/media/")
                 self.assertTrue(saved_path.exists())
 
                 self.client.force_login(admin)

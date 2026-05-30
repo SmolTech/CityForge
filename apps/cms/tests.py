@@ -182,6 +182,7 @@ class CmsMutationTests(TestCase):
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.status, CardSubmissionStatus.APPROVED)
         self.assertIsNotNone(self.submission.card)
+        assert self.submission.card is not None
         self.assertTrue(Tag.objects.filter(name="coffee").exists())
         mocked_dispatch.assert_called_once()
         self.assertEqual(mocked_dispatch.call_args.args[0], "submission.approved")

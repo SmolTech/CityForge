@@ -41,8 +41,8 @@ MOBILE_AUTH_TOKEN_TTL = timedelta(days=7)
 
 def _client_ip(request: HttpRequest) -> str | None:
     """Return the client IP, preferring REMOTE_ADDR and validating proxies."""
-    remote_addr = request.META.get("REMOTE_ADDR")
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    remote_addr = str(request.META.get("REMOTE_ADDR", "")) or None
+    forwarded = str(request.META.get("HTTP_X_FORWARDED_FOR", "")) or None
     # Only trust X-Forwarded-For when the request came through a known proxy.
     if (
         forwarded
@@ -148,7 +148,7 @@ def _serialize_user(user: User) -> dict[str, object]:
 
 
 def _auth_token_signing_key() -> bytes:
-    return settings.SECRET_KEY.encode()
+    return str(settings.SECRET_KEY).encode()
 
 
 def _encode_auth_token(payload: dict[str, object]) -> str:
@@ -504,7 +504,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     require_https=request.is_secure(),
                 ):
                     next_url = reverse("directory:home")
-                return redirect(next_url)
+                return redirect(next_url or "directory:home")
     else:
         form = LoginForm()
     return render(request, "accounts/login.html", {"form": form})
@@ -619,7 +619,11 @@ def verify_email(request: HttpRequest, token: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def resend_verification(request: HttpRequest) -> HttpResponse:
+    from django.contrib.auth.models import AnonymousUser
+
     user = request.user
+    if isinstance(user, AnonymousUser):
+        return redirect("accounts:login")
     if user.email_verified:
         messages.info(request, "Your email is already verified.")
     else:

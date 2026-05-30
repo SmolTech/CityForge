@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 User = get_user_model()
 
 
-class CaptchaFormMixin:
+class CaptchaFormMixin(forms.Form):
     def __init__(
         self,
         *args,
@@ -21,7 +21,7 @@ class CaptchaFormMixin:
         self.fields["captcha_answer"].help_text = captcha_prompt or "Solve the challenge above."
 
     def clean_captcha_answer(self) -> str:
-        answer = (self.cleaned_data.get("captcha_answer") or "").strip()
+        answer = str(self.cleaned_data.get("captcha_answer") or "").strip()
         if not self._captcha_expected or answer != self._captcha_expected:
             raise ValidationError("Incorrect security check answer.")
         return answer
@@ -45,13 +45,13 @@ class RegisterForm(CaptchaFormMixin, forms.ModelForm):
         fields = ("email", "first_name", "last_name")
 
     def clean_email(self) -> str:
-        email = self.cleaned_data["email"].lower().strip()
+        email = str(self.cleaned_data["email"]).lower().strip()
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("An account with that email already exists.")
         return email
 
     def clean(self):
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
         if p1 and p2 and p1 != p2:
@@ -63,10 +63,10 @@ class RegisterForm(CaptchaFormMixin, forms.ModelForm):
                 self.add_error("password1", exc)
         return cleaned
 
-    def save(self, commit: bool = True) -> User:
+    def save(self, commit: bool = True):
         user = super().save(commit=False)
         # Password validated above via validate_password() in clean().
-        password = self.cleaned_data["password1"]
+        password = str(self.cleaned_data["password1"])
         user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
             password
         )
@@ -99,7 +99,7 @@ class ResetPasswordForm(CaptchaFormMixin, forms.Form):
     captcha_answer = forms.CharField(label="Security check")
 
     def clean(self):
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
         if p1 and p2 and p1 != p2:

@@ -278,7 +278,7 @@ class ResourceIndexer:
                 page_description = ""
                 meta_desc = soup.find("meta", attrs={"name": "description"})
                 if meta_desc:
-                    page_description = meta_desc.get("content", "").strip()
+                    page_description = str(meta_desc.get("content", "") or "").strip()
 
                 # Remove script and style elements
                 for script in soup(["script", "style"]):
@@ -333,7 +333,7 @@ class ResourceIndexer:
         queued = {start_url}
         crawled = set()
         indexed_pages = set()
-        pages = []
+        pages: list[dict[str, object]] = []
 
         while queue and len(pages) < IndexerConfig.MAX_PAGES_PER_SITE:
             current_url = queue.popleft()

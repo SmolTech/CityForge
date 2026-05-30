@@ -240,7 +240,10 @@ class PrismaImportHelperTests(TestCase):
         self.assertIsNotNone(to_dt("2025-01-01T00:00:00Z"))
         self.assertIsNone(to_dt(None))
         bcrypt_hash = "$2b$12$" + ("a" * 53)
-        self.assertTrue(legacy_password_hash(bcrypt_hash).startswith("bcrypt$"))
+        hashed = legacy_password_hash(bcrypt_hash)
+        self.assertIsNotNone(hashed)
+        assert hashed is not None
+        self.assertTrue(hashed.startswith("bcrypt$"))
 
         by_id, by_email = collect_legacy_password_hashes(
             {"items": [{"id": 10, "email": "U@E.COM", "passwordHash": bcrypt_hash}]}

@@ -17,4 +17,4 @@ def media_file(request, path: str):
     In production, configure your reverse proxy or CDN to serve MEDIA_ROOT
     directly and avoid routing media requests through Django.
     """
-    return serve(request, path, document_root=settings.MEDIA_ROOT)
+    return serve(request, path, document_root=str(settings.MEDIA_ROOT))
