@@ -10,6 +10,10 @@ jobs:
   lint:
     name: Lint & format
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-secret-key-not-used-in-prod
+      DJANGO_DEBUG: "True"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cityforge_test
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
