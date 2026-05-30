@@ -82,7 +82,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: cityforge-indexer
-    entrypoint: ["poetry", "run", "python", "indexer/indexer.py"]
+    entrypoint: ["python", "indexer/indexer.py"]
     environment:
       OPENSEARCH_HOST: opensearch
       OPENSEARCH_PORT: 9200
