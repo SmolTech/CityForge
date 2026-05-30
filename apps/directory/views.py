@@ -50,7 +50,7 @@ def _request_payload(request: HttpRequest) -> dict[str, object]:
         if not isinstance(payload, dict):
             raise ValueError("Request body must be a JSON object.")
         return payload
-    return dict(request.POST)
+    return request.POST.dict()  # type: ignore[return-value]
 
 
 def _payload_text(payload: dict[str, object], *keys: str) -> str:
