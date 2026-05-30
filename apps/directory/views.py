@@ -696,3 +696,18 @@ def my_submissions(request: HttpRequest) -> HttpResponse:
         "directory/my_submissions.html",
         {"submissions": subs, "modifications": modifications},
     )
+
+
+@require_http_methods(["GET"])
+def api_tags(request: HttpRequest) -> JsonResponse:
+    """Return tag names matching the query, ordered by usage count."""
+    query = (request.GET.get("q") or "").strip().lower()
+    if not query or len(query) > 100:
+        return JsonResponse({"tags": []})
+    tags = (
+        Tag.objects.filter(name__icontains=query)
+        .annotate(usage=Count("cards"))
+        .order_by("-usage", "name")
+        .values_list("name", flat=True)[:20]
+    )
+    return JsonResponse({"tags": list(tags)})

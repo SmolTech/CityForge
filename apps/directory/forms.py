@@ -25,8 +25,8 @@ class CardSubmissionForm(forms.ModelForm):
     tags_text = forms.CharField(
         label="Tags",
         required=False,
-        help_text="Comma-separated tags (e.g. plumber, 24/7, family-owned).",
-        widget=forms.TextInput(),
+        help_text="Comma-separated tags (e.g. plumber, 24/7, family-owned). Tab to complete.",
+        widget=forms.TextInput(attrs={"data-tags-autocomplete": "true", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -65,8 +65,8 @@ class CardModificationForm(forms.ModelForm):
     tags_text = forms.CharField(
         label="Tags",
         required=False,
-        help_text="Comma-separated tags (e.g. plumber, 24/7, family-owned).",
-        widget=forms.TextInput(),
+        help_text="Comma-separated tags (e.g. plumber, 24/7, family-owned). Tab to complete.",
+        widget=forms.TextInput(attrs={"data-tags-autocomplete": "true", "autocomplete": "off"}),
     )
 
     class Meta:

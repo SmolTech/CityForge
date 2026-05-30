@@ -29,6 +29,8 @@ urlpatterns = [
     path("api/auth/", include(("apps.accounts.urls_api", "accounts_api"))),
     path("api/cards", include(("apps.directory.urls_api", "directory_api"))),
     path("api/cards/search/", directory_views.api_opensearch, name="cards_search"),
+    path("api/tags", directory_views.api_tags, name="tags_api"),
+    path("api/tags/", directory_views.api_tags, name="tags_api_slash"),
     path("api/events", include(("apps.events.urls_api", "events_api"))),
     path(
         "api/cards/<int:pk>/suggest-edit",

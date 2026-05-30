@@ -437,3 +437,23 @@ table.data tr:hover td { background: var(--bg); }
 .badge-pending { background: #fef3c7; color: #92400e; }
 .badge-approved { background: #dcfce7; color: #166534; }
 .badge-rejected { background: #fee2e2; color: #991b1b; }
+
+/* Tag autocomplete */
+.tag-autocomplete-wrap { position: relative; }
+.tag-autocomplete-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 12px 28px rgb(0 0 0 / 12%);
+  max-height: 240px; overflow-y: auto; z-index: 30;
+  list-style: none; padding: 4px; margin: 0;
+}
+.tag-autocomplete-list:empty { display: none; }
+.tag-autocomplete-list li {
+  padding: 8px 10px; border-radius: calc(var(--radius) - 2px);
+  cursor: pointer; font-size: .95rem;
+}
+.tag-autocomplete-list li[aria-selected="true"],
+.tag-autocomplete-list li:hover {
+  background: var(--bg);
+}
+.tag-autocomplete-list .usage { color: var(--muted); font-size: .8rem; margin-left: 6px; }
