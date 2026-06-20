@@ -4,9 +4,12 @@ import json
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from contextvars import ContextVar
 from datetime import UTC, datetime
 from typing import Any
+
+from django.http import HttpRequest, HttpResponse
 
 _request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
 
@@ -48,20 +51,20 @@ class JsonFormatter(logging.Formatter):
 class RequestLoggingMiddleware:
     _logger = logging.getLogger("apps.request")
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
     @staticmethod
-    def _user_id(request) -> int | None:
+    def _user_id(request: HttpRequest) -> int | None:
         user = getattr(request, "user", None)
         if user is not None and getattr(user, "is_authenticated", False):
             return int(user.pk)
         return None
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponse:
         started_at = time.monotonic()
         request_id = request.META.get("HTTP_X_REQUEST_ID", "").strip() or str(uuid.uuid4())
-        request.request_id = request_id
+        setattr(request, "request_id", request_id)  # noqa: B010
         token = _request_id_context.set(request_id)
         try:
             response = self.get_response(request)

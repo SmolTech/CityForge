@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.db.models import Count
@@ -17,7 +18,7 @@ from apps.webhooks.service import dispatch_event
 class Command(BaseCommand):
     help = "Send daily admin digest to configured webhook endpoints."
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         if os.getenv("WEBHOOKS_ENABLED", "false").lower() not in {"1", "true", "yes", "on"}:
             self.stdout.write(
                 self.style.WARNING("WEBHOOKS_ENABLED is false; skipping webhook digest.")

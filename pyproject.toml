@@ -66,6 +66,34 @@ exclude = [
     "reference",
 ]
 
+# Production source code must be fully annotated.
+[[tool.mypy.overrides]]
+module = [
+    "apps.accounts.*",
+    "apps.classifieds.*",
+    "apps.cms.*",
+    "apps.core.*",
+    "apps.directory.*",
+    "apps.events.*",
+    "apps.forums.*",
+    "apps.indexing.*",
+    "apps.resources.*",
+    "apps.search.*",
+    "apps.webhooks.*",
+    "cityforge.*",
+    "indexer.*",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+# Tests are checked, but we do not require every test helper to be fully annotated.
+[[tool.mypy.overrides]]
+module = [
+    "apps.*.tests",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
 [tool.django-stubs]
 django_settings_module = "cityforge.settings"
 

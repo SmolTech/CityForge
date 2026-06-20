@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.apps import apps
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
 from django.core.management.color import no_style
 from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
 
@@ -9,14 +11,14 @@ from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
 class Command(BaseCommand):
     help = "Synchronize database sequences with the current maximum primary keys."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--database",
             default=DEFAULT_DB_ALIAS,
             help='Nominates a database to synchronize. Defaults to the "default" database.',
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         database = options["database"]
         connection = connections[database]
         models = [

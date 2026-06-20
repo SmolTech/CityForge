@@ -1,21 +1,22 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from django import forms
-from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-User = get_user_model()
+from apps.accounts.models import User
 
 
 class CaptchaFormMixin(forms.Form):
     def __init__(
         self,
-        *args,
+        *args: Any,
         captcha_prompt: str | None = None,
         captcha_expected: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         self._captcha_expected = (captcha_expected or "").strip()
         super().__init__(*args, **kwargs)
         self.fields["captcha_answer"].help_text = captcha_prompt or "Solve the challenge above."
@@ -50,7 +51,7 @@ class RegisterForm(CaptchaFormMixin, forms.ModelForm):
             raise ValidationError("An account with that email already exists.")
         return email
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
@@ -63,8 +64,8 @@ class RegisterForm(CaptchaFormMixin, forms.ModelForm):
                 self.add_error("password1", exc)
         return cleaned
 
-    def save(self, commit: bool = True):
-        user = super().save(commit=False)
+    def save(self, commit: bool = True) -> User:
+        user = cast(User, super().save(commit=False))
         # Password validated above via validate_password() in clean().
         password = str(self.cleaned_data["password1"])
         user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
@@ -98,7 +99,7 @@ class ResetPasswordForm(CaptchaFormMixin, forms.Form):
     )
     captcha_answer = forms.CharField(label="Security check")
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")

@@ -57,8 +57,16 @@ poetry run pre-commit install
 poetry run pre-commit run --all-files
 ```
 
-The hook config runs `ruff`, `ruff-format`, and `semgrep` (with the `p/python`,
-`p/django`, and `p/security-audit` rule packs) on every commit.
+The hook config runs `ruff`, `ruff-format`, `mypy`, and `semgrep` (with the
+`p/python`, `p/django`, and `p/security-audit` rule packs) on every commit.
+Production source code is required to be fully type-annotated; test files are
+checked but not required to be fully annotated.
+
+### Type checking
+
+```bash
+poetry run mypy apps cityforge indexer tests
+```
 
 ### Run E2E tests
 

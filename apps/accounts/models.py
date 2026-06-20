@@ -1,32 +1,36 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
 
-class UserManager(BaseUserManager):
+class UserManager(BaseUserManager["User"]):
     use_in_migrations = True
 
-    def _create_user(self, email, password, **extra_fields):
+    def _create_user(self, email: str, password: str | None, **extra_fields: Any) -> User:
         if not email:
             raise ValueError("Email is required")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         # Called from createsuperuser / data import; AUTH_PASSWORD_VALIDATORS
         # are not applied for these admin-driven flows by design.
-        user.set_password(  # type: ignore[attr-defined]  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
+        user.set_password(  # nosemgrep: python.django.security.audit.unvalidated-password.unvalidated-password
             password
         )
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email: str, password: str | None = None, **extra_fields: Any) -> User:
         extra_fields.setdefault("role", User.Role.USER)
         extra_fields.setdefault("is_active", True)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email, password=None, **extra_fields):
+    def create_superuser(
+        self, email: str, password: str | None = None, **extra_fields: Any
+    ) -> User:
         extra_fields["role"] = User.Role.ADMIN
         extra_fields["is_staff"] = True
         extra_fields["is_superuser"] = True
