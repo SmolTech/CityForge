@@ -1,45 +1,41 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     POETRY_VERSION=2.1.1 \
-    POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev curl \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apk add --no-cache gcc musl-dev libffi-dev postgresql-dev \
     && pip install "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock* /app/
-RUN poetry install --only main --no-root --no-ansi
+RUN poetry config virtualenvs.in-project true \
+    && poetry install --only main --no-root --no-ansi
 
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_NO_INTERACTION=1
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq5 curl \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
+COPY --from=builder /app/.venv /app/.venv
 COPY indexer/ /app/
 
-RUN groupadd -r appuser --gid 1001 && useradd --no-log-init -r -g appuser --uid 1001 appuser \
+# Remove build-only tooling from the runtime venv and any stray caches.
+RUN /app/.venv/bin/pip uninstall -y pip setuptools wheel >/dev/null 2>&1 || true \
+    && find /app -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -type f -name '*.pyc' -delete \
+    && addgroup -S -g 1001 appuser \
+    && adduser -S -u 1001 -G appuser -h /app -s /sbin/nologin appuser \
     && chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["poetry", "run", "python", "indexer.py"]
+CMD ["python", "indexer.py"]

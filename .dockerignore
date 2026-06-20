@@ -1,0 +1,75 @@
+# Git
+.git
+.gitignore
+
+# Python cache / tooling
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+.venv
+venv
+
+# Local environment / data
+.env
+.env.*
+!.env.example
+db.sqlite3
+db.sqlite3-journal
+*.log
+logs/
+/backups
+cityforge_export_*.json
+
+# Build artifacts
+build/
+dist/
+*.egg-info
+/staticfiles
+/uploads
+/media
+
+# Node
+node_modules
+mobile/node_modules
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Frontend / mobile (not needed by backend image)
+mobile/
+.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Docs / metadata
+README.md
+CHANGELOG.md
+LICENSE
+reference/
+
+# CI / local tooling
+.github/
+.pre-commit-config.yaml
+.kimi-code/
+.vscode/
+.idea/
+
+# Kubernetes secrets (examples or real)
+k8s/*-secret.yaml*
+k8s/*-digest-*
+
+# Playwright / e2e artifacts
+test-results/
+playwright-report/
+test-results.json

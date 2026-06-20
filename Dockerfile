@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -9,9 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev \
-    && rm -rf /var/lib/apt/lists/* \
+# Install build dependencies. psycopg[binary] provides a wheel, but we keep the
+# PostgreSQL client headers so the build is resilient if a wheel is missing.
+RUN apk add --no-cache gcc musl-dev libffi-dev postgresql-dev \
     && pip install "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock* /app/
@@ -19,7 +19,7 @@ RUN poetry config virtualenvs.in-project true \
     && poetry install --only main --no-root --no-ansi
 
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -29,16 +29,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq5 \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=builder /app/.venv /app/.venv
 
 COPY . /app
 
-RUN groupadd --system --gid 1001 app \
-    && useradd --system --uid 1001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
+# Remove build-only tooling from the runtime venv and any stray caches.
+RUN /app/.venv/bin/pip uninstall -y pip setuptools wheel >/dev/null 2>&1 || true \
+    && find /app -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -type f -name '*.pyc' -delete \
+    && addgroup -S -g 1001 app \
+    && adduser -S -u 1001 -G app -h /app -s /sbin/nologin app \
     && mkdir -p /app/uploads /app/staticfiles \
     && chown -R app:app /app
 
