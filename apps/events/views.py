@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import calendar as pycalendar
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -21,7 +22,7 @@ from .forms import EventSubmissionForm
 from .models import Event, EventStatus, EventSubmission
 
 
-def _absolute_url(request: HttpRequest, view_name: str, **kwargs) -> str:
+def _absolute_url(request: HttpRequest, view_name: str, **kwargs: Any) -> str:
     return request.build_absolute_uri(reverse(view_name, kwargs=kwargs))
 
 
@@ -84,7 +85,7 @@ def _event_dates(event: Event) -> list[date]:
     return days
 
 
-def _approved_events_queryset():
+def _approved_events_queryset() -> QuerySet[Event]:
     return Event.objects.filter(approved=True).order_by("start_at", "title")
 
 

@@ -18,15 +18,15 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Collection
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.hashers import make_password
 from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
 from apps.accounts.models import TokenBlacklist, User
@@ -141,7 +141,7 @@ def normalize_row(row: dict[str, Any], renames: dict[str, str]) -> dict[str, Any
     return out
 
 
-def _concrete_field_map(model) -> dict[str, Any]:
+def _concrete_field_map(model: type[models.Model]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for f in model._meta.get_fields():
         if getattr(f, "concrete", False) and not f.many_to_many:
@@ -151,7 +151,7 @@ def _concrete_field_map(model) -> dict[str, Any]:
     return out
 
 
-def filter_to_fields(model, d: dict[str, Any]) -> dict[str, Any]:
+def filter_to_fields(model: type[models.Model], d: dict[str, Any]) -> dict[str, Any]:
     fields = _concrete_field_map(model)
     out: dict[str, Any] = {}
     for k, v in d.items():
@@ -169,7 +169,7 @@ def filter_to_fields(model, d: dict[str, Any]) -> dict[str, Any]:
 class Command(BaseCommand):
     help = "Import a Prisma JSON export into the Django database."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("path", help="Path to export.json")
         parser.add_argument("--dry-run", action="store_true")
         parser.add_argument(
@@ -178,7 +178,7 @@ class Command(BaseCommand):
             default="",
         )
 
-    def handle(self, *args, **opts):
+    def handle(self, *args: Any, **opts: Any) -> None:
         path = Path(opts["path"]).resolve()
         if ".." in path.parts:
             raise CommandError(f"Path traversal is not allowed: {path}")
@@ -191,7 +191,7 @@ class Command(BaseCommand):
         only = {x.strip() for x in opts["only"].split(",") if x.strip()}
         dry = opts["dry_run"]
 
-        importers: list[tuple[str, Callable[[Iterable[dict]], int]]] = [
+        importers: list[tuple[str, Callable[[Collection[dict[str, Any]]], int]]] = [
             ("User", self._import_users),
             ("Tag", self._import_tags),
             ("Card", self._import_cards),
@@ -234,7 +234,7 @@ class Command(BaseCommand):
 
     # ----- per-model importers -----
 
-    def _import_users(self, rows):
+    def _import_users(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, FK_RENAMES["User"])
             pk = d.pop("id")
@@ -272,7 +272,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_tags(self, rows):
+    def _import_tags(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             Tag.objects.update_or_create(
                 pk=r["id"],
@@ -283,7 +283,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_cards(self, rows):
+    def _import_cards(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, FK_RENAMES["Card"])
             d["updated_date"] = to_dt(d.get("updated_date"))
@@ -298,15 +298,14 @@ class Command(BaseCommand):
             Card.objects.update_or_create(pk=pk, defaults=filter_to_fields(Card, d))
         return len(rows)
 
-    def _import_card_tags(self, rows):
+    def _import_card_tags(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
-            CardTag.objects.get_or_create(
-                card_id=r.get("cardId") or r.get("card_id"),
-                tag_id=r.get("tagId") or r.get("tag_id"),
-            )
+            card_id = cast(int | str, r.get("cardId") or r.get("card_id"))
+            tag_id = cast(int | str, r.get("tagId") or r.get("tag_id"))
+            CardTag.objects.get_or_create(card_id=card_id, tag_id=tag_id)
         return len(rows)
 
-    def _import_card_submissions(self, rows):
+    def _import_card_submissions(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, FK_RENAMES["CardSubmission"])
             d["created_date"] = to_dt(d.get("created_date"))
@@ -317,7 +316,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_card_modifications(self, rows):
+    def _import_card_modifications(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, FK_RENAMES["CardModification"])
             d["created_date"] = to_dt(d.get("created_date"))
@@ -328,7 +327,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_reviews(self, rows):
+    def _import_reviews(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, FK_RENAMES["Review"])
             d["created_date"] = to_dt(d.get("created_date"))
@@ -338,7 +337,7 @@ class Command(BaseCommand):
             Review.objects.update_or_create(pk=pk, defaults=filter_to_fields(Review, d))
         return len(rows)
 
-    def _import_resource_categories(self, rows):
+    def _import_resource_categories(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
@@ -347,14 +346,14 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_resource_items(self, rows):
+    def _import_resource_items(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"categoryId": "category_id"})
             pk = d.pop("id")
             ResourceItem.objects.update_or_create(pk=pk, defaults=filter_to_fields(ResourceItem, d))
         return len(rows)
 
-    def _import_quick_access(self, rows):
+    def _import_quick_access(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
@@ -363,7 +362,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_resource_config(self, rows):
+    def _import_resource_config(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
@@ -372,7 +371,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_forum_categories(self, rows):
+    def _import_forum_categories(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
@@ -381,14 +380,14 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_forum_threads(self, rows):
+    def _import_forum_threads(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id", "categoryId": "category_id"})
             pk = d.pop("id")
             ForumThread.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumThread, d))
         return len(rows)
 
-    def _import_forum_posts(self, rows):
+    def _import_forum_posts(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(
                 r,
@@ -402,7 +401,7 @@ class Command(BaseCommand):
             ForumPost.objects.update_or_create(pk=pk, defaults=filter_to_fields(ForumPost, d))
         return len(rows)
 
-    def _import_help_posts(self, rows):
+    def _import_help_posts(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id"})
             pk = d.pop("id")
@@ -411,7 +410,7 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_help_comments(self, rows):
+    def _import_help_comments(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"createdBy": "creator_id", "postId": "post_id"})
             pk = d.pop("id")
@@ -420,14 +419,14 @@ class Command(BaseCommand):
             )
         return len(rows)
 
-    def _import_indexing(self, rows):
+    def _import_indexing(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {})
             pk = d.pop("id")
             IndexingJob.objects.update_or_create(pk=pk, defaults=filter_to_fields(IndexingJob, d))
         return len(rows)
 
-    def _import_token_blacklist(self, rows):
+    def _import_token_blacklist(self, rows: Collection[dict[str, Any]]) -> int:
         for r in rows:
             d = normalize_row(r, {"userId": "user_id"})
             pk = d.pop("id", None)

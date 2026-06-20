@@ -10,14 +10,14 @@ from typing import Any
 from django.core.cache import cache
 
 
-def _get_cache(name: str):
+def _get_cache(name: str) -> Any:
     backend = cache
     if hasattr(cache, "get_client"):
         return cache.get_client(name)
     return backend
 
 
-def cache_key(*args, **kwargs) -> str:
+def cache_key(*args: Any, **kwargs: Any) -> str:
     """Generate a cache key from arguments."""
     key_parts = list(args) + [f"{k}={v}" for k, v in sorted(kwargs.items())]
     key_str = ":".join(str(p) for p in key_parts)
@@ -47,7 +47,7 @@ def cache_result(
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Build cache key
             cache_obj = _get_cache(cache_name)
             prefix = key_prefix or func.__name__
@@ -132,7 +132,7 @@ def cache_page_conditional(
 
     def decorator(view_func: Callable) -> Callable:
         @wraps(view_func)
-        def wrapper(request, *args, **kwargs) -> Any:
+        def wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
             # Only cache GET requests without query params
             if request.method != "GET" or request.GET:
                 return view_func(request, *args, **kwargs)

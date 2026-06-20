@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
@@ -43,7 +45,7 @@ def _modification_comparison_rows(modification: CardModification) -> list[dict[s
     return modification_comparison_rows(modification)
 
 
-def _absolute_url(request: HttpRequest, view_name: str, **kwargs) -> str:
+def _absolute_url(request: HttpRequest, view_name: str, **kwargs: Any) -> str:
     return request.build_absolute_uri(reverse(view_name, kwargs=kwargs))
 
 

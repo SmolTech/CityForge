@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from django.conf import settings
@@ -36,7 +37,7 @@ def _split_tags(text: str) -> list[str]:
     return [t.strip() for t in (text or "").replace(";", ",").split(",") if t.strip()]
 
 
-def _absolute_url(request: HttpRequest, view_name: str, **kwargs) -> str:
+def _absolute_url(request: HttpRequest, view_name: str, **kwargs: Any) -> str:
     return request.build_absolute_uri(reverse(view_name, kwargs=kwargs))
 
 
@@ -80,7 +81,7 @@ def _form_payload(payload: dict[str, object]) -> dict[str, object]:
     }
 
 
-def _serialize_user(user) -> dict[str, object] | None:
+def _serialize_user(user: Any) -> dict[str, object] | None:
     if user is None:
         return None
     return {
@@ -678,7 +679,7 @@ _ALLOWED_IMAGE_TYPES = {
 }
 
 
-def _save_business_image(image) -> str:
+def _save_business_image(image: Any) -> str:
     suffix = Path(image.name).suffix.lower()
     allowed = suffix in _ALLOWED_IMAGE_TYPES
     content_type = getattr(image, "content_type", "")

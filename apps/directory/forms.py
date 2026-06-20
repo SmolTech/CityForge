@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django import forms
 from django.core.validators import URLValidator
 
@@ -45,7 +47,7 @@ class CardSubmissionForm(forms.ModelForm):
         )
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
-    def clean_image(self):
+    def clean_image(self) -> Any:
         image = self.cleaned_data.get("image")
         if image and image.size > 5 * 1024 * 1024:
             raise forms.ValidationError("Image must be 5 MB or smaller.")
@@ -85,7 +87,7 @@ class CardModificationForm(forms.ModelForm):
         )
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
-    def clean_image(self):
+    def clean_image(self) -> Any:
         image = self.cleaned_data.get("image")
         if image and image.size > 5 * 1024 * 1024:
             raise forms.ValidationError("Image must be 5 MB or smaller.")

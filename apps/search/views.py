@@ -36,7 +36,7 @@ except ImportError:  # pragma: no cover
     OpenSearch = None  # type: ignore[misc,assignment]
 
 
-def _client():
+def _client() -> OpenSearch | None:
     if OpenSearch is None:
         return None
     scheme = "https" if settings.OPENSEARCH_USE_HTTPS else "http"
@@ -170,7 +170,7 @@ def _parse_hit(hit: dict, *, excerpt_length: int) -> dict:
 
 
 def _search_results(
-    client,
+    client: OpenSearch,
     query: str,
     page_num: int,
     page_size: int,

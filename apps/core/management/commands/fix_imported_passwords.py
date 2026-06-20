@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from apps.accounts.models import User
 
@@ -58,11 +58,11 @@ def collect_password_hashes(data: Any) -> dict[str, str]:
 class Command(BaseCommand):
     help = "Fix passwords for users with unusable hashes after Prisma import."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("path", help="Path to Prisma export.json")
         parser.add_argument("--dry-run", action="store_true")
 
-    def handle(self, *args, **opts):
+    def handle(self, *args: Any, **opts: Any) -> None:
         path = Path(opts["path"]).resolve()
         if ".." in path.parts:
             raise CommandError(f"Path traversal is not allowed: {path}")

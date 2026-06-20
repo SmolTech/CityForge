@@ -1,5 +1,7 @@
 """Custom password validators for enhanced security."""
 
+from typing import Any
+
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
@@ -18,7 +20,7 @@ class PasswordComplexityValidator:
 
     SPECIAL_CHARS = '!@#$%^&*(),.?":{}|<>-_=+'
 
-    def validate(self, password: str, user=None) -> None:
+    def validate(self, password: str, user: Any | None = None) -> None:
         errors = []
 
         if len(password) > 128:

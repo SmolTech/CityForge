@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django import forms
 from django.core.validators import URLValidator
 
@@ -29,7 +31,7 @@ class EventSubmissionForm(forms.ModelForm):
         fields = ("title", "description", "location", "start_at", "end_at", "url", "all_day")
         widgets = {"description": forms.Textarea(attrs={"rows": 5})}
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
         start_at = cleaned.get("start_at")
         end_at = cleaned.get("end_at")

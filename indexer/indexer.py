@@ -8,6 +8,8 @@ This version works without the Flask backend by:
 - Using direct Postgres connection for progress tracking (optional)
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
@@ -15,6 +17,7 @@ import time
 from collections import deque
 from datetime import UTC, datetime
 from hashlib import sha256
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
 from urllib.robotparser import RobotFileParser
 
@@ -33,20 +36,23 @@ except ImportError:
 
 from config import IndexerConfig
 
+if TYPE_CHECKING:
+    from psycopg import Connection
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 class ResourceIndexer:
-    def __init__(self, use_tracking=True):
+    def __init__(self, use_tracking: bool = True) -> None:
         self.opensearch_host = os.getenv("OPENSEARCH_HOST", "opensearch-service")
         self.opensearch_port = int(os.getenv("OPENSEARCH_PORT", "9200"))
         self.opensearch_use_https = os.getenv("OPENSEARCH_USE_HTTPS", "false").lower() == "true"
         self.namespace = os.getenv("NAMESPACE", "default")
         opensearch_username = os.getenv("OPENSEARCH_USERNAME", "")
         opensearch_password = os.getenv("OPENSEARCH_PASSWORD", "")
-        http_auth = None
+        http_auth: tuple[str, str] | None = None
         if opensearch_username:
             http_auth = (opensearch_username, opensearch_password)
 
@@ -77,14 +83,14 @@ class ResourceIndexer:
         self.index_name = f"{self.namespace}-resources"
 
         # Cache for robots.txt parsers to avoid repeated fetches
-        self.robots_cache = {}
+        self.robots_cache: dict[str, RobotFileParser] = {}
 
         # User agent for robots.txt compliance
         self.user_agent = IndexerConfig.USER_AGENT
 
         # Initialize database connection for tracking (optional)
         self.use_tracking = use_tracking and HAS_PSYCOPG
-        self.db_conn = None
+        self.db_conn: Connection[Any] | None = None
         if self.use_tracking:
             try:
                 db_url = self._build_database_url()
@@ -94,7 +100,7 @@ class ResourceIndexer:
                 logger.warning(f"Could not connect to database for tracking: {e}")
                 self.use_tracking = False
 
-    def _build_database_url(self):
+    def _build_database_url(self) -> str:
         """Build database URL from environment variables"""
         database_url = os.getenv("DATABASE_URL")
         if database_url:
@@ -109,7 +115,7 @@ class ResourceIndexer:
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
     @staticmethod
-    def _index_properties():
+    def _index_properties() -> dict[str, dict[str, str]]:
         return {
             "resource_id": {"type": "integer"},
             "business_name": {"type": "text"},
@@ -130,7 +136,7 @@ class ResourceIndexer:
             "indexed_at": {"type": "date"},
         }
 
-    def get_robots_parser(self, base_domain):
+    def get_robots_parser(self, base_domain: str) -> RobotFileParser:
         """Get or create a robots.txt parser for the given domain"""
         if base_domain in self.robots_cache:
             return self.robots_cache[base_domain]
@@ -154,7 +160,7 @@ class ResourceIndexer:
             self.robots_cache[base_domain] = rp
             return rp
 
-    def is_url_allowed(self, url):
+    def is_url_allowed(self, url: str) -> bool:
         """Check if URL is allowed by robots.txt"""
         try:
             parsed_url = urlparse(url)
@@ -167,7 +173,7 @@ class ResourceIndexer:
             # If we can't check, be conservative and allow it
             return True
 
-    def _normalize_page_url(self, url):
+    def _normalize_page_url(self, url: str | None) -> str:
         """Normalize URLs for crawl deduplication and result links."""
         if not url:
             return ""
@@ -182,12 +188,15 @@ class ResourceIndexer:
         )
         return urlunparse(normalized)
 
-    def _extract_internal_links(self, soup, current_url, site_netloc):
+    def _extract_internal_links(
+        self, soup: BeautifulSoup, current_url: str, site_netloc: str
+    ) -> list[str]:
         """Extract same-site HTTP links from a page."""
-        links = []
-        seen = set()
+        links: list[str] = []
+        seen: set[str] = set()
         for anchor in soup.find_all("a", href=True):
-            candidate = self._normalize_page_url(urljoin(current_url, anchor["href"]))
+            href = cast(str, anchor["href"])
+            candidate = self._normalize_page_url(urljoin(current_url, href))
             if not candidate:
                 continue
             parsed = urlparse(candidate)
@@ -215,7 +224,7 @@ class ResourceIndexer:
             links.append(candidate)
         return links
 
-    def fetch_cards(self):
+    def fetch_cards(self) -> list[dict[str, Any]]:
         """Fetch business cards from the Next.js API"""
         try:
             # Fetch all cards from the API
@@ -234,7 +243,7 @@ class ResourceIndexer:
             response.raise_for_status()
 
             data = response.json()
-            cards = data.get("cards", [])
+            cards: list[dict[str, Any]] = data.get("cards", [])
 
             logger.info(f"Fetched {len(cards)} cards from API")
             return cards
@@ -242,7 +251,7 @@ class ResourceIndexer:
             logger.error(f"Error fetching cards from API: {e}")
             return []
 
-    def scrape_page_content(self, url, max_retries=3):
+    def scrape_page_content(self, url: str, max_retries: int = 3) -> dict[str, Any]:
         """Scrape content from a webpage with retries"""
         normalized_url = self._normalize_page_url(url) or url
         if not self.is_url_allowed(url):
@@ -322,18 +331,18 @@ class ResourceIndexer:
             "links": [],
         }
 
-    def scrape_site_pages(self, start_url):
+    def scrape_site_pages(self, start_url: str) -> list[dict[str, Any]]:
         """Crawl and scrape the homepage plus same-site pages."""
         start_url = self._normalize_page_url(start_url)
         if not start_url:
             return []
 
         site_netloc = urlparse(start_url).netloc
-        queue = deque([start_url])
-        queued = {start_url}
-        crawled = set()
-        indexed_pages = set()
-        pages: list[dict[str, object]] = []
+        queue: deque[str] = deque([start_url])
+        queued: set[str] = {start_url}
+        crawled: set[str] = set()
+        indexed_pages: set[str] = set()
+        pages: list[dict[str, Any]] = []
 
         while queue and len(pages) < IndexerConfig.MAX_PAGES_PER_SITE:
             current_url = queue.popleft()
@@ -368,7 +377,7 @@ class ResourceIndexer:
 
         return pages
 
-    def index_resource(self, card):
+    def index_resource(self, card: dict[str, Any]) -> None:
         """Index a single business card into OpenSearch"""
         try:
             card_id = card["id"]
@@ -436,7 +445,7 @@ class ResourceIndexer:
         except Exception as e:
             logger.error(f"Error indexing card {card.get('id', 'unknown')}: {e}")
 
-    def create_index(self):
+    def create_index(self) -> None:
         """Create the OpenSearch index if it doesn't exist"""
         properties = self._index_properties()
         if self.client.indices.exists(index=self.index_name):
@@ -457,7 +466,7 @@ class ResourceIndexer:
         self.client.indices.create(index=self.index_name, body=index_body)
         logger.info(f"Created index {self.index_name}")
 
-    def run(self, reindex_all=False):
+    def run(self, reindex_all: bool = False) -> None:
         """Run the indexer"""
         logger.info("Starting indexer...")
 
@@ -482,13 +491,13 @@ class ResourceIndexer:
 
         logger.info(f"Indexing complete. Processed {total} cards")
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Cleanup resources"""
         if self.db_conn:
             self.db_conn.close()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Index business cards into OpenSearch")
     parser.add_argument(
         "--reindex-all",

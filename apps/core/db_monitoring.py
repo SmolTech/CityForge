@@ -7,17 +7,21 @@ from django.conf import settings
 from django.db import connections
 from django.db.utils import OperationalError, ProgrammingError
 
+# ``cursor`` and ``connection`` are intentionally typed as ``Any`` because the
+# code uses vendor-specific introspection SQL and raw cursor APIs that vary by
+# Django database backend.
+
 logger = logging.getLogger("apps.core.db")
 
 
-def _row_as_dict(cursor) -> dict[str, Any]:
+def _row_as_dict(cursor: Any) -> dict[str, Any]:
     row = cursor.fetchone()
     if row is None:
         return {}
     return {column[0]: value for column, value in zip(cursor.description, row, strict=False)}
 
 
-def _postgres_pool_metrics(connection) -> dict[str, Any]:
+def _postgres_pool_metrics(connection: Any) -> dict[str, Any]:
     with connection.cursor() as cursor:
         cursor.execute(
             """
