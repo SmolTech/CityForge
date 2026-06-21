@@ -16,6 +16,7 @@ from apps.accounts.views import (
     PASSWORD_RESET_LIMIT,
     _allow_password_reset_request,
     _client_ip,
+    _hash_token,
     _reset_rate_key,
 )
 
@@ -62,8 +63,13 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
         created = User.objects.get(email="newuser@example.com")
         self.assertTrue(created.email_verification_token)
-        self.assertEqual(get_user(self.client).pk, created.pk)
         sender.assert_called_once()
+        # Token must be hashed in the database, not the raw email-link value.
+        raw_token = sender.call_args.args[2]
+        verification_token = created.email_verification_token
+        assert verification_token is not None
+        self.assertNotIn(raw_token, verification_token)
+        self.assertEqual(get_user(self.client).pk, created.pk)
         mocked_dispatch.assert_called_once()
         self.assertEqual(mocked_dispatch.call_args.args[0], "account.created")
         payload = mocked_dispatch.call_args.args[1]
@@ -82,15 +88,16 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
 
     def test_reset_password_flow_marks_token_used(self) -> None:
+        raw_token = "reset-token"
         token = PasswordResetToken.objects.create(
             user=self.user,
-            token="reset-token",
+            token=_hash_token(raw_token),
             expires_at=timezone.now() + timedelta(hours=1),
         )
         self._set_captcha("reset_password")
         with patch("apps.accounts.views.dispatch_event") as mocked_dispatch:
             response = self.client.post(
-                reverse("accounts:reset_password", args=[token.token]),
+                reverse("accounts:reset_password", args=[raw_token]),
                 {
                     "password1": "N3wPa$$w0rd123",
                     "password2": "N3wPa$$w0rd123",
@@ -128,10 +135,11 @@ class AccountFlowTests(TestCase):
         self.assertFalse(User.objects.filter(email="badcaptcha@example.com").exists())
 
     def test_verify_email_expired_token_clears_token(self) -> None:
-        self.user.email_verification_token = "verify-token"
+        raw_token = "verify-token"
+        self.user.email_verification_token = _hash_token(raw_token)
         self.user.email_verification_sent_at = timezone.now() - timedelta(hours=72)
         self.user.save(update_fields=["email_verification_token", "email_verification_sent_at"])
-        response = self.client.get(reverse("accounts:verify_email", args=["verify-token"]))
+        response = self.client.get(reverse("accounts:verify_email", args=[raw_token]))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
         self.user.refresh_from_db()
@@ -139,10 +147,11 @@ class AccountFlowTests(TestCase):
         self.assertFalse(self.user.email_verified)
 
     def test_verify_email_success(self) -> None:
-        self.user.email_verification_token = "verify-ok"
+        raw_token = "verify-ok"
+        self.user.email_verification_token = _hash_token(raw_token)
         self.user.email_verification_sent_at = timezone.now()
         self.user.save(update_fields=["email_verification_token", "email_verification_sent_at"])
-        response = self.client.get(reverse("accounts:verify_email", args=["verify-ok"]))
+        response = self.client.get(reverse("accounts:verify_email", args=[raw_token]))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("directory:home"))
         self.user.refresh_from_db()
@@ -216,8 +225,12 @@ class AccountHelperTests(TestCase):
             )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], reverse("accounts:login"))
-        self.assertEqual(PasswordResetToken.objects.filter(user=user).count(), 1)
+        prt = PasswordResetToken.objects.get(user=user)
         sender.assert_called_once()
+        raw_token = sender.call_args.args[3]
+        # Token must be hashed in the database, not the raw email-link value.
+        self.assertNotEqual(prt.token, raw_token)
+        self.assertEqual(prt.token, _hash_token(raw_token))
         mocked_dispatch.assert_called_once()
         self.assertEqual(mocked_dispatch.call_args.args[0], "password_reset.requested")
         payload = mocked_dispatch.call_args.args[1]
@@ -307,6 +320,16 @@ class MobileAuthApiCsrfTests(TestCase):
             {"detail": "Authentication required."},
         )
 
+    def test_csrf_bypass_does_not_apply_to_non_api_paths(self) -> None:
+        """A fake Bearer header must not disable CSRF on session endpoints."""
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("accounts:logout"),
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        # Without a CSRF token, the request should be rejected (403).
+        self.assertEqual(response.status_code, 403)
+
 
 class MobileAuthApiTests(TestCase):
     def setUp(self) -> None:
@@ -383,3 +406,15 @@ class MobileAuthApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         body = response.json()
         self.assertIn("Account created", body["detail"])
+
+    def test_tampered_bearer_token_is_rejected(self) -> None:
+        login_response = self.client.post(
+            "/api/auth/login",
+            data=json.dumps({"email": self.user.email, "password": self.password}),
+            content_type="application/json",
+        )
+        token = login_response.json()["access_token"]
+        tampered = token[:-10] + "XXXXXXXXXX" if len(token) > 10 else token + "X"
+
+        response = self.client.get("/api/auth/me", **self._auth_header(tampered))  # type: ignore[arg-type]
+        self.assertEqual(response.status_code, 401)

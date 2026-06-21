@@ -100,14 +100,32 @@ spec:
                 - name: MAILGUN_API_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: mailgun-email-secret
-                      key: api-key
+                      name: mailgun-email
+                      key: MAILGUN_API_KEY
                       optional: true
                 - name: MAILGUN_DOMAIN
                   valueFrom:
                     secretKeyRef:
-                      name: mailgun-email-secret
-                      key: domain
+                      name: mailgun-email
+                      key: MAILGUN_DOMAIN
+                      optional: true
+                - name: MAILGUN_REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email
+                      key: MAILGUN_REGION
+                      optional: true
+                - name: EMAIL_FROM
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email
+                      key: EMAIL_FROM
+                      optional: true
+                - name: EMAIL_FROM_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: mailgun-email
+                      key: EMAIL_FROM_NAME
                       optional: true
               resources:
                 requests:

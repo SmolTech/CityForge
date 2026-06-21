@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import json
 import secrets
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -28,6 +24,7 @@ from django.views.decorators.http import require_http_methods
 
 from apps.webhooks.service import dispatch_event
 
+from .auth import decode_auth_token, issue_mobile_auth_token, mobile_user_from_request
 from .forms import ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordForm
 from .models import PasswordResetToken, TokenBlacklist, User
 
@@ -36,7 +33,6 @@ EMAIL_VERIFICATION_TTL_HOURS = 48
 PASSWORD_RESET_LIMIT = 5
 PASSWORD_RESET_WINDOW_SECONDS = 3600
 CAPTCHA_SESSION_KEY_PREFIX = "accounts_captcha"
-MOBILE_AUTH_TOKEN_TTL = timedelta(days=7)
 
 
 def _client_ip(request: HttpRequest) -> str | None:
@@ -147,89 +143,24 @@ def _serialize_user(user: User) -> dict[str, object]:
     }
 
 
-def _auth_token_signing_key() -> bytes:
-    return str(settings.SECRET_KEY).encode()
+def _hash_token(token: str) -> str:
+    """Return a stable, non-reversible hash for a secret token.
 
-
-def _encode_auth_token(payload: dict[str, object]) -> str:
-    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
-    body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
-    signature = hmac.new(_auth_token_signing_key(), body.encode(), hashlib.sha256).hexdigest()
-    return f"{body}.{signature}"
-
-
-def _decode_auth_token(token: str) -> dict[str, object] | None:
-    try:
-        body, signature = token.split(".", 1)
-    except ValueError:
-        return None
-
-    expected = hmac.new(_auth_token_signing_key(), body.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, expected):
-        return None
-
-    padding = "=" * (-len(body) % 4)
-    try:
-        payload = json.loads(base64.urlsafe_b64decode(f"{body}{padding}").decode())
-    except (ValueError, json.JSONDecodeError):
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-    return payload
-
-
-def _issue_mobile_auth_token(user: User) -> str:
-    now = timezone.now()
-    payload = {
-        "sub": user.id,
-        "jti": secrets.token_urlsafe(16),
-        "iat": int(now.timestamp()),
-        "exp": int((now + MOBILE_AUTH_TOKEN_TTL).timestamp()),
-    }
-    return _encode_auth_token(payload)
-
-
-def _mobile_user_from_request(request: HttpRequest) -> User | None:
-    auth_header = request.headers.get("authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
-
-    token = auth_header.removeprefix("Bearer ").strip()
-    payload = _decode_auth_token(token)
-    if not payload:
-        return None
-
-    jti = payload.get("jti")
-    if not isinstance(jti, str):
-        return None
-
-    if TokenBlacklist.objects.filter(jti=jti).exists():
-        return None
-
-    exp = payload.get("exp")
-    if not isinstance(exp, int) or exp <= int(timezone.now().timestamp()):
-        return None
-
-    user_id = payload.get("sub")
-    if not isinstance(user_id, int):
-        return None
-
-    user = User.objects.filter(pk=user_id).first()
-    if user is None or not user.is_active:
-        return None
-    return user
+    Email-verification and password-reset tokens are stored as hashes so that a
+    database leak does not immediately allow account takeover.
+    """
+    return sha256(token.encode()).hexdigest()
 
 
 def _require_mobile_user(request: HttpRequest) -> User | JsonResponse:
-    user = _mobile_user_from_request(request)
+    user = mobile_user_from_request(request)
     if user is None:
         return JsonResponse({"detail": "Authentication required."}, status=401)
     return user
 
 
 def _mobile_auth_response(user: User) -> JsonResponse:
-    token = _issue_mobile_auth_token(user)
+    token = issue_mobile_auth_token(user)
     return JsonResponse({"access_token": token, "user": _serialize_user(user)})
 
 
@@ -324,8 +255,9 @@ def api_register(request: HttpRequest) -> HttpResponse:
         last_name=last_name,
         email_verified=False,
     )
+    verification_token = secrets.token_urlsafe(32)
     user.registration_ip_address = _client_ip(request)
-    user.email_verification_token = secrets.token_urlsafe(32)
+    user.email_verification_token = _hash_token(verification_token)
     user.email_verification_sent_at = timezone.now()
     user.save(
         update_fields=[
@@ -334,7 +266,7 @@ def api_register(request: HttpRequest) -> HttpResponse:
             "email_verification_sent_at",
         ]
     )
-    _send_verification_email(request, user)
+    _send_verification_email(request, user, verification_token)
     return JsonResponse(
         {"detail": "Account created. Please check your email to verify your address."},
         status=201,
@@ -342,7 +274,7 @@ def api_register(request: HttpRequest) -> HttpResponse:
 
 
 def api_me(request: HttpRequest) -> HttpResponse:
-    user = _mobile_user_from_request(request)
+    user = mobile_user_from_request(request)
     if user is None:
         return JsonResponse({"detail": "Authentication required."}, status=401)
     return JsonResponse(_serialize_user(user))
@@ -351,12 +283,12 @@ def api_me(request: HttpRequest) -> HttpResponse:
 @csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["POST"])
 def api_logout(request: HttpRequest) -> HttpResponse:
-    user = _mobile_user_from_request(request)
+    user = mobile_user_from_request(request)
     if user is None:
         return JsonResponse({"detail": "Authentication required."}, status=401)
 
     token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
-    payload = _decode_auth_token(token)
+    payload = decode_auth_token(token)
     if isinstance(payload, dict):
         jti = payload.get("jti")
         exp = payload.get("exp")
@@ -376,7 +308,7 @@ def api_logout(request: HttpRequest) -> HttpResponse:
 @csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["PUT"])
 def api_update_email(request: HttpRequest) -> HttpResponse:
-    user = _mobile_user_from_request(request)
+    user = mobile_user_from_request(request)
     if user is None:
         return JsonResponse({"detail": "Authentication required."}, status=401)
 
@@ -391,9 +323,10 @@ def api_update_email(request: HttpRequest) -> HttpResponse:
     if User.objects.exclude(pk=user.pk).filter(email__iexact=email).exists():
         return JsonResponse({"detail": "A user with that email already exists."}, status=409)
 
+    verification_token = secrets.token_urlsafe(32)
     user.email = email
     user.email_verified = False
-    user.email_verification_token = secrets.token_urlsafe(32)
+    user.email_verification_token = _hash_token(verification_token)
     user.email_verification_sent_at = timezone.now()
     user.save(
         update_fields=[
@@ -403,14 +336,14 @@ def api_update_email(request: HttpRequest) -> HttpResponse:
             "email_verification_sent_at",
         ]
     )
-    _send_verification_email(request, user)
+    _send_verification_email(request, user, verification_token)
     return JsonResponse({"detail": "Email updated."})
 
 
 @csrf_exempt  # nosemgrep: python.django.security.audit.csrf-exempt.no-csrf-exempt
 @require_http_methods(["PUT"])
 def api_update_password(request: HttpRequest) -> HttpResponse:
-    user = _mobile_user_from_request(request)
+    user = mobile_user_from_request(request)
     if user is None:
         return JsonResponse({"detail": "Authentication required."}, status=401)
 
@@ -448,11 +381,12 @@ def register(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             user: User = form.save(commit=False)
             registration_ip = _client_ip(request)
+            verification_token = secrets.token_urlsafe(32)
             user.registration_ip_address = registration_ip
-            user.email_verification_token = secrets.token_urlsafe(32)
+            user.email_verification_token = _hash_token(verification_token)
             user.email_verification_sent_at = timezone.now()
             user.save()
-            _send_verification_email(request, user)
+            _send_verification_email(request, user, verification_token)
             dispatch_event(
                 "account.created",
                 {
@@ -525,12 +459,13 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
             email = form.cleaned_data["email"].lower().strip()
             user = User.objects.filter(email__iexact=email).first()
             if user is not None and _allow_password_reset_request(request, email):
+                raw_token = secrets.token_urlsafe(32)
                 token = PasswordResetToken.objects.create(
                     user=user,
-                    token=secrets.token_urlsafe(32),
+                    token=_hash_token(raw_token),
                     expires_at=timezone.now() + timedelta(hours=TOKEN_TTL_HOURS),
                 )
-                _send_password_reset_email(request, user, token)
+                _send_password_reset_email(request, user, token, raw_token)
                 dispatch_event(
                     "password_reset.requested",
                     {
@@ -556,7 +491,7 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def reset_password(request: HttpRequest, token: str) -> HttpResponse:
-    prt = get_object_or_404(PasswordResetToken, token=token)
+    prt = get_object_or_404(PasswordResetToken, token=_hash_token(token))
     if not prt.is_valid():
         messages.error(request, "This reset link is invalid or has expired.")
         return redirect("accounts:forgot_password")
@@ -599,7 +534,7 @@ def reset_password(request: HttpRequest, token: str) -> HttpResponse:
 
 @require_http_methods(["GET"])
 def verify_email(request: HttpRequest, token: str) -> HttpResponse:
-    user = User.objects.filter(email_verification_token=token).first()
+    user = User.objects.filter(email_verification_token=_hash_token(token)).first()
     if not user:
         messages.error(request, "Verification link is invalid.")
         return redirect("directory:home")
@@ -627,18 +562,17 @@ def resend_verification(request: HttpRequest) -> HttpResponse:
     if user.email_verified:
         messages.info(request, "Your email is already verified.")
     else:
-        user.email_verification_token = secrets.token_urlsafe(32)
+        verification_token = secrets.token_urlsafe(32)
+        user.email_verification_token = _hash_token(verification_token)
         user.email_verification_sent_at = timezone.now()
         user.save(update_fields=["email_verification_token", "email_verification_sent_at"])
-        _send_verification_email(request, user)
+        _send_verification_email(request, user, verification_token)
         messages.success(request, "Verification email re-sent.")
     return redirect("directory:home")
 
 
-def _send_verification_email(request: HttpRequest, user: User) -> None:
-    link = request.build_absolute_uri(
-        reverse("accounts:verify_email", args=[user.email_verification_token])
-    )
+def _send_verification_email(request: HttpRequest, user: User, token: str) -> None:
+    link = request.build_absolute_uri(reverse("accounts:verify_email", args=[token]))
     body = render_to_string(
         "emails/verify_email.txt",
         {"user": user, "link": link, "site_name": "CityForge"},
@@ -652,8 +586,10 @@ def _send_verification_email(request: HttpRequest, user: User) -> None:
     )
 
 
-def _send_password_reset_email(request: HttpRequest, user: User, prt: PasswordResetToken) -> None:
-    link = request.build_absolute_uri(reverse("accounts:reset_password", args=[prt.token]))
+def _send_password_reset_email(
+    request: HttpRequest, user: User, prt: PasswordResetToken, token: str
+) -> None:
+    link = request.build_absolute_uri(reverse("accounts:reset_password", args=[token]))
     body = render_to_string(
         "emails/password_reset.txt",
         {

@@ -721,3 +721,126 @@ def api_tags(request: HttpRequest) -> JsonResponse:
         .values_list("name", flat=True)[:20]
     )
     return JsonResponse({"tags": list(tags)})
+
+
+@require_http_methods(["GET"])
+def api_search(request: HttpRequest) -> JsonResponse:
+    """Local card search fallback used by the mobile client.
+
+    Returns a list of SearchResult-shaped dicts matching the query against
+    card name, description, address, and contact name.
+    """
+    query = (request.GET.get("q") or "").strip()
+    if not query:
+        return JsonResponse([], safe=False)
+
+    needle = query.lower()
+    qs = Card.objects.filter(approved=True).filter(
+        Q(name__icontains=query)
+        | Q(description__icontains=query)
+        | Q(address__icontains=query)
+        | Q(contact_name__icontains=query)
+    )[:100]
+
+    results: list[dict[str, object]] = []
+    for card in qs:
+        name_lower = (card.name or "").lower()
+        description_lower = (card.description or "").lower()
+        title_match = needle in name_lower
+        description_match = needle in description_lower
+        score = 1.0 if title_match else 0.8 if description_match else 0.6
+        results.append(
+            {
+                "id": str(card.id),
+                "card_id": card.id,
+                "title": card.name,
+                "content": card.description or "",
+                "url": f"/business/{card.id}/{card.slug}",
+                "score": score,
+            }
+        )
+
+    from typing import cast
+
+    results.sort(key=lambda item: float(cast(float, item["score"])), reverse=True)
+    return JsonResponse(results, safe=False)
+
+
+def _serialize_review(review: Review) -> dict[str, object]:
+    return {
+        "id": review.id,
+        "rating": review.rating,
+        "title": review.title,
+        "comment": review.comment,
+        "created_date": review.created_date.isoformat(),
+        "updated_date": review.updated_date.isoformat(),
+        "user": {
+            "first_name": review.user.first_name,
+            "last_name": review.user.last_name,
+        },
+        "card": {"name": review.card.name},
+    }
+
+
+@require_http_methods(["GET", "POST"])
+def api_card_reviews(request: HttpRequest, pk: int) -> HttpResponse:
+    """List or create reviews for an approved business card."""
+    card = get_object_or_404(Card, pk=pk, approved=True)
+
+    if request.method == "GET":
+        limit = _safe_int(request.GET.get("limit"), default=20, minimum=1, maximum=100)
+        offset = _safe_int(request.GET.get("offset"), default=0, minimum=0, maximum=10000)
+
+        qs = card.reviews.filter(hidden=False).order_by("-created_date")
+        total = qs.count()
+        reviews = [_serialize_review(review) for review in qs[offset : offset + limit]]
+
+        ratings = list(card.reviews.filter(hidden=False).values_list("rating", flat=True))
+        average = (sum(ratings) / len(ratings)) if ratings else 0.0
+        distribution: dict[str, int] = {str(i): 0 for i in range(1, 6)}
+        for rating in ratings:
+            distribution[str(rating)] = distribution.get(str(rating), 0) + 1
+
+        return JsonResponse(
+            {
+                "reviews": reviews,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "total_count": total,
+                    "has_more": (offset + limit) < total,
+                },
+                "summary": {
+                    "average_rating": round(average, 2),
+                    "total_reviews": total,
+                    "rating_distribution": distribution,
+                },
+            }
+        )
+
+    # POST
+    if not request.user.is_authenticated:
+        return _api_auth_failure()
+
+    payload = _request_payload(request)
+    raw_rating = payload.get("rating")
+    if not isinstance(raw_rating, (int, float, str)):
+        return JsonResponse({"detail": "Rating is required and must be an integer."}, status=400)
+    try:
+        rating = int(raw_rating)
+    except (TypeError, ValueError):
+        return JsonResponse({"detail": "Rating is required and must be an integer."}, status=400)
+    if not 1 <= rating <= 5:
+        return JsonResponse({"detail": "Rating must be between 1 and 5."}, status=400)
+
+    title = str(payload.get("title") or "").strip() or None
+    comment = str(payload.get("comment") or "").strip() or None
+
+    review = Review.objects.create(
+        card=card,
+        user=request.user,
+        rating=rating,
+        title=title,
+        comment=comment,
+    )
+    return JsonResponse(_serialize_review(review), status=201)

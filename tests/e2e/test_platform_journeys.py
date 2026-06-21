@@ -15,6 +15,7 @@ from django.utils import timezone
 from PIL import Image
 
 from apps.accounts.models import PasswordResetToken, TokenBlacklist, User
+from apps.accounts.views import _hash_token
 from apps.directory.models import (
     Card,
     CardModification,
@@ -52,7 +53,7 @@ class AccountsAndAuthE2ETests(TestCase):
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_web_registration_login_and_password_reset_journey(self) -> None:
         register_answer = _set_captcha(self.client, "register")
-        with patch("apps.accounts.views._send_verification_email"):
+        with patch("apps.accounts.views._send_verification_email") as verify_sender:
             register = self.client.post(
                 reverse("accounts:register"),
                 {
@@ -72,9 +73,9 @@ class AccountsAndAuthE2ETests(TestCase):
         self.assertEqual(logout.status_code, 302)
 
         # Email verification is now required before login.
-        verify = self.client.get(
-            reverse("accounts:verify_email", args=[user.email_verification_token])
-        )
+        verify_sender.assert_called_once()
+        verification_token = verify_sender.call_args.args[2]
+        verify = self.client.get(reverse("accounts:verify_email", args=[verification_token]))
         self.assertEqual(verify.status_code, 302)
         user.refresh_from_db()
         self.assertTrue(user.email_verified)
@@ -87,17 +88,19 @@ class AccountsAndAuthE2ETests(TestCase):
         self.assertEqual(login.headers["Location"], reverse("directory:home"))
 
         forgot_answer = _set_captcha(self.client, "forgot_password")
-        with patch("apps.accounts.views._send_password_reset_email"):
+        with patch("apps.accounts.views._send_password_reset_email") as reset_sender:
             forgot = self.client.post(
                 reverse("accounts:forgot_password"),
                 {"email": user.email, "captcha_answer": forgot_answer},
             )
         self.assertEqual(forgot.status_code, 302)
-        token = PasswordResetToken.objects.get(user=user)
+        self.assertEqual(PasswordResetToken.objects.filter(user=user).count(), 1)
 
+        reset_sender.assert_called_once()
+        reset_token = reset_sender.call_args.args[3]
         reset_answer = _set_captcha(self.client, "reset_password")
         reset = self.client.post(
-            reverse("accounts:reset_password", args=[token.token]),
+            reverse("accounts:reset_password", args=[reset_token]),
             {
                 "password1": "NewerPass!456",
                 "password2": "NewerPass!456",
@@ -122,11 +125,12 @@ class AccountsAndAuthE2ETests(TestCase):
             last_name="User",
             email_verified=False,
         )
-        user.email_verification_token = "verify-token"
+        raw_token = "verify-token"
+        user.email_verification_token = _hash_token(raw_token)
         user.email_verification_sent_at = timezone.now() - timedelta(minutes=5)
         user.save(update_fields=["email_verification_token", "email_verification_sent_at"])
 
-        verify = self.client.get(reverse("accounts:verify_email", args=["verify-token"]))
+        verify = self.client.get(reverse("accounts:verify_email", args=[raw_token]))
         self.assertEqual(verify.status_code, 302)
         user.refresh_from_db()
         self.assertTrue(user.email_verified)
@@ -242,7 +246,7 @@ class DirectoryAndCmsE2ETests(TestCase):
     @override_settings(MEDIA_URL="/media/")
     def test_directory_submission_api_and_cms_moderation_journey(self) -> None:
         with TemporaryDirectory() as media_root:
-            with override_settings(MEDIA_ROOT=media_root):
+            with override_settings(MEDIA_ROOT=media_root, DEBUG=True):
                 self.client.force_login(self.member)
                 submit = self.client.post(
                     reverse("directory:card_submit"),
@@ -447,7 +451,7 @@ class EventsAndSearchE2ETests(TestCase):
         health = self.client.get("/api/health")
         self.assertEqual(health.status_code, 200)
 
-        cards = self.client.get("/api/cards", {"tags": "bakery"})
+        cards = self.client.get("/api/cards/", {"tags": "bakery"})
         self.assertEqual(cards.status_code, 200)
         self.assertEqual(cards.json()["cards"][0]["name"], "Bakery One")
 

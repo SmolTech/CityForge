@@ -8,8 +8,14 @@ metadata:
 spec:
   schedule: "0 2 * * *" # Run daily at 2 AM
   timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 3600
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
       template:
         spec:
           securityContext:
@@ -21,7 +27,8 @@ spec:
             - name: indexer
               image: ghcr.io/smoltech/cityforge
               imagePullPolicy: Always
-              command: ["poetry", "run", "python", "indexer/indexer.py"]
+              # The runtime image only contains the venv; poetry is not installed.
+              command: ["python", "indexer/indexer.py"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: false

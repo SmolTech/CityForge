@@ -71,7 +71,7 @@ class CriticalJourneyE2ETests(TestCase):
         CardTag.objects.create(card=regular, tag=bakery)
 
         self.client.force_login(user)
-        api_response = self.client.get("/api/cards", {"limit": "10"})
+        api_response = self.client.get("/api/cards/", {"limit": "10"})
         self.assertEqual(api_response.status_code, 200)
         self.assertEqual(len(api_response.json()["cards"]), 2)
 

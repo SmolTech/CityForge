@@ -4,8 +4,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - storageclass-retain.yaml
-  - secrets.yaml
-  - mailgun-email-secret.yaml
   - config.yaml
   - deployment.yaml
   - service.yaml
@@ -17,6 +15,15 @@ resources:
   - backup-cronjob.yaml
   - indexer-cronjob.yaml
   - admin-digest-cronjob.yaml
+
+# Secrets are NOT included in this base because they contain sensitive values.
+# Create them before deploying, using the *.example / *.template files as guides:
+#   kubectl create secret generic cityforge-secrets \
+#     --from-literal=DJANGO_SECRET_KEY="..." -n cityforge
+#   kubectl create secret generic mailgun-email \
+#     --from-literal=MAILGUN_API_KEY="..." ... -n cityforge
+#   kubectl create secret generic cityforge-s3-credentials \
+#     --from-literal=s3_access_key_id="..." ... -n cityforge
 
 images:
   - name: ghcr.io/smoltech/cityforge

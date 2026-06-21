@@ -11,8 +11,10 @@ This version works without the Flask backend by:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import logging
 import os
+import socket
 import time
 from collections import deque
 from datetime import UTC, datetime
@@ -115,6 +117,58 @@ class ResourceIndexer:
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
     @staticmethod
+    def _is_reserved_ip(address: str) -> bool:
+        """Return True if the resolved IP address is non-public or reserved."""
+        try:
+            ip = ipaddress.ip_address(address)
+        except ValueError:
+            return True
+        return bool(
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        )
+
+    def _is_safe_url(self, url: str) -> bool:
+        """Return True if the URL is a public HTTP(S) URL with no internal target.
+
+        This guard prevents Server-Side Request Forgery (SSRF) by rejecting
+        private/reserved IP ranges, link-local addresses, and common internal
+        hostnames before any outbound request is made.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            return False
+        if not parsed.netloc:
+            return False
+
+        hostname = parsed.hostname
+        if hostname is None:
+            return False
+
+        hostname_lower = hostname.lower()
+        if hostname_lower in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+            return False
+        if hostname_lower.endswith(".local") or hostname_lower.endswith(".localhost"):
+            return False
+
+        try:
+            addrinfo = socket.getaddrinfo(hostname, None)
+        except socket.gaierror:
+            logger.debug(f"Could not resolve hostname for SSRF check: {hostname}")
+            return False
+
+        resolved_ips: set[str] = {cast(str, info[4][0]) for info in addrinfo}
+        for ip in resolved_ips:
+            if self._is_reserved_ip(ip):
+                logger.warning(f"Blocked potential SSRF URL {url} (resolved to {ip})")
+                return False
+        return True
+
+    @staticmethod
     def _index_properties() -> dict[str, dict[str, str]]:
         return {
             "resource_id": {"type": "integer"},
@@ -141,11 +195,26 @@ class ResourceIndexer:
         if base_domain in self.robots_cache:
             return self.robots_cache[base_domain]
 
-        try:
+        robots_url = urljoin(base_domain, "/robots.txt")
+        if not self._is_safe_url(robots_url):
+            logger.warning(f"robots.txt URL blocked by SSRF guard: {robots_url}")
             rp = RobotFileParser()
-            robots_url = urljoin(base_domain, "/robots.txt")
             rp.set_url(robots_url)
-            rp.read()
+            self.robots_cache[base_domain] = rp
+            return rp
+
+        try:
+            response = requests.get(
+                robots_url,
+                timeout=IndexerConfig.ROBOTS_TXT_TIMEOUT,
+                allow_redirects=False,
+                headers={"User-Agent": self.user_agent},
+            )
+            response.raise_for_status()
+
+            rp = RobotFileParser()
+            rp.set_url(robots_url)
+            rp.parse(response.text.splitlines())
 
             self.robots_cache[base_domain] = rp
             logger.info(f"Loaded robots.txt for {base_domain}")
@@ -154,9 +223,7 @@ class ResourceIndexer:
             logger.debug(f"Could not load robots.txt for {base_domain}: {e}")
             # Create a permissive parser if robots.txt is not available
             rp = RobotFileParser()
-            rp.set_url(urljoin(base_domain, "/robots.txt"))
-            # Empty robots.txt allows everything
-            rp.read()
+            rp.set_url(robots_url)
             self.robots_cache[base_domain] = rp
             return rp
 
@@ -233,7 +300,7 @@ class ResourceIndexer:
 
             response = requests.get(
                 url,
-                timeout=30,
+                timeout=IndexerConfig.REQUEST_TIMEOUT,
                 headers={
                     # The app sits behind TLS-terminating ingress in production and
                     # redirects plain HTTP unless the forwarded scheme is trusted.
@@ -254,6 +321,15 @@ class ResourceIndexer:
     def scrape_page_content(self, url: str, max_retries: int = 3) -> dict[str, Any]:
         """Scrape content from a webpage with retries"""
         normalized_url = self._normalize_page_url(url) or url
+        if not self._is_safe_url(url):
+            logger.warning(f"URL blocked by SSRF guard: {url}")
+            return {
+                "content": "",
+                "page_title": "",
+                "page_description": "",
+                "page_url": normalized_url,
+                "links": [],
+            }
         if not self.is_url_allowed(url):
             logger.info(f"URL not allowed by robots.txt: {url}")
             return {
@@ -271,7 +347,10 @@ class ResourceIndexer:
                 }
 
                 response = requests.get(
-                    url, headers=headers, timeout=IndexerConfig.SCRAPE_TIMEOUT, allow_redirects=True
+                    url,
+                    headers=headers,
+                    timeout=IndexerConfig.SCRAPE_TIMEOUT,
+                    allow_redirects=False,
                 )
                 response.raise_for_status()
 
@@ -383,10 +462,13 @@ class ResourceIndexer:
             card_id = card["id"]
             name = card["name"]
             website_url = card.get("website_url", "")
-            normalized_website_url = self._normalize_page_url(website_url) or website_url
+            normalized_website_url = self._normalize_page_url(website_url)
 
             if not website_url:
                 logger.info(f"Skipping card {card_id} ({name}): No website URL")
+                return
+            if not normalized_website_url:
+                logger.info(f"Skipping card {card_id} ({name}): Invalid website URL")
                 return
 
             logger.info(f"Indexing card {card_id}: {name} - {website_url}")

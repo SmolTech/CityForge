@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from django.db.utils import OperationalError
 from django.template import Context
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 
 from apps.accounts.models import TokenBlacklist, User
 from apps.classifieds.models import HelpWantedComment, HelpWantedPost
@@ -482,7 +482,7 @@ class BootstrapModuleTests(TestCase):
         urls_module = importlib.import_module("cityforge.urls")
         self.assertIsNotNone(asgi_module.application)
         self.assertIsNotNone(wsgi_module.application)
-        self.assertTrue(any(str(p.pattern) == "api/cards" for p in urls_module.urlpatterns))
+        self.assertTrue(any(str(p.pattern) == "api/cards/" for p in urls_module.urlpatterns))
         self.assertTrue(any(str(p.pattern) == "api/health" for p in urls_module.urlpatterns))
 
     def test_health_endpoint_returns_ok(self) -> None:
@@ -563,3 +563,43 @@ class FixImportedPasswordsTests(TestCase):
             self.assertTrue(user.password.startswith("bcrypt$"))
         finally:
             tmp_path.unlink(missing_ok=True)
+
+
+class MediaRouteTests(TestCase):
+    @override_settings(DEBUG=False)
+    def test_media_file_returns_404_in_production(self) -> None:
+        """Django's development file server must refuse requests when DEBUG=False."""
+        response = self.client.get("/media/test.txt")
+        self.assertEqual(response.status_code, 404)
+
+
+class SiteConfigApiTests(TestCase):
+    def test_api_site_config_returns_public_config(self) -> None:
+        from apps.resources.models import QuickAccessItem, ResourceItem
+
+        ResourceItem.objects.create(
+            title="Clinic",
+            url="https://clinic.example",
+            description="Community clinic",
+            category="Health",
+            icon="hospital",
+            is_active=True,
+        )
+        QuickAccessItem.objects.create(
+            identifier="hotline",
+            title="Hotline",
+            subtitle="24/7",
+            phone="5551234",
+            color="red",
+            icon="phone",
+            is_active=True,
+        )
+
+        response = self.client.get("/api/site-config")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("site", data)
+        self.assertIn("quickAccess", data)
+        self.assertIn("resourceItems", data)
+        self.assertEqual(len(data["quickAccess"]), 1)
+        self.assertEqual(len(data["resourceItems"]), 1)

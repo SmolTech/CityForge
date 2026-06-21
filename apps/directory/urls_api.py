@@ -11,4 +11,6 @@ urlpatterns = [
     path("tags/", views.api_tags, name="tags_api_slash"),
     path("<int:pk>/suggest-edit", views.api_suggest_edit, name="suggest_edit_api"),
     path("<int:pk>/suggest-edit/", views.api_suggest_edit, name="suggest_edit_api_slash"),
+    path("<int:pk>/reviews", views.api_card_reviews, name="card_reviews_api"),
+    path("<int:pk>/reviews/", views.api_card_reviews, name="card_reviews_api_slash"),
 ]

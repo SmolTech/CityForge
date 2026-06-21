@@ -26,12 +26,17 @@ urlpatterns = [
     path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     # Health & API endpoints
     path("api/health", core_views.health, name="health"),
+    path("api/site-config", core_views.api_site_config, name="site_config_api"),
+    path("api/site-config/", core_views.api_site_config, name="site_config_api_slash"),
     path("api/auth/", include(("apps.accounts.urls_api", "accounts_api"))),
-    path("api/cards", include(("apps.directory.urls_api", "directory_api"))),
+    path("api/cards/", include(("apps.directory.urls_api", "directory_api"))),
     path("api/cards/search/", directory_views.api_opensearch, name="cards_search"),
     path("api/tags", directory_views.api_tags, name="tags_api"),
     path("api/tags/", directory_views.api_tags, name="tags_api_slash"),
     path("api/events", include(("apps.events.urls_api", "events_api"))),
+    path("api/resources/", include(("apps.resources.urls_api", "resources_api"))),
+    path("api/search", directory_views.api_search, name="search_api"),
+    path("api/search/", directory_views.api_search, name="search_api_slash"),
     path(
         "api/cards/<int:pk>/suggest-edit",
         directory_views.api_suggest_edit,

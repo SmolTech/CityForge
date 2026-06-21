@@ -24,8 +24,8 @@ spec:
         component: web
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/path: "/api/metrics"
-        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/health"
+        prometheus.io/port: "8000"
         prometheus.io/scheme: "http"
     spec:
       securityContext:
@@ -114,12 +114,10 @@ spec:
           imagePullPolicy: Always
           # Use startup script to construct DATABASE_URL at runtime
           ports:
-            - containerPort: 3000
+            - containerPort: 8000
           env:
-            - name: NODE_ENV
-              value: "production"
             - name: PORT
-              value: "3000"
+              value: "8000"
             - name: DJANGO_DEBUG
               valueFrom:
                 configMapKeyRef:
@@ -306,7 +304,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /api/health
-              port: 3000
+              port: 8000
               httpHeaders:
                 - name: Host
                   value: localhost
@@ -317,7 +315,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /api/health
-              port: 3000
+              port: 8000
               httpHeaders:
                 - name: Host
                   value: localhost

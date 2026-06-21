@@ -14,6 +14,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 from PIL import Image
 
+from apps.accounts.auth import issue_mobile_auth_token
 from apps.accounts.models import User
 from apps.directory.models import (
     Card,
@@ -168,7 +169,7 @@ class DirectoryViewTests(TestCase):
     )
     def test_cards_api_allows_internal_service_host(self) -> None:
         response = self.client.get(
-            "/api/cards",
+            "/api/cards/",
             {"limit": "10"},
             HTTP_HOST="cityforge-service.cityforge",
             HTTP_X_FORWARDED_PROTO="https",
@@ -178,7 +179,7 @@ class DirectoryViewTests(TestCase):
         self.assertEqual(len(response.json()["cards"]), 2)
 
     def test_cards_api_includes_tags_and_supports_tag_filter(self) -> None:
-        response = self.client.get("/api/cards", {"tags": "coffee"})
+        response = self.client.get("/api/cards/", {"tags": "coffee"})
 
         self.assertEqual(response.status_code, 200)
         cards = response.json()["cards"]
@@ -495,3 +496,126 @@ class DirectoryViewTests(TestCase):
                 self.assertTrue(submission.image_url.startswith("/media/business-submissions/"))
                 saved_path = Path(media_root) / submission.image_url.removeprefix("/media/")
                 self.assertTrue(saved_path.exists())
+
+
+class DirectoryApiBearerAuthTests(TestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            "bearer@example.com",
+            "BearerPass!123",
+            first_name="Bearer",
+            last_name="User",
+            email_verified=True,
+        )
+        self.token = issue_mobile_auth_token(self.user)
+
+    def _auth_header(self) -> dict[str, str]:
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
+
+    def test_api_submissions_accepts_bearer_token(self) -> None:
+        response = self.client.get("/api/submissions", **self._auth_header())  # type: ignore[arg-type]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_api_submissions_rejects_anonymous(self) -> None:
+        response = self.client.get("/api/submissions")
+        self.assertEqual(response.status_code, 401)
+
+    def test_api_suggest_edit_accepts_bearer_token(self) -> None:
+        card = Card.objects.create(name="Suggestable", approved=True)
+        response = self.client.post(
+            f"/api/cards/{card.pk}/suggest-edit",
+            data=json.dumps(
+                {
+                    "name": "Suggested Name",
+                    "description": "Suggested description",
+                    "tagsText": "coffee",
+                }
+            ),
+            content_type="application/json",
+            **self._auth_header(),  # type: ignore[arg-type]
+        )
+        self.assertEqual(response.status_code, 201)
+        modification = CardModification.objects.get(card=card)
+        self.assertEqual(modification.submitter, self.user)
+
+
+class DirectorySearchApiTests(TestCase):
+    def test_api_search_returns_matching_cards(self) -> None:
+        Card.objects.create(name="Alpha Coffee", approved=True, description="Great coffee")
+        Card.objects.create(name="Beta Bakery", approved=True, description="Fresh bread")
+        Card.objects.create(name="Hidden", approved=False, description="Great coffee")
+
+        response = self.client.get("/api/search?q=coffee")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["title"], "Alpha Coffee")
+        self.assertEqual(data[0]["score"], 1.0)
+
+    def test_api_search_empty_query(self) -> None:
+        response = self.client.get("/api/search")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+
+class CardReviewApiTests(TestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            "reviewer@example.com",
+            "ReviewPass!123",
+            first_name="Review",
+            last_name="User",
+            email_verified=True,
+        )
+        self.card = Card.objects.create(name="Reviewable Cafe", approved=True)
+
+    def test_list_reviews_with_summary(self) -> None:
+        Review.objects.create(card=self.card, user=self.user, rating=5, title="Great")
+        Review.objects.create(
+            card=self.card,
+            user=User.objects.create_user(
+                "other@example.com", "OtherPass!123", first_name="Other", last_name="User"
+            ),
+            rating=3,
+        )
+        Review.objects.create(card=self.card, user=self.user, rating=1, hidden=True)
+
+        response = self.client.get(f"/api/cards/{self.card.pk}/reviews")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["reviews"]), 2)
+        self.assertEqual(data["summary"]["total_reviews"], 2)
+        self.assertEqual(data["summary"]["average_rating"], 4.0)
+        self.assertEqual(data["summary"]["rating_distribution"]["5"], 1)
+        self.assertEqual(data["summary"]["rating_distribution"]["3"], 1)
+
+    def test_create_review_requires_auth(self) -> None:
+        response = self.client.post(
+            f"/api/cards/{self.card.pk}/reviews",
+            data=json.dumps({"rating": 5}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_create_review(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            f"/api/cards/{self.card.pk}/reviews",
+            data=json.dumps({"rating": 4, "title": "Good", "comment": "Nice place"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["rating"], 4)
+        self.assertEqual(data["title"], "Good")
+        self.assertEqual(Review.objects.filter(card=self.card).count(), 1)
+
+    def test_create_review_invalid_rating(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.post(
+            f"/api/cards/{self.card.pk}/reviews",
+            data=json.dumps({"rating": 6}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)

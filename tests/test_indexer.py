@@ -194,3 +194,58 @@ def test_create_index_updates_mapping_when_index_exists() -> None:
     mapping_body = indexer.client.indices.put_mapping.call_args.kwargs["body"]
     assert "business_name" in mapping_body["properties"]
     assert "tags" in mapping_body["properties"]
+
+
+def test_scrape_page_content_blocks_private_ips() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+
+    with patch.object(
+        module.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("192.168.1.1", 0))]
+    ):
+        scraped = indexer.scrape_page_content("http://example.com/")
+
+    assert scraped["content"] == ""
+    assert scraped["links"] == []
+
+
+def test_scrape_page_content_blocks_loopback() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+
+    scraped = indexer.scrape_page_content("http://localhost/admin")
+    assert scraped["content"] == ""
+    assert scraped["links"] == []
+
+
+def test_scrape_page_content_blocks_cloud_metadata() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+
+    with patch.object(
+        module.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("169.254.169.254", 0))]
+    ):
+        scraped = indexer.scrape_page_content("http://169.254.169.254/latest/meta-data/")
+
+    assert scraped["content"] == ""
+    assert scraped["links"] == []
+
+
+def test_scrape_page_content_does_not_follow_redirects() -> None:
+    module = _load_indexer_module()
+    indexer = module.ResourceIndexer(use_tracking=False)
+    response = Mock()
+    response.url = "https://example.com/"
+    response.text = "<html><body>OK</body></html>"
+    response.raise_for_status.return_value = None
+
+    with (
+        patch.object(indexer, "is_url_allowed", return_value=True),
+        patch.object(
+            module.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 0))]
+        ),
+        patch.object(module.requests, "get", return_value=response) as mocked_get,
+    ):
+        indexer.scrape_page_content("https://example.com/")
+
+    assert mocked_get.call_args.kwargs["allow_redirects"] is False
