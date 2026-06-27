@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cityforge-nginx-config
+  namespace: cityforge
+  labels:
+    app: cityforge
+    component: web
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        root /var/www/html;
+        client_max_body_size 20M;
+
+        # Serve user-uploaded media directly from the shared PVC.
+        # The PVC is mounted at /app/uploads in the container.
+        location /media/ {
+            alias /app/uploads/;
+            expires 30d;
+            add_header Cache-Control "public, max-age=2592000, immutable" always;
+            try_files $uri $uri/ =404;
+        }
+
+        # Proxy all other requests to Django/Gunicorn on localhost.
+        location / {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Port $server_port;
+            proxy_redirect off;
+        }
+    }

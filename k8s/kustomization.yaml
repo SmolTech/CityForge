@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - storageclass-retain.yaml
   - config.yaml
+  - nginx-config.yaml
   - deployment.yaml
   - service.yaml
   - redis.yaml

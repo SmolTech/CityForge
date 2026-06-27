@@ -18,7 +18,15 @@ spec:
     - host: "cityforge.cityforge"
       http:
         paths:
-          # All traffic now goes to Next.js service (includes both UI and API routes)
+          # Uploaded media is served directly by the nginx sidecar from the PVC.
+          - path: /media/
+            pathType: Prefix
+            backend:
+              service:
+                name: cityforge-service
+                port:
+                  number: 80
+          # All other traffic goes to Django via the nginx sidecar.
           - path: /
             pathType: Prefix
             backend:
@@ -29,7 +37,15 @@ spec:
     - host: "www.cityforge.cityforge"
       http:
         paths:
-          # All traffic now goes to Next.js service (includes both UI and API routes)
+          # Uploaded media is served directly by the nginx sidecar from the PVC.
+          - path: /media/
+            pathType: Prefix
+            backend:
+              service:
+                name: cityforge-service
+                port:
+                  number: 80
+          # All other traffic goes to Django via the nginx sidecar.
           - path: /
             pathType: Prefix
             backend:

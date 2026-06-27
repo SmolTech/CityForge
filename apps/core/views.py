@@ -72,8 +72,8 @@ def api_site_config(request: HttpRequest) -> JsonResponse:
 def media_file(request: HttpRequest, path: str) -> HttpResponse | FileResponse:
     """Serve user-uploaded media. Only intended for development (DEBUG=True).
 
-    In production, configure your reverse proxy or CDN to serve MEDIA_ROOT
-    directly and avoid routing media requests through Django.
+    In production the Kubernetes nginx sidecar serves MEDIA_ROOT directly
+    from the shared PVC so media requests never hit Django.
     """
     if not settings.DEBUG:
         return HttpResponse("Not found.", status=404)

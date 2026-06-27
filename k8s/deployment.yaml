@@ -329,7 +329,53 @@ spec:
               memory: "384Mi" # Increased from 256Mi since container now handles both frontend and backend
             limits:
               memory: "1.5Gi" # Increased from 1Gi for safety margin
+        # Nginx sidecar serves user-uploaded media directly from the shared PVC
+        # and proxies all other requests to Django/Gunicorn on localhost:8000.
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 1001
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cityforge-uploads
+              mountPath: /app/uploads
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            # nginx needs writable cache/run directories even with a read-only root fs.
+            - name: nginx-tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "128Mi"
       volumes:
         - name: cityforge-uploads
           persistentVolumeClaim:
             claimName: cityforge-uploads-pvc
+        - name: nginx-config
+          configMap:
+            name: cityforge-nginx-config
+        - name: nginx-tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
