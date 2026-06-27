@@ -62,7 +62,7 @@ function buildFingerprint(events: CommunityCalendarEvent[]): string {
 
 function buildEvent(
   event: CommunityCalendarEvent
-): Omit<Partial<Calendar.Event>, "id" | "organizer"> {
+): Partial<Calendar.ExpoCalendarEvent> {
   const startDate = new Date(event.start_at);
   const endDate = new Date(event.end_at || event.start_at);
   return {
@@ -114,12 +114,7 @@ async function checkCalendarPermission(prompt: boolean): Promise<boolean> {
     return false;
   }
 
-  const available = await Calendar.isAvailableAsync();
-  if (!available) {
-    return false;
-  }
-
-  const current = await Calendar.getCalendarPermissionsAsync();
+  const current = await Calendar.getCalendarPermissions();
   if (current.granted) {
     return true;
   }
@@ -128,14 +123,13 @@ async function checkCalendarPermission(prompt: boolean): Promise<boolean> {
     return false;
   }
 
-  const request = await Calendar.requestCalendarPermissionsAsync();
+  const request = await Calendar.requestCalendarPermissions();
   return request.granted;
 }
 
-async function getCalendarSource(): Promise<Calendar.Source> {
+function getCalendarSource(): Calendar.Source {
   if (Platform.OS === "ios") {
-    const defaultCalendar = await Calendar.getDefaultCalendarAsync();
-    return defaultCalendar.source;
+    return Calendar.getDefaultCalendarSync().source;
   }
 
   return {
@@ -147,7 +141,7 @@ async function getCalendarSource(): Promise<Calendar.Source> {
 
 async function ensureCalendar(instanceId: string, calendarId: string | null): Promise<string> {
   const desiredTitle = `CityForge Community Calendar ${instanceId.slice(0, 8)}`;
-  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
   const existing =
     (calendarId ? calendars.find((calendar) => calendar.id === calendarId) : undefined) ??
     calendars.find((calendar) => calendar.title === desiredTitle);
@@ -155,32 +149,33 @@ async function ensureCalendar(instanceId: string, calendarId: string | null): Pr
     return existing.id;
   }
 
-  const source = await getCalendarSource();
-  if (Platform.OS === "ios") {
-    return Calendar.createCalendarAsync({
-      title: desiredTitle,
-      name: desiredTitle,
-      color: "#3b82f6",
-      entityType: Calendar.EntityTypes.EVENT,
-      sourceId: source.id,
-      source,
-      ownerAccount: "personal",
-      accessLevel: Calendar.CalendarAccessLevel.OWNER,
-    });
-  }
-
-  return Calendar.createCalendarAsync({
-    title: desiredTitle,
-    name: desiredTitle,
-    color: "#3b82f6",
-    entityType: Calendar.EntityTypes.EVENT,
-    source,
-    ownerAccount: "personal",
-    accessLevel: Calendar.CalendarAccessLevel.OWNER,
-    isSynced: true,
-    isVisible: true,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  });
+  const source = getCalendarSource();
+  const calendar = await Calendar.createCalendar(
+    Platform.OS === "ios"
+      ? {
+          title: desiredTitle,
+          name: desiredTitle,
+          color: "#3b82f6",
+          entityType: Calendar.EntityTypes.EVENT,
+          sourceId: source.id,
+          source,
+          ownerAccount: "personal",
+          accessLevel: Calendar.CalendarAccessLevel.OWNER,
+        }
+      : {
+          title: desiredTitle,
+          name: desiredTitle,
+          color: "#3b82f6",
+          entityType: Calendar.EntityTypes.EVENT,
+          source,
+          ownerAccount: "personal",
+          accessLevel: Calendar.CalendarAccessLevel.OWNER,
+          isSynced: true,
+          isVisible: true,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }
+  );
+  return calendar.id;
 }
 
 export async function getCommunityCalendarSyncEnabled(
@@ -231,6 +226,7 @@ export async function syncCommunityCalendar(
   }
 
   const calendarId = await ensureCalendar(instanceId, state.calendarId);
+  const calendar = await Calendar.ExpoCalendar.get(calendarId);
   const currentEventIds = new Set<string>();
   let created = 0;
   let updated = 0;
@@ -245,7 +241,8 @@ export async function syncCommunityCalendar(
 
     if (calendarEventId) {
       try {
-        await Calendar.updateEventAsync(calendarEventId, details);
+        const existing = new Calendar.ExpoCalendarEvent(calendarEventId);
+        await existing.update(details);
         updated += 1;
         continue;
       } catch (error) {
@@ -255,8 +252,8 @@ export async function syncCommunityCalendar(
     }
 
     try {
-      const newEventId = await Calendar.createEventAsync(calendarId, details);
-      eventIdsByEventId[eventId] = newEventId;
+      const newEvent = await calendar.createEvent(details);
+      eventIdsByEventId[eventId] = newEvent.id;
       created += 1;
     } catch (error) {
       logger.error(`Creating calendar event failed for event ${event.id}:`, error);
@@ -270,7 +267,8 @@ export async function syncCommunityCalendar(
     }
 
     try {
-      await Calendar.deleteEventAsync(calendarEventId);
+      const staleEvent = new Calendar.ExpoCalendarEvent(calendarEventId);
+      await staleEvent.delete();
       deleted += 1;
       delete eventIdsByEventId[eventId];
     } catch (error) {

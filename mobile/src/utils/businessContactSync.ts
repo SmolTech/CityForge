@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import * as Contacts from "expo-contacts";
+import type { CreateContactRecord } from "expo-contacts";
 import type { Card } from "../types/api";
 import { logger } from "./logger";
 import {
@@ -59,11 +60,9 @@ function buildFingerprint(cards: Card[]): string {
   return hash.toString(16);
 }
 
-function buildContact(card: Card): Contacts.Contact {
-  const urlAddresses: Contacts.UrlAddress[] = [];
-  const contact: Contacts.Contact = {
-    contactType: Contacts.ContactTypes.Company,
-    name: card.name,
+function buildContact(card: Card): CreateContactRecord {
+  const urlAddresses: { label: string; url: string }[] = [];
+  const record: CreateContactRecord = {
     company: card.name,
   };
 
@@ -76,19 +75,19 @@ function buildContact(card: Card): Contacts.Contact {
   }
 
   if (card.phone) {
-    contact.phoneNumbers = [{ label: "work", number: card.phone }];
+    record.phones = [{ label: "work", number: card.phone }];
   }
   if (card.email) {
-    contact.emails = [{ label: "work", email: card.email }];
+    record.emails = [{ label: "work", address: card.email }];
   }
   if (card.address) {
-    contact.addresses = [{ label: "work", street: card.address }];
+    record.addresses = [{ label: "work", street: card.address }];
   }
   if (urlAddresses.length > 0) {
-    contact.urlAddresses = urlAddresses;
+    record.urlAddresses = urlAddresses;
   }
 
-  return contact;
+  return record;
 }
 
 async function loadState(instanceId: string): Promise<SyncState> {
@@ -209,10 +208,8 @@ export async function syncBusinessesToContacts(
 
     if (knownContactId) {
       try {
-        await Contacts.updateContactAsync({
-          id: knownContactId,
-          ...contact,
-        });
+        const existing = new Contacts.Contact(knownContactId);
+        await existing.update(contact);
         updated += 1;
         continue;
       } catch (error) {
@@ -221,8 +218,8 @@ export async function syncBusinessesToContacts(
     }
 
     try {
-      const contactId = await Contacts.addContactAsync(contact);
-      contactIdsByBusinessId[businessId] = contactId;
+      const newContact = await Contacts.Contact.create(contact);
+      contactIdsByBusinessId[businessId] = newContact.id;
       created += 1;
     } catch (error) {
       logger.error(`Creating contact failed for business ${card.id}:`, error);

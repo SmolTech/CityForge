@@ -4,7 +4,7 @@ const { withDangerousMod } = require("expo/config-plugins");
 const fs = require("fs/promises");
 const path = require("path");
 
-const GRADLE_VERSION = "8.14.5";
+const GRADLE_VERSION = "9.3.1";
 
 function withLatestGradle(config) {
   return withDangerousMod(config, [

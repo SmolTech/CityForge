@@ -139,7 +139,7 @@ Add to GitHub repository secrets (Settings → Secrets → Actions):
 npm run android:build:local
 ```
 
-This local build path rewrites the generated Android wrapper to Gradle 8.14.5
+This local build path rewrites the generated Android wrapper to Gradle 9.3.1
 and expects a **Java 21 JDK**.
 
 EAS app versioning is set to `local`, so app store build numbers remain in the

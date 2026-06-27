@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "cityforge",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#3b82f6"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -65,7 +60,15 @@
         }
       ],
       "./plugins/withLatestGradle",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#3b82f6"
+        }
+      ]
     ],
     "extra": {
       "eas": {

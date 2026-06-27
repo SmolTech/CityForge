@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -90,26 +90,29 @@ export default function CalendarScreen() {
     } as const,
   }));
 
-  const loadEvents = async (refresh = false) => {
-    if (!refresh) {
-      setIsLoading(true);
-    }
-    try {
-      if (!activeInstance?.id) {
-        return;
+  const loadEvents = useCallback(
+    async (refresh = false) => {
+      if (!refresh) {
+        setIsLoading(true);
       }
-      apiClient.setBaseUrl(activeInstance.apiUrl);
-      const loaded = refresh
-        ? await refreshCommunityCalendar(activeInstance.id)
-        : await loadCommunityCalendar(activeInstance.id);
-      setEvents(loaded);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load events");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        if (!activeInstance?.id) {
+          return;
+        }
+        apiClient.setBaseUrl(activeInstance.apiUrl);
+        const loaded = refresh
+          ? await refreshCommunityCalendar(activeInstance.id)
+          : await loadCommunityCalendar(activeInstance.id);
+        setEvents(loaded);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load events");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [activeInstance?.apiUrl, activeInstance?.id]
+  );
 
   const { refreshControl } = useNetworkRefresh({
     onRefresh: async () => {
@@ -122,7 +125,7 @@ export default function CalendarScreen() {
       return;
     }
     void loadEvents(false);
-  }, [activeInstance?.apiUrl, activeInstance?.id, instancesLoading]);
+  }, [activeInstance?.id, instancesLoading, loadEvents]);
 
   const renderSkeleton = () => (
     <View style={styles.card}>
