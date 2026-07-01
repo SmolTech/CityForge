@@ -432,13 +432,15 @@ def login_view(request: HttpRequest) -> HttpResponse:
             else:
                 login(request, user)
                 next_url = request.GET.get("next")
-                if not url_has_allowed_host_and_scheme(
+                if next_url and url_has_allowed_host_and_scheme(
                     next_url,
                     allowed_hosts={request.get_host()},
                     require_https=request.is_secure(),
                 ):
-                    next_url = reverse("directory:home")
-                return redirect(next_url or "directory:home")
+                    safe_next_url = next_url
+                else:
+                    safe_next_url = reverse("directory:home")
+                return redirect(safe_next_url)
     else:
         form = LoginForm()
     return render(request, "accounts/login.html", {"form": form})
