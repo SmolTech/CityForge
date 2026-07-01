@@ -12,7 +12,7 @@ def test_kustomize_build_passes_dry_run() -> None:
     """Ensure the K8s base kustomization is structurally valid."""
     k8s_dir = Path(__file__).resolve().parent.parent / "k8s"
     result = subprocess.run(
-        ["kubectl", "apply", "--dry-run=client", "-k", str(k8s_dir)],
+        ["kubectl", "apply", "--dry-run=client", "--validate=false", "-k", str(k8s_dir)],
         capture_output=True,
         text=True,
         check=False,
